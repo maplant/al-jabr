@@ -14,9 +14,12 @@
 //! When it is possible to specialize and make more safe implementations, that
 //! is done instead.
 //!
+//! Almost all of the unsafe code here could be made safe if I added one or two
+//! sensible trait bounds to their funcs. I should probably do that.
+//!
 //! The performance of Aljabar is currently probably pretty bad. I have yet to
 //! test it, but let's just say I haven't gotten very far on the matrix
-//! multiplication page on wikipedia. 
+//! multiplication page on wikipedia.
 
 #![feature(const_generics)]
 #![feature(trivial_bounds)]
@@ -159,15 +162,15 @@ impl_one!{ u128 }
 impl_one!{ usize }
 
 /// Types that have an exact square root.
-pub trait Sqrt {
+pub trait Real {
     fn sqrt(self) -> Self;
 }
 
-impl Sqrt for f32 {
+impl Real for f32 {
     fn sqrt(self) -> Self { self.sqrt() }
 }
 
-impl Sqrt for f64 {
+impl Real for f64 {
     fn sqrt(self) -> Self { self.sqrt() }
 }
 
@@ -495,7 +498,7 @@ where
 
 /// A type with a distance function between two values.
 pub trait MetricSpace: Sized {
-    type Metric: Sqrt;
+    type Metric: Real;
 
     /// Returns the distance squared between the two values.
     fn distance2(self, other: Self) -> Self::Metric;
@@ -509,7 +512,7 @@ pub trait MetricSpace: Sized {
 impl<T, const N: usize> MetricSpace for Vector<T, {N}>
 where
     Self: InnerSpace,
-    <Self as VectorSpace>::Scalar: Sqrt,
+    <Self as VectorSpace>::Scalar: Real,
 {
     type Metric = <Self as VectorSpace>::Scalar;
 
@@ -523,7 +526,7 @@ pub trait InnerSpace: VectorSpace
 where
     Self: Clone,
     Self: MetricSpace<Metric = <Self as VectorSpace>::Scalar>,
-    <Self as VectorSpace>::Scalar: Sqrt,
+    <Self as VectorSpace>::Scalar: Real,
 {
     /// Return the inner (also known as "dot") product.
     fn dot(self, other: Self) -> Self::Scalar;
@@ -561,7 +564,7 @@ where
 
 impl<T, const N: usize> InnerSpace for Vector<T, {N}>
 where
-    T: Clone + Zero + Sqrt,
+    T: Clone + Zero + Real,
     T: Add<T, Output = T>,
     T: Sub<T, Output = T>,
     T: Mul<T, Output = T>,
@@ -571,16 +574,16 @@ where
     T: AddAssign<T>,
     Self: Clone, 
 {
-    fn dot(mut self, mut other: Self) -> T {
-        let mut res = <T as Zero>::zero();
+    fn dot(mut self, mut rhs: Self) -> T {
+        let mut sum = <T as Zero>::zero();
         for i in 0..N {
-            res +=
+            sum +=
                 mem::replace(&mut self.0[i], unsafe { mem::uninitialized() }) *
-                mem::replace(&mut other.0[i], unsafe { mem::uninitialized() });
+                mem::replace(&mut rhs.0[i], unsafe { mem::uninitialized() });
         }
         mem::forget(self);
-        mem::forget(other);
-        res
+        mem::forget(rhs);
+        sum
     }
 }
 
@@ -607,15 +610,40 @@ where
     T: Copy
 {}
 
-
-impl<T, const N: usize, const M: usize, const P: usize> Mul<Matrix<T, {M}, {P}>> for Matrix<T, {M}, {N}>
+impl<T, const N: usize, const M: usize, const P: usize> Mul<Matrix<T, {M}, {P}>> for Matrix<T, {N}, {M}>
 where
-    T: Add<T, Output = T> + Mul<T, Output = T>,
+    T: Add<T, Output = T> + Mul<T, Output = T> + Real + Clone,
+    Vector<T, {M}>: InnerSpace,
+// The very interesting thing about the type system is that if it doesn't
+// believe you, you can always add more constraints :-)
+    <Vector<T, {M}> as VectorSpace>::Scalar: Real,
 {
-    type Output = Matrix<T, {N}, {P}>;
+    type Output = Matrix<<Vector<T, {M}> as VectorSpace>::Scalar, {N}, {P}>;
 
     fn mul(self, rhs: Matrix<T, {M}, {P}>) -> Self::Output {
-        unimplemented!()
+        // It might not seem that Rust's type system is helping me at all here,
+        // but that's absolutely not true. I got the arrays iterations wrong on
+        // the first try and Rust was nice enough to inform me of that fact.
+        let mut mat: [Vector<<Vector<T, {M}> as VectorSpace>::Scalar, {N}>; {P}] = unsafe { mem::uninitialized() };
+        // There's a lesson here... about how these index variables should be
+        // named better.
+        for i in 0..P {
+            let mut column: [<Vector<T, {M}> as VectorSpace>::Scalar; {N}] = unsafe { mem::uninitialized() };
+            for j in 0..N {
+                // Fetch the current row
+                let mut row: [T; {M}] = unsafe { mem::uninitialized() };
+                for k in 0..M {
+                    // No way on god's green earth are these bounds going to be
+                    // checked correctly. 
+                    mem::forget(mem::replace(&mut row[k], self.0[k].0[j].clone()));
+                }
+                let row = Vector::<T, {M}>::from(row);
+                mem::forget(mem::replace(&mut column[j], row.dot(rhs.0[i].clone())))
+            }
+            let column = Vector::<<Vector<T, {M}> as VectorSpace>::Scalar, {N}>(column);
+            mem::forget(mem::replace(&mut mat[i], column));
+        }
+        Matrix::<<Vector<T, {M}> as VectorSpace>::Scalar, {N}, {P}>(mat)
     }
 }
 
