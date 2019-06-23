@@ -15,11 +15,12 @@
 //! is done instead.
 //!
 //! Almost all of the unsafe code here could be made safe if I added one or two
-//! sensible trait bounds to their funcs. I should probably do that.
+//! sensible trait bounds to their functions. I should probably do that.
 //!
 //! The performance of Aljabar is currently probably pretty bad. I have yet to
 //! test it, but let's just say I haven't gotten very far on the matrix
 //! multiplication page on wikipedia.
+//!
 
 #![feature(const_generics)]
 #![feature(trivial_bounds)]
@@ -476,8 +477,12 @@ where
     Self: Mul<<Self as VectorSpace>::Scalar, Output = Self>,
     Self: Div<<Self as VectorSpace>::Scalar, Output = Self>,
 {
-    type Scalar: Div<Self::Scalar, Output = Self::Scalar>;
-
+    // I only need Div, but I felt like I had to add them all...
+    type Scalar: Add<Self::Scalar, Output = Self::Scalar> +
+        Sub<Self::Scalar, Output = Self::Scalar> +
+        Mul<Self::Scalar, Output = Self::Scalar> +
+        Div<Self::Scalar, Output = Self::Scalar>;
+    
     fn lerp(self, other: Self, amount: Self::Scalar) -> Self;
 }
 
@@ -498,21 +503,32 @@ where
 
 /// A type with a distance function between two values.
 pub trait MetricSpace: Sized {
-    type Metric: Real;
+    type Metric;
 
     /// Returns the distance squared between the two values.
     fn distance2(self, other: Self) -> Self::Metric;
+}
 
+/// A metric spaced where the metric is a real number.
+pub trait RealMetricSpace: MetricSpace
+where
+    Self::Metric: Real,
+{
     /// Returns the distance between the two values.
     fn distance(self, other: Self) -> Self::Metric {
         self.distance2(other).sqrt()
     }
 }
 
+impl<T> RealMetricSpace for T
+where
+    T: MetricSpace,
+    <T as MetricSpace>::Metric: Real
+{}
+
 impl<T, const N: usize> MetricSpace for Vector<T, {N}>
 where
     Self: InnerSpace,
-    <Self as VectorSpace>::Scalar: Real,
 {
     type Metric = <Self as VectorSpace>::Scalar;
 
@@ -526,7 +542,6 @@ pub trait InnerSpace: VectorSpace
 where
     Self: Clone,
     Self: MetricSpace<Metric = <Self as VectorSpace>::Scalar>,
-    <Self as VectorSpace>::Scalar: Real,
 {
     /// Return the inner (also known as "dot") product.
     fn dot(self, other: Self) -> Self::Scalar;
@@ -535,7 +550,16 @@ where
     fn magnitude2(self) -> Self::Scalar {
         self.clone().dot(self)
     }
+}
 
+/// Defines an InnerSpace where the Scalar is a real number. Automatically
+/// implemented.
+pub trait RealInnerSpace: InnerSpace
+where
+    Self: Clone,
+    Self: MetricSpace<Metric = <Self as VectorSpace>::Scalar>,
+    <Self as VectorSpace>::Scalar: Real,
+{
     /// Returns the length of the vector.
     fn magnitude(self) -> Self::Scalar {
         self.clone().dot(self).sqrt()
@@ -562,9 +586,15 @@ where
     }
 }
 
+impl<T> RealInnerSpace for T
+where
+    T: InnerSpace,
+    <T as VectorSpace>::Scalar: Real
+{}
+
 impl<T, const N: usize> InnerSpace for Vector<T, {N}>
 where
-    T: Clone + Zero + Real,
+    T: Clone + Zero,
     T: Add<T, Output = T>,
     T: Sub<T, Output = T>,
     T: Mul<T, Output = T>,
@@ -590,10 +620,72 @@ where
 /// An `N`-by-`M` Column Major matrix.
 pub struct Matrix<T, const N: usize, const M: usize>([Vector<T, {N}>; {M}]);
 
+/// A 1-by-1 square matrix.
+pub type Mat1x1<T> = Matrix<T, 1, 1>;
+
+/// A 2-by-2 square matrix.
+pub type Mat2x2<T> = Matrix<T, 2, 2>;
+
+/// A 3-by-3 square matrix.
+pub type Mat3x3<T> = Matrix<T, 3, 3>;
+
+/// A 4-by-4 square matrix.
+pub type Mat4x4<T> = Matrix<T, 4, 4>;
+
 impl<T, const N: usize, const M: usize> From<[Vector<T, {N}>; {M}]> for Matrix<T, {N}, {M}> {
     fn from(array: [Vector<T, {N}>; {M}]) -> Self {
         Matrix::<T, {N}, {M}>(array)
     }
+}
+
+/// Returns, uh, a 1-by-1 square matrix.
+///
+/// I mean, I use it for testing, so I think it's kind of cool.
+pub fn mat1x1<T>(
+    x00: T,
+) -> Mat1x1<T> {
+    Matrix::<T, 1, 1>([ Vector::<T, 1>([ x00 ]) ])
+}
+
+/// Returns a 2-by-2 square matrix. Although matrices are stored column wise,
+/// the order of arguments is row by row, as a matrix would be typically
+/// displayed.
+pub fn mat2x2<T>(
+    x00: T, x01: T,
+    x10: T, x11: T,
+) -> Mat2x2<T> {
+    Matrix::<T, 2, 2>(
+        [ Vector::<T, 2>([ x00, x10 ]),
+          Vector::<T, 2>([ x01, x11 ]),  ]
+    )
+}
+
+/// Returns a 3-by-3 square matrix.
+pub fn mat3x3<T>(
+    x00: T, x01: T, x02: T,
+    x10: T, x11: T, x12: T,
+    x20: T, x21: T, x22: T,
+) -> Mat3x3<T> {
+    Matrix::<T, 3, 3>(
+        [ Vector::<T, 3>([ x00, x10, x20, ]),
+          Vector::<T, 3>([ x01, x11, x21, ]),  
+          Vector::<T, 3>([ x02, x12, x22, ]),  ]
+    )
+}
+
+/// Returns a 4-by-4 square matrix.
+pub fn mat4x4<T>(
+    x00: T, x01: T, x02: T, x03: T,
+    x10: T, x11: T, x12: T, x13: T,
+    x20: T, x21: T, x22: T, x23: T,
+    x30: T, x31: T, x32: T, x33: T,
+) -> Mat4x4<T> {
+    Matrix::<T, 4, 4>(
+        [ Vector::<T, 4>([ x00, x10, x20, x30 ]),
+          Vector::<T, 4>([ x01, x11, x21, x31 ]),  
+          Vector::<T, 4>([ x02, x12, x22, x32 ]),
+          Vector::<T, 4>([ x03, x13, x23, x33 ]) ]
+    )
 }
 
 impl<T, const N: usize, const M: usize> Clone for Matrix<T, {N}, {M}>
@@ -610,13 +702,57 @@ where
     T: Copy
 {}
 
+impl<T, const N: usize, const M: usize> Deref for Matrix<T, {N}, {M}> {
+    type Target = [Vector<T, {N}>; {M}];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T, const N: usize, const M: usize> DerefMut for Matrix<T, {N}, {M}> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<A, B, RHS, const N: usize, const M: usize> PartialEq<RHS> for Matrix<A, {N}, {M}>
+where
+    RHS: Deref<Target = [Vector<B, {N}>; {M}]>,
+    A: PartialEq<B>,
+{
+    fn eq(&self, other: &RHS) -> bool {
+        for (a, b) in self.0.iter().zip(other.deref().iter()) {
+            if !a.eq(b) {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+/// I'm not quite sure how to format the debug output for a matrix. 
+impl<T, const N: usize, const M: usize> fmt::Debug for Matrix<T, {N}, {M}>
+where
+    T: fmt::Debug
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Matrix [ ")?;
+        for i in 0..N {
+            write!(f, "[ ")?;
+            for j in 0..M {
+                write!(f, "{:?} ", self.0[j].0[i])?;
+            }
+            write!(f, "] ")?;
+        }
+        write!(f, "]")
+    }
+}
+
 impl<T, const N: usize, const M: usize, const P: usize> Mul<Matrix<T, {M}, {P}>> for Matrix<T, {N}, {M}>
 where
-    T: Add<T, Output = T> + Mul<T, Output = T> + Real + Clone,
+    T: Add<T, Output = T> + Mul<T, Output = T> + Clone,
     Vector<T, {M}>: InnerSpace,
-// The very interesting thing about the type system is that if it doesn't
-// believe you, you can always add more constraints :-)
-    <Vector<T, {M}> as VectorSpace>::Scalar: Real,
 {
     type Output = Matrix<<Vector<T, {M}> as VectorSpace>::Scalar, {N}, {P}>;
 
@@ -647,8 +783,27 @@ where
     }
 }
 
-/// Column Major square matrix.
-//pub struct SquareMatrix<T, const N: usize>([Vector<T, {N}>; N]);
+impl<T, const N: usize, const M: usize> Mul<Vector<T, {M}>> for Matrix<T, {N}, {M}>
+where
+    T: Add<T, Output = T> + Mul<T, Output = T> + Clone,
+    Vector<T, {M}>: InnerSpace,
+{
+    type Output = Vector<<Vector<T, {M}> as VectorSpace>::Scalar, {N}>;
+
+    fn mul(self, rhs: Vector<T, {M}>) -> Self::Output {
+        let mut column: [<Vector<T, {M}> as VectorSpace>::Scalar; {N}] = unsafe { mem::uninitialized() };
+        for j in 0..N {
+            // Fetch the current row
+            let mut row: [T; {M}] = unsafe { mem::uninitialized() };
+            for k in 0..M {
+                mem::forget(mem::replace(&mut row[k], self.0[k].0[j].clone()));
+            }
+            let row = Vector::<T, {M}>::from(row);
+            mem::forget(mem::replace(&mut column[j], row.dot(rhs.clone())))
+        }
+        Vector::<<Vector<T, {M}> as VectorSpace>::Scalar, {N}>(column)
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -706,11 +861,28 @@ mod tests {
 
     #[test]
     fn test_matrix_mult() {
-        // Removing the type signature here 
+        let a = Matrix::<f32, 2, 2>::from( [ vec2( 0.0, 0.0 ),
+                                             vec2( 1.0, 0.0 ) ] );
+        let b = Matrix::<f32, 2, 2>::from( [ vec2( 0.0, 1.0 ),
+                                             vec2( 0.0, 0.0 ) ] );
+        assert_eq!(a * b, mat2x2( 1.0, 0.0,
+                                  0.0, 0.0 ));
+        assert_eq!(b * a, mat2x2( 0.0, 0.0,
+                                  0.0, 1.0 ));
+        // Basic example:
+        let a: Matrix::<usize, 1, 1> = mat1x1( 1 );
+        let b: Matrix::<usize, 1, 1> = mat1x1( 2 );
+        let c: Matrix::<usize, 1, 1> = mat1x1( 2 );
+        assert_eq!(a * b, c);
+        // Removing the type signature here caused the compiler to crash.
+        // Since then I've been wary.
         let a = Matrix::<f32, 3, 3>::from( [ vec3( 1.0, 0.0, 0.0 ),
                                              vec3( 0.0, 1.0, 0.0 ),
                                              vec3( 0.0, 0.0, 1.0 ), ] );
         let b = a.clone();
         let c = a * b;
+        assert_eq!(c, mat3x3( 1.0, 0.0, 0.0,
+                              0.0, 1.0, 0.0,
+                              0.0, 0.0, 1.0 ));
     }
 }
