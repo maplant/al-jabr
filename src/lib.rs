@@ -393,12 +393,12 @@ where
     type Output = Vector<<T as Neg>::Output, {N}>;
 
     fn neg(mut self) -> Self::Output {
-        let mut out: [<T as Neg>::Output; {N}] = unsafe { mem::uninitialized() };
+        let mut vec: [<T as Neg>::Output; {N}] = unsafe { mem::uninitialized() };
         for i in 0..N {
-            out[i] = mem::replace(&mut self.0[i], unsafe { mem::uninitialized() }).neg();
+            vec[i] = mem::replace(&mut self.0[i], unsafe { mem::uninitialized() }).neg();
         }
         mem::forget(self);
-        Vector::<<T as Neg>::Output, {N}>(out)
+        Vector::<<T as Neg>::Output, {N}>(vec)
     }
 }
 
@@ -749,6 +749,109 @@ where
     }
 }
 
+/// Element-wise addition of two equal sized matrices.
+impl<A, B, const N: usize, const M: usize> Add<Matrix<B, {N}, {M}>> for Matrix<A, {N}, {M}>
+where
+    A: Add<B>,
+{
+    type Output = Matrix<<A as Add<B>>::Output, {N}, {M}>;
+
+    fn add(mut self, mut rhs: Matrix<B, {N}, {M}>) -> Self::Output {
+        let mut mat: [Vector<<A as Add<B>>::Output, {N}>; {M}] = unsafe { mem::uninitialized() };
+        for i in 0..M {
+            for j in 0..N {
+                mem::forget(
+                    mem::replace(
+                        &mut mat[i].0[j],
+                        mem::replace(&mut self.0[i].0[j], unsafe { mem::uninitialized() }) +
+                            mem::replace(&mut rhs.0[i].0[j], unsafe { mem::uninitialized() })
+                    )
+                )
+            }
+        }
+        mem::forget(self);
+        mem::forget(rhs);
+        Matrix::<<A as Add<B>>::Output, {N}, {M}>(mat)
+    }
+}
+
+impl<A, B, const N: usize, const M: usize> AddAssign<Matrix<B, {N}, {M}>> for Matrix<A, {N}, {M}>
+where
+    A: AddAssign<B>,
+{
+    fn add_assign(&mut self, mut rhs: Matrix<B, {N}, {M}>) {
+        for i in 0..M {
+            for j in 0..N {
+                self.0[i].0[j] += mem::replace(&mut rhs.0[i].0[j], unsafe { mem::uninitialized() });
+            }
+        }
+        mem::forget(rhs);
+    }
+}
+    
+/// Element-wise subtraction of two equal sized matrices.
+impl<A, B, const N: usize, const M: usize> Sub<Matrix<B, {N}, {M}>> for Matrix<A, {N}, {M}>
+where
+    A: Sub<B>,
+{
+    type Output = Matrix<<A as Sub<B>>::Output, {N}, {M}>;
+
+    fn sub(mut self, mut rhs: Matrix<B, {N}, {M}>) -> Self::Output {
+        let mut mat: [Vector<<A as Sub<B>>::Output, {N}>; {M}] = unsafe { mem::uninitialized() };
+        for i in 0..M {
+            for j in 0..N {
+                mem::forget(
+                    mem::replace(
+                        &mut mat[i].0[j],
+                        mem::replace(&mut self.0[i].0[j], unsafe { mem::uninitialized() }) -
+                            mem::replace(&mut rhs.0[i].0[j], unsafe { mem::uninitialized() })
+                    )
+                )
+            }
+        }
+        mem::forget(self);
+        mem::forget(rhs);
+        Matrix::<<A as Sub<B>>::Output, {N}, {M}>(mat)
+    }
+}
+
+impl<A, B, const N: usize, const M: usize> SubAssign<Matrix<B, {N}, {M}>> for Matrix<A, {N}, {M}>
+where
+    A: SubAssign<B>,
+{
+    fn sub_assign(&mut self, mut rhs: Matrix<B, {N}, {M}>) {
+        for i in 0..M {
+            for j in 0..N {
+                self.0[i].0[j] -= mem::replace(&mut rhs.0[i].0[j], unsafe { mem::uninitialized() });
+            }
+        }
+        mem::forget(rhs);
+    }
+}
+
+impl<T, const N: usize, const M: usize> Neg for Matrix<T, {N}, {M}>
+where
+    T: Neg
+{
+    type Output = Matrix<<T as Neg>::Output, {N}, {M}>;
+
+    fn neg(mut self) -> Self::Output {
+        let mut mat: [Vector<<T as Neg>::Output, {N}>; {M}] = unsafe { mem::uninitialized() };
+        for i in 0..M {
+            for j in 0..N {
+                mem::forget(
+                    mem::replace(
+                        &mut mat[i].0[j],
+                        mem::replace(&mut self.0[i].0[j], unsafe { mem::uninitialized() }).neg()
+                    )
+                )
+            }
+        }
+        mem::forget(self);
+        Matrix::<<T as Neg>::Output, {N}, {M}>(mat)
+    }
+}
+
 impl<T, const N: usize, const M: usize, const P: usize> Mul<Matrix<T, {M}, {P}>> for Matrix<T, {N}, {M}>
 where
     T: Add<T, Output = T> + Mul<T, Output = T> + Clone,
@@ -769,8 +872,6 @@ where
                 // Fetch the current row
                 let mut row: [T; {M}] = unsafe { mem::uninitialized() };
                 for k in 0..M {
-                    // No way on god's green earth are these bounds going to be
-                    // checked correctly. 
                     mem::forget(mem::replace(&mut row[k], self.0[k].0[j].clone()));
                 }
                 let row = Vector::<T, {M}>::from(row);
@@ -805,6 +906,50 @@ where
     }
 }
 
+impl<T, const N: usize, const M: usize> Matrix<T, {N}, {M}> {
+    /// Returns the transpose of the matrix. 
+    pub fn transpose(mut self) -> Matrix<T, {M}, {N}> {
+        let mut mat: [Vector<T, {M}>; {N}] = unsafe { mem::uninitialized() };
+        for j in 0..N {
+            // Fetch the current row
+            let mut row: [T; {M}] = unsafe { mem::uninitialized() };
+            for k in 0..M {
+                mem::forget(
+                    mem::replace(
+                        &mut row[k],
+                        mem::replace(
+                            &mut self.0[k].0[j],
+                            unsafe { mem::uninitialized() }
+                        )
+                    )
+                );
+            }
+            let row = Vector::<T, {M}>::from(row);
+            mem::forget(mem::replace(&mut mat[j], row));
+        }
+        Matrix::<T, {M}, {N}>(mat)
+    }
+}
+
+/// Defines a matrix with an equal number of elements in either dimension.
+///
+/// Square matrices can be added, subtracted, and multiplied indiscriminately
+/// together. This is a type constraint; only Matrices that are square are able
+/// to be multiplied by matrices of the same size.
+trait SquareMatrix<Scalar, const N: usize>: Sized
+where
+    Self: Add<Self>,
+    Self: Sub<Self>,
+    Self: Mul<Self>,
+    Self: Mul<Vector<Scalar, {N}>, Output = Vector<Scalar, {N}>>,
+{
+    /// Attempt to invert the matrix.
+    fn invert(self) -> Option<Self>;
+
+    /// Return the diagonal of the matrix.
+    fn diagonal(self) -> Vector<Scalar, {N}>;
+}
+    
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -884,5 +1029,38 @@ mod tests {
         assert_eq!(c, mat3x3( 1.0, 0.0, 0.0,
                               0.0, 1.0, 0.0,
                               0.0, 0.0, 1.0 ));
+        // Here is another random example I found online.
+        let a: Matrix::<i32, 3, 3> =
+            mat3x3( 0, -3, 5,
+                    6, 1, -4,
+                    2, 3, -2 );
+        let b: Matrix::<i32, 3, 3> =
+            mat3x3( -1, 0, -3,
+                     4, 5, 1,
+                     2, 6, -2 );
+        let c: Matrix::<i32, 3, 3> =
+            mat3x3( -2, 15, -13,
+                    -10, -19, -9,
+                     6, 3, 1 );
+        assert_eq!(
+            a * b,
+            c
+        );
     }
+
+    #[test]
+    fn test_matrix_transpose() {
+        assert_eq!(
+            Matrix::<i32, 1, 2>::from( [ vec1( 1 ), vec1( 2 ) ] )
+                .transpose(),
+            Matrix::<i32, 2, 1>::from( [ vec2( 1, 2 ) ] )
+        );
+        assert_eq!(
+            mat2x2( 1, 2,
+                    3, 4 ).transpose(),
+            mat2x2( 1, 3,
+                    2, 4 )
+        );
+    }
+        
 }
