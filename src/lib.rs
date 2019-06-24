@@ -906,6 +906,29 @@ where
     }
 }
 
+/// Scalar multiply
+impl<T, const N: usize, const M: usize> Mul<T> for Matrix<T, {N}, {M}>
+where
+    T: Mul<T, Output = T> + Clone,
+{
+    type Output = Matrix<T, {N}, {M}>;
+
+    fn mul(self, scalar: T) -> Self::Output {
+        let mut mat: [Vector<T, {N}>; {M}] = unsafe { mem::uninitialized() };
+        for i in 0..M {
+            for j in 0..N {
+                mem::forget(
+                    mem::replace(
+                        &mut mat[i].0[j],
+                        scalar.clone() * self.0[i].0[j].clone()
+                    )
+                );
+            }
+        }
+        Matrix::<T, {N}, {M}>(mat)
+    }
+}
+
 impl<T, const N: usize, const M: usize> Matrix<T, {N}, {M}> {
     /// Returns the transpose of the matrix. 
     pub fn transpose(mut self) -> Matrix<T, {M}, {N}> {
@@ -936,8 +959,12 @@ impl<T, const N: usize, const M: usize> Matrix<T, {N}, {M}> {
 /// Square matrices can be added, subtracted, and multiplied indiscriminately
 /// together. This is a type constraint; only Matrices that are square are able
 /// to be multiplied by matrices of the same size.
+///
+/// I believe that SquareMatrix should not have parameters, but associated types
+/// and constants do not play well with const generics.
 trait SquareMatrix<Scalar, const N: usize>: Sized
 where
+    Scalar: Clone,
     Self: Add<Self>,
     Self: Sub<Self>,
     Self: Mul<Self>,
@@ -947,7 +974,33 @@ where
     fn invert(self) -> Option<Self>;
 
     /// Return the diagonal of the matrix.
-    fn diagonal(self) -> Vector<Scalar, {N}>;
+    fn diagonal(&self) -> Vector<Scalar, {N}>;
+}
+
+impl<Scalar, const N: usize> SquareMatrix<Scalar, {N}> for Matrix<Scalar, {N}, {N}>
+where
+    Scalar: Clone,
+    Self: Add<Self>,
+    Self: Sub<Self>,
+    Self: Mul<Self>,
+    Self: Mul<Vector<Scalar, {N}>, Output = Vector<Scalar, {N}>>,
+{
+    fn invert(self) -> Option<Self> {
+        None // Ha!
+    }
+
+    fn diagonal(&self) -> Vector<Scalar, {N}> {
+        let mut diag: [Scalar; {N}] = unsafe { mem::uninitialized() };
+        for i in 0..N {
+            mem::forget(
+                mem::replace(
+                    &mut diag[i],
+                    self.0[i].0[i].clone()
+                )
+            )
+        }
+        Vector::<Scalar, {N}>(diag)
+    }
 }
     
 #[cfg(test)]
@@ -1014,6 +1067,10 @@ mod tests {
                                   0.0, 0.0 ));
         assert_eq!(b * a, mat2x2( 0.0, 0.0,
                                   0.0, 1.0 ));
+        let a = mat1x1( mat1x1( 1u32 ) );
+        let b = mat1x1( mat1x1( 10u32 ) );
+        let c = mat1x1( mat1x1( 11u32 ) );
+        assert_eq!(a + b, c);
         // Basic example:
         let a: Matrix::<usize, 1, 1> = mat1x1( 1 );
         let b: Matrix::<usize, 1, 1> = mat1x1( 2 );
@@ -1062,5 +1119,15 @@ mod tests {
                     2, 4 )
         );
     }
-        
+
+    #[test]
+    fn test_square_matrix() {
+        let a: Matrix::<i32, 3, 3> =
+            mat3x3( 5, 0, 0,
+                    0, 8, 12,
+                    0, 0, 16 );
+        let diag: Vector::<i32, 3> =
+            vec3( 5, 8, 16 );
+        assert_eq!(a.diagonal(), diag);
+    }
 }
