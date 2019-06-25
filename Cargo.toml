@@ -1,6 +1,6 @@
 [package]
 name = "aljabar"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Matthew Plant <maplant95@gmail.com>"]
 edition = "2018"
 description = "A super generic, super experimental linear algebra library."
