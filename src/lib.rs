@@ -115,6 +115,9 @@ impl_zero!{ usize }
 pub trait One {
     /// Returns the multiplicative identity for `Self`.
     fn one() -> Self;
+
+    /// Returns true if the value is the multiplicative identity.
+    fn is_one(&self) -> bool;
 }
 
 macro_rules! impl_one {
@@ -124,6 +127,10 @@ macro_rules! impl_one {
         impl One for $type {
             fn one() -> Self  {
                 1
+            }
+
+            fn is_one(&self) -> bool {
+                *self == 1
             }
         }
     };
@@ -137,6 +144,10 @@ macro_rules! impl_one_fp {
             fn one() -> Self  {
                 1.0
             }
+
+            fn is_one(&self) -> bool {
+                *self == 1.0
+            }
         }
     };
 }
@@ -144,6 +155,10 @@ macro_rules! impl_one_fp {
 impl One for bool {
     fn one() -> Self {
         true
+    }
+
+    fn is_one(&self) -> bool {
+        *self
     }
 }
 
@@ -300,16 +315,16 @@ where
     T: Zero,
 {
     fn zero() -> Self {
-        let mut out: [T; {N}] = unsafe { mem::uninitialized() };
+        let mut origin: [T; {N}] = unsafe { mem::uninitialized() };
         for i in 0..N {
             mem::forget(
                 mem::replace(
-                    &mut out[i],
+                    &mut origin[i],
                     <T as Zero>::zero()
                 )
             );
         }
-        Vector::<T, {N}>(out)
+        Vector::<T, {N}>(origin)
     }
 
     fn is_zero(&self) -> bool {
@@ -321,6 +336,34 @@ where
         true
     }
 }
+
+impl<T, const N: usize> One for Vector<T, {N}>
+where
+    T: One,
+{
+    fn one() -> Self {
+        let mut unit: [T; {N}] = unsafe { mem::uninitialized() };
+        for i in 0..N {
+            mem::forget(
+                mem::replace(
+                    &mut unit[i],
+                    <T as One>::one()
+                )
+            );
+        }
+        Vector::<T, {N}>(unit)
+    }
+
+    fn is_one(&self) -> bool {
+        for i in 0..N {
+            if !self.0[i].is_one() {
+                return false;
+            }
+        }
+        true
+    }
+}
+
 
 impl<A, B, RHS, const N: usize> PartialEq<RHS> for Vector<A, {N}>
 where
@@ -735,6 +778,68 @@ impl<T, const N: usize, const M: usize> Deref for Matrix<T, {N}, {M}> {
 impl<T, const N: usize, const M: usize> DerefMut for Matrix<T, {N}, {M}> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+impl<T, const N: usize, const M: usize> Zero for Matrix<T, {N}, {M}>
+where
+    T: Zero,
+// This bound is a consequence of the previous, but I'm going to preemptively
+// help out the compiler a bit on this one.
+    Vector<T, {N}>: Zero,
+{
+    fn zero() -> Self {
+        let mut zero_mat: [Vector<T, {N}>; {M}] = unsafe { mem::uninitialized() };
+        for i in 0..M {
+            mem::forget(
+                mem::replace(
+                    &mut zero_mat[i],
+                    Vector::<T, {N}>::zero()
+                )
+            );
+        }
+        Matrix::<T, {N}, {M}>(zero_mat)
+    }
+
+    fn is_zero(&self) -> bool {
+        for i in 0..M {
+            if !self.0[i].is_zero() {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+/// Constructs a unit matrix.
+impl<T, const N: usize, const M: usize> One for Matrix<T, {N}, {M}>
+where
+    T: Zero + One,
+    Self: PartialEq<Self>,
+{
+    fn one() -> Self {
+        let mut unit_mat: [Vector<T, {N}>; {M}] = unsafe { mem::uninitialized() };
+        for i in 0..M {
+            let mut unit_vec: [T; {N}] = unsafe { mem::uninitialized() };
+            for j in 0..i {
+                mem::forget(mem::replace(&mut unit_vec[j], <T as Zero>::zero()));
+            }
+            mem::forget(mem::replace(&mut unit_vec[i], <T as One>::one()));
+            for j in (i+1)..M {
+                mem::forget(mem::replace(&mut unit_vec[j], <T as Zero>::zero()));
+            }
+            mem::forget(
+                mem::replace(
+                    &mut unit_mat[i],
+                    Vector::<T, {N}>(unit_vec)
+                )
+            );
+        }
+        Matrix::<T, {N}, {M}>(unit_mat)
+    }
+
+    fn is_one(&self) -> bool {
+        self == &<Self as One>::one()
     }
 }
 
@@ -1164,5 +1269,64 @@ mod tests {
         let diag: Vector::<i32, 3> =
             vec3( 5, 8, 16 );
         assert_eq!(a.diagonal(), diag);
+    }
+
+    #[test]
+    fn test_readme_code() {
+        let a = vec4( 0u32, 1, 2, 3 ); 
+        assert_eq!(
+	          a, 
+            Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
+        );
+
+        let b = Vector::<f32, 7>::from([ 0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, ]);
+        let c = Vector::<f32, 7>::one() * 0.5; 
+        assert_eq!(
+            b + c, 
+            Vector::<f32, 7>::from([ 0.5f32, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5 ])
+        );
+
+        let a = vec2( 1i32, 1);
+        let b = vec2( 5i32, 5 );
+        assert_eq!(a.distance2(b), 32);       // distance method not implemented.
+        assert_eq!((b - a).magnitude2(), 32); // magnitude method not implemented.
+
+        let a = vec2( 1.0f32, 1.0 );
+        let b = vec2( 5.0f32, 5.0 );
+        const close: f32 = 5.65685424949;
+        assert_eq!(a.distance(b), close);       // distance is implemented.
+        assert_eq!((b - a).magnitude(), close); // magnitude is implemented.
+
+        // Vector normalization is also supported for floating point scalars.
+        assert_eq!(
+            vec3( 0.0f32, 20.0, 0.0 )
+                .normalize(),
+            vec3( 0.0f32, 1.0, 0.0 )
+        );
+
+        let a = Matrix::<f32, 3, 3>::from( [ vec3( 1.0, 0.0, 0.0 ),
+                                             vec3( 0.0, 1.0, 0.0 ),
+                                             vec3( 0.0, 0.0, 1.0 ), ] );
+        let b: Matrix::<i32, 3, 3> =
+            mat3x3( 0, -3, 5,
+                    6, 1, -4,
+                    2, 3, -2 );
+
+        assert_eq!(
+            mat3x3( 1i32, 0, 0,
+                    0, 2, 0,
+                    0, 0, 3 )
+                .diagonal(),
+            vec3( 1i32, 2, 3 ) 
+        );
+
+        assert_eq!(
+            mat4x4( 1i32, 0, 0, 0, 
+                    0, 2, 0, 0, 
+                    0, 0, 3, 0, 
+                    0, 0, 0, 4 )
+                .diagonal(),
+            vec4( 1i32, 2, 3, 4 ) 
+        );
     }
 }
