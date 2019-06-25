@@ -235,6 +235,10 @@ destructure the vector.
 Truncation must be performed by manually destructuring as well, but this is due
 to a limitation of the current compiler.
 
+## Contributions
+
+Please feel free to submit pull requests of any nature.
+
 ## Future work 
 
 There is a lot of work that needs to be done on aljabar before it can be 
