@@ -3,6 +3,8 @@ name = "aljabar"
 version = "0.1.0"
 authors = ["Matthew Plant <maplant95@gmail.com>"]
 edition = "2018"
+description = "A super generic, super experimental linear algebra library."
+license = "GPL-3.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
