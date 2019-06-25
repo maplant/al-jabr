@@ -14,9 +14,6 @@
 //! When it is possible to specialize and make more safe implementations, that
 //! is done instead.
 //!
-//! Almost all of the unsafe code here could be made safe if I added one or two
-//! sensible trait bounds to their functions. I should probably do that.
-//!
 //! The performance of Aljabar is currently probably pretty bad. I have yet to
 //! test it, but let's just say I haven't gotten very far on the matrix
 //! multiplication page on wikipedia.
@@ -112,6 +109,8 @@ impl_zero!{ u128 }
 impl_zero!{ usize }
 
 /// Defines the multiplicative identity element for `Self`.
+///
+/// For Matrices, `one` is an alias for the unit vector.
 pub trait One {
     /// Returns the multiplicative identity for `Self`.
     fn one() -> Self;
@@ -191,6 +190,24 @@ impl Real for f64 {
 }
 
 /// N-element vector.
+///
+/// Vectors can be constructed from arrays of any type and size. There are 
+/// convenience constructor functions provided for the most common sizes.
+///
+/*
+/// ```
+/// use aljabar::*;
+///
+/// let a Vector::<u32, 4> = vec4( 0u32, 1, 2, 3 );
+/// /*
+/// assert_eq!(
+///     a, 
+///     Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
+/// );
+/// */
+/// ```
+*/
+
 pub struct Vector<T, const N: usize>([T; N]);
 
 /// A `Vector` with one fewer dimension than `N`.
@@ -534,6 +551,9 @@ where
 
 /// Vectors that can be added together and multiplied by scalars form a
 /// VectorSpace.
+///
+/// If a `Vector` implements `Add` and `Sub` and its scalar implements `Mul` and
+/// `Div`, then that vector is part of a `VectorSpace`.
 pub trait VectorSpace
 where
     Self: Sized + Zero,
@@ -683,6 +703,42 @@ where
 }
 
 /// An `N`-by-`M` Column Major matrix.
+/// 
+/// Matrices can be created from arrays of Vectors of any size and scalar type. 
+/// As with Vectors there are convenience constructor functions for square matrices
+/// of the most common sizes.
+///
+/*
+/// ```
+/// use aljabar::*;
+///
+/// let a = Matrix::<f32, 3, 3>::from( [ vec3( 1.0, 0.0, 0.0 ),
+///                                      vec3( 0.0, 1.0, 0.0 ),
+///                                      vec3( 0.0, 0.0, 1.0 ), ] );
+/// let b: Matrix::<i32, 3, 3> =
+///             mat3x3( 0, -3, 5,
+///                     6, 1, -4,
+///                     2, 3, -2 );
+/// ```
+/// 
+*/
+/// All operations performed on matrices produce fixed-size outputs. For example,
+/// taking the `transpose` of a non-square matrix will produce a matrix with the 
+/// width and height swapped: 
+///
+/*
+/// ```
+/// /*
+/// use aljabar::*;
+///
+/// assert_eq!(
+///     Matrix::<i32, 1, 2>::from( [ vec1( 1 ), vec1( 2 ) ] )
+///         .transpose(),
+///     Matrix::<i32, 2, 1>::from( [ vec2( 1, 2 ) ] )
+/// );
+/// */
+/// ```
+*/
 pub struct Matrix<T, const N: usize, const M: usize>([Vector<T, {N}>; {M}]);
 
 /// A 1-by-1 square matrix.
@@ -1293,9 +1349,9 @@ mod tests {
 
         let a = vec2( 1.0f32, 1.0 );
         let b = vec2( 5.0f32, 5.0 );
-        const close: f32 = 5.65685424949;
-        assert_eq!(a.distance(b), close);       // distance is implemented.
-        assert_eq!((b - a).magnitude(), close); // magnitude is implemented.
+        const CLOSE: f32 = 5.65685424949;
+        assert_eq!(a.distance(b), CLOSE);       // distance is implemented.
+        assert_eq!((b - a).magnitude(), CLOSE); // magnitude is implemented.
 
         // Vector normalization is also supported for floating point scalars.
         assert_eq!(
@@ -1304,10 +1360,10 @@ mod tests {
             vec3( 0.0f32, 1.0, 0.0 )
         );
 
-        let a = Matrix::<f32, 3, 3>::from( [ vec3( 1.0, 0.0, 0.0 ),
-                                             vec3( 0.0, 1.0, 0.0 ),
-                                             vec3( 0.0, 0.0, 1.0 ), ] );
-        let b: Matrix::<i32, 3, 3> =
+        let _a = Matrix::<f32, 3, 3>::from( [ vec3( 1.0, 0.0, 0.0 ),
+                                              vec3( 0.0, 1.0, 0.0 ),
+                                              vec3( 0.0, 0.0, 1.0 ), ] );
+        let _b: Matrix::<i32, 3, 3> =
             mat3x3( 0, -3, 5,
                     6, 1, -4,
                     2, 3, -2 );

@@ -183,7 +183,7 @@ and unit matrices.
 ### `Real`
 
 As far as aljabar is considered, a `Real` is a value that has `sqrt` defined.
-By default this is defined for `f32` and `f64`.
+By default this is implemented for `f32` and `f64`.
 
 ### `VectorSpace`
 
