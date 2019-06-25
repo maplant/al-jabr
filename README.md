@@ -28,7 +28,7 @@ convenience constructor functions provided for the most common sizes:
 ```rust
 let a = vec4( 0u32, 1, 2, 3 ); 
 assert_eq!(
-	a, 
+    a, 
     Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
 );
 ```
@@ -163,7 +163,7 @@ assert_eq!(
 );
 
 assert_eq!(
-    mat4x4( 1i32, 0, 0, 
+    mat4x4( 1i32, 0, 0, 0, 
             0, 2, 0, 0, 
             0, 0, 3, 0, 
             0, 0, 0, 4 )
