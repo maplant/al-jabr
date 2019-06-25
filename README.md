@@ -39,8 +39,7 @@ are only implemented for vectors of equal sizes.
 
 ```rust
 let b = Vector::<f32, 7>::from([ 0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, ]);
-// Construct a unit vector and multiply each element by 1/2:
-let c = Vector::<f32, 7>::one() * 0.5; 
+let c = Vector::<f32, 7>::from([ 1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, ]) * 0.5; 
 assert_eq!(
     b + c, 
     Vector::<f32, 7>::from([ 0.5f32, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5 ])
@@ -177,8 +176,8 @@ assert_eq!(
 ### `Zero` and `One`
 
 Defines the additive and multiplicative identity respectively. `zero` returns 
-vectors and matrices filled with zeroes, while `one` returns the unit vector
-and unit matrices. 
+vectors and matrices filled with zeroes, while `one` returns the unit matrix 
+and is unimplemented vectors.
 
 ### `Real`
 

@@ -110,7 +110,7 @@ impl_zero!{ usize }
 
 /// Defines the multiplicative identity element for `Self`.
 ///
-/// For Matrices, `one` is an alias for the unit vector.
+/// For Matrices, `one` is an alias for the unit matrix.
 pub trait One {
     /// Returns the multiplicative identity for `Self`.
     fn one() -> Self;
@@ -353,34 +353,6 @@ where
         true
     }
 }
-
-impl<T, const N: usize> One for Vector<T, {N}>
-where
-    T: One,
-{
-    fn one() -> Self {
-        let mut unit: [T; {N}] = unsafe { mem::uninitialized() };
-        for i in 0..N {
-            mem::forget(
-                mem::replace(
-                    &mut unit[i],
-                    <T as One>::one()
-                )
-            );
-        }
-        Vector::<T, {N}>(unit)
-    }
-
-    fn is_one(&self) -> bool {
-        for i in 0..N {
-            if !self.0[i].is_one() {
-                return false;
-            }
-        }
-        true
-    }
-}
-
 
 impl<A, B, RHS, const N: usize> PartialEq<RHS> for Vector<A, {N}>
 where
@@ -1336,7 +1308,7 @@ mod tests {
         );
 
         let b = Vector::<f32, 7>::from([ 0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, ]);
-        let c = Vector::<f32, 7>::one() * 0.5; 
+        let c = Vector::<f32, 7>::from([ 1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, ]) * 0.5; 
         assert_eq!(
             b + c, 
             Vector::<f32, 7>::from([ 0.5f32, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5 ])
