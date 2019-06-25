@@ -178,6 +178,36 @@ impl Real for f64 {
 /// N-element vector.
 pub struct Vector<T, const N: usize>([T; N]);
 
+/// A `Vector` with one fewer dimension than `N`.
+///
+/// Not particularly useful other than as the return value of the `trunc`
+/// method.
+pub type TruncatedVector<T, const N: usize> = Vector<T, {N - 1}>;
+
+impl<T, const N: usize> Vector<T, {N}> {
+    /// Drop the last component and return the vector with one fewer dimension.
+    pub fn trunc(mut self) -> (TruncatedVector<T, {N}>, T) {
+        // We're flipping the usual convention here. Tail is the last component
+        // while head is the rest.
+        let mut head: TruncatedVector<T, {N}> = unsafe { mem::uninitialized() };
+        let tail = mem::replace(&mut self.0[N-1], unsafe { mem::uninitialized() });
+        // Copy the rest of the vector
+        for i in 0..N-1 {
+            mem::forget(
+                mem::replace(
+                    &mut head.0[i],
+                    mem::replace(
+                        &mut self.0[i],
+                        unsafe { mem::uninitialized() }
+                    )
+                )
+            );
+        }
+        mem::forget(self);
+        (head, tail)
+    }
+}
+
 impl<T, const N: usize> Clone for Vector<T, {N}>
 where
     T: Clone
@@ -220,16 +250,8 @@ pub fn vec4<T>(x: T, y: T, z: T, w: T) -> Vector4<T> {
     Vector4::<T>::from([ x, y, z, w ])
 }
 
-/// 5-element vector. You don't need this, a fact that calls into question the
-/// entire purpose of this library.
+/// 5-element vector. 
 pub type Vector5<T> = Vector<T, 5>;
-
-/// 6-element vector. You definitely don't need this. What kind of bespoke math
-/// are you even doing?
-pub type Vector6<T> = Vector<T, 6>;
-
-/// Stop.
-pub type Vector7<T> = Vector<T, 7>;
 
 impl<T, const N: usize> From<[T; N]> for Vector<T, {N}> {
     fn from(array: [T; N]) -> Self {
@@ -986,7 +1008,7 @@ where
     Self: Mul<Vector<Scalar, {N}>, Output = Vector<Scalar, {N}>>,
 {
     fn invert(self) -> Option<Self> {
-        None // Ha!
+        unimplemented!()
     }
 
     fn diagonal(&self) -> Vector<Scalar, {N}> {
@@ -1017,6 +1039,15 @@ mod tests {
         assert_eq!(a, c);
         assert_eq!(a, &d); // No blanket impl on T for deref... why? infinite loops?
     }
+
+    // This Does not compile unfortunately:
+    /*
+    #[test]
+    fn test_vec_trunc() {
+        
+        let (xyz, w): (TruncatedVector<_, 4>, _) = vec4(0u32, 1, 2, 3).trunc();
+    }
+    */
 
     #[test]
     fn test_vec_addition() {
@@ -1058,6 +1089,14 @@ mod tests {
     }
 
     #[test]
+    fn test_matrix_add() {
+        let a = mat1x1( mat1x1( 1u32 ) );
+        let b = mat1x1( mat1x1( 10u32 ) );
+        let c = mat1x1( mat1x1( 11u32 ) );
+        assert_eq!(a + b, c);
+    }
+
+    #[test]
     fn test_matrix_mult() {
         let a = Matrix::<f32, 2, 2>::from( [ vec2( 0.0, 0.0 ),
                                              vec2( 1.0, 0.0 ) ] );
@@ -1067,10 +1106,6 @@ mod tests {
                                   0.0, 0.0 ));
         assert_eq!(b * a, mat2x2( 0.0, 0.0,
                                   0.0, 1.0 ));
-        let a = mat1x1( mat1x1( 1u32 ) );
-        let b = mat1x1( mat1x1( 10u32 ) );
-        let c = mat1x1( mat1x1( 11u32 ) );
-        assert_eq!(a + b, c);
         // Basic example:
         let a: Matrix::<usize, 1, 1> = mat1x1( 1 );
         let b: Matrix::<usize, 1, 1> = mat1x1( 2 );
