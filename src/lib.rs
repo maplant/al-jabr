@@ -840,20 +840,20 @@ where
 }
 
 /// Constructs a unit matrix.
-impl<T, const N: usize, const M: usize> One for Matrix<T, {N}, {M}>
+impl<T, const N: usize> One for Matrix<T, {N}, {N}>
 where
-    T: Zero + One,
-    Self: PartialEq<Self>,
+    T: Zero + One + Clone,
+    Self: PartialEq<Self> + SquareMatrix<T, {N}>,
 {
     fn one() -> Self {
-        let mut unit_mat: [Vector<T, {N}>; {M}] = unsafe { mem::uninitialized() };
-        for i in 0..M {
+        let mut unit_mat: [Vector<T, {N}>; {N}] = unsafe { mem::uninitialized() };
+        for i in 0..N {
             let mut unit_vec: [T; {N}] = unsafe { mem::uninitialized() };
             for j in 0..i {
                 mem::forget(mem::replace(&mut unit_vec[j], <T as Zero>::zero()));
             }
             mem::forget(mem::replace(&mut unit_vec[i], <T as One>::one()));
-            for j in (i+1)..M {
+            for j in (i+1)..N {
                 mem::forget(mem::replace(&mut unit_vec[j], <T as Zero>::zero()));
             }
             mem::forget(
@@ -863,7 +863,7 @@ where
                 )
             );
         }
-        Matrix::<T, {N}, {M}>(unit_mat)
+        Matrix::<T, {N}, {N}>(unit_mat)
     }
 
     fn is_one(&self) -> bool {
@@ -1117,7 +1117,7 @@ impl<T, const N: usize, const M: usize> Matrix<T, {N}, {M}> {
 ///
 /// I believe that SquareMatrix should not have parameters, but associated types
 /// and constants do not play well with const generics.
-trait SquareMatrix<Scalar, const N: usize>: Sized
+pub trait SquareMatrix<Scalar, const N: usize>: Sized
 where
     Scalar: Clone,
     Self: Add<Self>,

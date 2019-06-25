@@ -221,6 +221,11 @@ a number of convenience methods:
 * `.project_on(other)`: returns the vector projection of the current inner space
    onto the given argument.
 
+### `SquareMatrix`
+
+A `Matrix` that implements `Mul<Self>`. Has a `diagonal` and in the future a 
+possible inverse.
+
 ## Limitations
 
 Individual component access isn't implemented for vectors and most likely will 
