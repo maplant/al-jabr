@@ -230,7 +230,15 @@ possible inverse.
 
 Individual component access isn't implemented for vectors and most likely will 
 not be as simple as a public field access when it is. For now, manually 
-destructure the vector.
+destructure the vector or use `Index` and `IndexMut`:
+
+```rust
+let a = Vector1::<u32>::from([ 5 ]);
+assert_eq!(a[0], 5);
+let mut b = Vector2::<u32>::from([ 1, 2 ]);
+b[1] += 3;
+assert_eq!(b[1], 5);
+```
 
 Truncation must be performed by manually destructuring as well, but this is due
 to a limitation of the current compiler.

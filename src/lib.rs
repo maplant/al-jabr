@@ -22,11 +22,14 @@
 #![feature(const_generics)]
 #![feature(trivial_bounds)]
 #![feature(specialization)]
-// #![feature(maybe_uninit)]
+#![feature(maybe_uninit)]
 
 use std::{
     fmt,
-    mem,
+    mem::{
+        self,
+        MaybeUninit,
+    },
     ops::{
         Add,
         AddAssign,
@@ -1161,6 +1164,15 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_vec_index() {
+        let a = Vector1::<u32>::from([ 0 ]);
+        assert_eq!(a[0], 0);
+        let mut b = Vector2::<u32>::from([ 1, 2 ]);
+        b[1] += 3;
+        assert_eq!(b[1], 5);
+    }
 
     #[test]
     fn test_vec_eq() {
