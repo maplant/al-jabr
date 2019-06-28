@@ -564,6 +564,22 @@ where
     }
 }
 
+impl<T> Vector3<T>
+where
+    T: Add<T, Output = T> + Sub<T, Output = T> + Mul<T, Output = T> + Clone,
+{
+    /// Return the cross product of the two vectors.
+    pub fn cross(self, rhs: Vector3<T>) -> Self {
+        let [x0, y0, z0]: [T; 3] = self.into();
+        let [x1, y1, z1]: [T; 3] = rhs.into();
+        Vector3::from([
+            (y0.clone() * z1.clone()) - (z0.clone() * y1.clone()),
+            (z0 * x1.clone()) - (x0.clone() * z1),
+            (x0 * y1) - (y0 * x1)
+        ])
+    }
+}
+
 /// Vectors that can be added together and multiplied by scalars form a
 /// VectorSpace.
 ///
