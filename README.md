@@ -8,10 +8,6 @@ implementations for any mathematic operations that are supported by their
 scalars. Additionally, aljabar can leverage Rust's type system to ensure that
 operations are only applied to values that are the correct size.
 
-aljabar is very incomplete and not entirely safe in its current form. If your 
-scalar has the possibility of panicking during a math operation, aljabar is not 
-guaranteed to clean up properly. Division by zero should be avoided.
-
 aljabar relies heavily on unstable Rust features such as const generics and thus
 requires nightly to build. 
 

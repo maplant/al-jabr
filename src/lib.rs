@@ -6,13 +6,7 @@
 //! and specialization.
 //!
 //! It is not the specific goal of this project to be useful in any sense, but
-//! hopefully it will end up being roughly compatible with cgmath. On some
-//! platforms at least. Which leads me into my next point:
-//!
-//! Aljabar is not very safe. In the attempt to make things as generic and
-//! minimalist in implementation as possible, a lot of unsafe blocks are used.
-//! When it is possible to specialize and make more safe implementations, that
-//! is done instead.
+//! hopefully it will end up being roughly compatible with cgmath. 
 //!
 //! The performance of Aljabar is currently probably pretty bad. I have yet to
 //! test it, but let's just say I haven't gotten very far on the matrix
@@ -22,7 +16,6 @@
 #![feature(const_generics)]
 #![feature(trivial_bounds)]
 #![feature(specialization)]
-#![feature(maybe_uninit)]
 
 use std::{
     fmt,
@@ -211,6 +204,7 @@ impl Real for f64 {
 /// ```
 */
 
+#[repr(transparent)]
 pub struct Vector<T, const N: usize>([T; N]);
 
 /// A `Vector` with one fewer dimension than `N`.
@@ -221,25 +215,30 @@ pub type TruncatedVector<T, const N: usize> = Vector<T, {N - 1}>;
 
 impl<T, const N: usize> Vector<T, {N}> {
     /// Drop the last component and return the vector with one fewer dimension.
-    pub fn trunc(mut self) -> (TruncatedVector<T, {N}>, T) {
-        // We're flipping the usual convention here. Tail is the last component
-        // while head is the rest.
-        let mut head: TruncatedVector<T, {N}> = unsafe { mem::uninitialized() };
-        let tail = mem::replace(&mut self.0[N-1], unsafe { mem::uninitialized() });
-        // Copy the rest of the vector
-        for i in 0..N-1 {
-            mem::forget(
-                mem::replace(
-                    &mut head.0[i],
-                    mem::replace(
-                        &mut self.0[i],
-                        unsafe { mem::uninitialized() }
-                    )
-                )
-            );
+    pub fn trunc(self) -> (TruncatedVector<T, {N}>, T) {
+        let mut from = MaybeUninit::new(self);
+        let mut head = MaybeUninit::<TruncatedVector<T, {N}>>::uninit();
+        let fromp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut from) };
+        let headp: *mut T = unsafe { mem::transmute(&mut head) };
+        for i in 0..N {
+            unsafe {
+                headp.add(i).write(
+                    fromp
+                        .add(i)
+                        .replace(MaybeUninit::uninit())
+                        .assume_init()
+                );
+            }
         }
-        mem::forget(self);
-        (head, tail)
+        (
+            unsafe { head.assume_init() },
+            unsafe {
+                fromp
+                    .add(N-1)
+                    .replace(MaybeUninit::uninit())
+                    .assume_init()
+            }
+        )
     }
 }
 
@@ -335,16 +334,16 @@ where
     T: Zero,
 {
     fn zero() -> Self {
-        let mut origin: [T; {N}] = unsafe { mem::uninitialized() };
+        let mut origin = MaybeUninit::<Vector<T, {N}>>::uninit();
+        let p: *mut T = unsafe { mem::transmute(&mut origin) };
+
         for i in 0..N {
-            mem::forget(
-                mem::replace(
-                    &mut origin[i],
-                    <T as Zero>::zero()
-                )
-            );
+            unsafe {
+                p.add(i).write(<T as Zero>::zero());
+            }
         }
-        Vector::<T, {N}>(origin)
+
+        unsafe { origin.assume_init() }
     }
 
     fn is_zero(&self) -> bool {
@@ -383,17 +382,22 @@ where
 {
     type Output = Vector<<A as Add<B>>::Output, {N}>;
 
-    fn add(mut self, rhs: Vector<B, {N}>) -> Self::Output {
-        let mut out: [<A as Add<B>>::Output; {N}] = unsafe{ mem::uninitialized() };
-        let mut rhs: [B; {N}] = rhs.into();
+    fn add(self, rhs: Vector<B, {N}>) -> Self::Output {
+        let mut sum = MaybeUninit::<[<A as Add<B>>::Output; {N}]>::uninit();
+        let mut lhs = MaybeUninit::new(self);
+        let mut rhs = MaybeUninit::new(rhs);
+        let sump: *mut <A as Add<B>>::Output = unsafe { mem::transmute(&mut sum) };
+        let lhsp: *mut MaybeUninit<A> = unsafe { mem::transmute(&mut lhs) };
+        let rhsp: *mut MaybeUninit<B> = unsafe { mem::transmute(&mut rhs) };
         for i in 0..N {
-            out[i] =
-                mem::replace(&mut self.0[i], unsafe { mem::uninitialized() }) +
-                mem::replace(&mut rhs[i], unsafe { mem::uninitialized() });
+            unsafe {
+                sump.add(i).write(
+                    lhsp.add(i).replace(MaybeUninit::uninit()).assume_init() +
+                        rhsp.add(i).replace(MaybeUninit::uninit()).assume_init()
+                );
+            }
         }
-        mem::forget(self);
-        mem::forget(rhs);
-        Vector::<<A as Add<B>>::Output, {N}>(out)
+        Vector::<<A as Add<B>>::Output, {N}>(unsafe { sum.assume_init() })
     }
 }
 
@@ -402,11 +406,13 @@ where
     A: AddAssign<B>,
 {
     fn add_assign(&mut self, rhs: Vector<B, {N}>) {
-        let mut rhs: [B; {N}] = rhs.into();
+        let mut rhs = MaybeUninit::new(rhs);
+        let rhsp: *mut MaybeUninit<B> = unsafe { mem::transmute(&mut rhs) };
         for i in 0..N {
-            self.0[i] += mem::replace(&mut rhs[i], unsafe { mem::uninitialized() });
+            self.0[i] += unsafe {
+                rhsp.add(i).replace(MaybeUninit::uninit()).assume_init()
+            };
         }
-        mem::forget(rhs);
     }
 }
 
@@ -416,17 +422,22 @@ where
 {
     type Output = Vector<<A as Sub<B>>::Output, {N}>;
 
-    fn sub(mut self, rhs: Vector<B, {N}>) -> Self::Output {
-        let mut out: [<A as Sub<B>>::Output; {N}] = unsafe { mem::uninitialized() };
-        let mut rhs: [B; {N}] = rhs.into();
+    fn sub(self, rhs: Vector<B, {N}>) -> Self::Output {
+        let mut dif = MaybeUninit::<[<A as Sub<B>>::Output; {N}]>::uninit();
+        let mut lhs = MaybeUninit::new(self);
+        let mut rhs = MaybeUninit::new(rhs);
+        let difp: *mut <A as Sub<B>>::Output = unsafe { mem::transmute(&mut dif) };
+        let lhsp: *mut MaybeUninit<A> = unsafe { mem::transmute(&mut lhs) };
+        let rhsp: *mut MaybeUninit<B> = unsafe { mem::transmute(&mut rhs) };
         for i in 0..N {
-            out[i] =
-                mem::replace(&mut self.0[i], unsafe { mem::uninitialized() }) -
-                mem::replace(&mut rhs[i], unsafe { mem::uninitialized() });
+            unsafe {
+                difp.add(i).write(
+                    lhsp.add(i).replace(MaybeUninit::uninit()).assume_init() -
+                        rhsp.add(i).replace(MaybeUninit::uninit()).assume_init()
+                );
+            }
         }
-        mem::forget(self);
-        mem::forget(rhs);
-        Vector::<<A as Sub<B>>::Output, {N}>(out)
+        Vector::<<A as Sub<B>>::Output, {N}>(unsafe { dif.assume_init() })
     }
 }
 
@@ -435,11 +446,13 @@ where
     A: SubAssign<B>,
 {
     fn sub_assign(&mut self, rhs: Vector<B, {N}>) {
-        let mut rhs: [B; {N}] = rhs.into();
+        let mut rhs = MaybeUninit::new(rhs);
+        let rhsp: *mut MaybeUninit<B> = unsafe { mem::transmute(&mut rhs) };
         for i in 0..N {
-            self.0[i] -= mem::replace(&mut rhs[i], unsafe { mem::uninitialized() });
+            self.0[i] -= unsafe {
+                rhsp.add(i).replace(MaybeUninit::uninit()).assume_init()
+            };
         }
-        mem::forget(rhs);
     }
 }
 
@@ -449,13 +462,23 @@ where
 {
     type Output = Vector<<T as Neg>::Output, {N}>;
 
-    fn neg(mut self) -> Self::Output {
-        let mut vec: [<T as Neg>::Output; {N}] = unsafe { mem::uninitialized() };
+    fn neg(self) -> Self::Output {
+        let mut from = MaybeUninit::new(self);
+        let mut neg = MaybeUninit::<[<T as Neg>::Output; {N}]>::uninit();
+        let fromp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut from) };
+        let negp: *mut <T as Neg>::Output = unsafe { mem::transmute(&mut neg) };
         for i in 0..N {
-            vec[i] = mem::replace(&mut self.0[i], unsafe { mem::uninitialized() }).neg();
+            unsafe {
+                negp.add(i).write(
+                    fromp
+                        .add(i)
+                        .replace(MaybeUninit::uninit())
+                        .assume_init()
+                        .neg()
+                );
+            }
         }
-        mem::forget(self);
-        Vector::<<T as Neg>::Output, {N}>(vec)
+        Vector::<<T as Neg>::Output, {N}>(unsafe { neg.assume_init() })
     }
 }
 
@@ -467,15 +490,23 @@ where
 {
     type Output = Vector<<A as Mul<B>>::Output, {N}>;
 
-    fn mul(mut self, scalar: B) -> Self::Output {
-        let mut out: [<A as Mul<B>>::Output; {N}] = unsafe { mem::uninitialized() };
+    fn mul(self, scalar: B) -> Self::Output {
+        let mut from = MaybeUninit::new(self);
+        let mut scaled = MaybeUninit::<[<A as Mul<B>>::Output; {N}]>::uninit();
+        let fromp: *mut MaybeUninit<A> = unsafe { mem::transmute(&mut from) };
+        let scaledp: *mut <A as Mul<B>>::Output =
+            unsafe { mem::transmute(&mut scaled) };
         for i in 0..N {
-            out[i] = mem::replace(&mut self.0[i], unsafe { mem::uninitialized() }) *
-                scalar.clone();
-                
+            unsafe {
+                scaledp.add(i).write(
+                    fromp
+                        .add(i)
+                        .replace(MaybeUninit::uninit())
+                        .assume_init() * scalar.clone()
+                );
+            }
         }
-        mem::forget(self);
-        Vector::<<A as Mul<B>>::Output, {N}>(out)
+        Vector::<<A as Mul<B>>::Output, {N}>(unsafe { scaled.assume_init() })
     }
 }
 
@@ -500,14 +531,23 @@ where
 {
     type Output = Vector<<A as Div<B>>::Output, {N}>;
 
-    fn div(mut self, scalar: B) -> Self::Output {
-        let mut out: [<A as Div<B>>::Output; {N}] = unsafe { mem::uninitialized() };
+    fn div(self, scalar: B) -> Self::Output {
+        let mut from = MaybeUninit::new(self);
+        let mut scaled = MaybeUninit::<[<A as Div<B>>::Output; {N}]>::uninit();
+        let fromp: *mut MaybeUninit<A> = unsafe { mem::transmute(&mut from) };
+        let scaledp: *mut <A as Div<B>>::Output =
+            unsafe { mem::transmute(&mut scaled) };
         for i in 0..N {
-            out[i] = mem::replace(&mut self.0[i], unsafe { mem::uninitialized() }) /
-                scalar.clone();                
+            unsafe {
+                scaledp.add(i).write(
+                    fromp
+                        .add(i)
+                        .replace(MaybeUninit::uninit())
+                        .assume_init() / scalar.clone()
+                );
+            }
         }
-        mem::forget(self);
-        Vector::<<A as Div<B>>::Output, {N}>(out)
+        Vector::<<A as Div<B>>::Output, {N}>(unsafe { scaled.assume_init() })
     }
 }
 
@@ -664,15 +704,18 @@ where
     T: AddAssign<T>,
     Self: Clone, 
 {
-    fn dot(mut self, mut rhs: Self) -> T {
+    fn dot(self, rhs: Self) -> T {
+        let mut lhs = MaybeUninit::new(self);
+        let mut rhs = MaybeUninit::new(rhs);
         let mut sum = <T as Zero>::zero();
+        let lhsp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut lhs) };
+        let rhsp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut rhs) };
         for i in 0..N {
-            sum +=
-                mem::replace(&mut self.0[i], unsafe { mem::uninitialized() }) *
-                mem::replace(&mut rhs.0[i], unsafe { mem::uninitialized() });
+            sum += unsafe {
+                lhsp.add(i).replace(MaybeUninit::uninit()).assume_init() *
+                    rhsp.add(i).replace(MaybeUninit::uninit()).assume_init()
+            };
         }
-        mem::forget(self);
-        mem::forget(rhs);
         sum
     }
 }
@@ -713,7 +756,8 @@ where
 /// );
 /// */
 /// ```
-*/
+ */
+#[repr(transparent)]
 pub struct Matrix<T, const N: usize, const M: usize>([Vector<T, {N}>; {M}]);
 
 /// A 1-by-1 square matrix.
@@ -820,16 +864,13 @@ where
     Vector<T, {N}>: Zero,
 {
     fn zero() -> Self {
-        let mut zero_mat: [Vector<T, {N}>; {M}] = unsafe { mem::uninitialized() };
+        let mut zero_mat = MaybeUninit::<[Vector<T, {N}>; {M}]>::uninit();
+        let matp: *mut Vector<T, {N}> =
+            unsafe { mem::transmute(&mut zero_mat) };
         for i in 0..M {
-            mem::forget(
-                mem::replace(
-                    &mut zero_mat[i],
-                    Vector::<T, {N}>::zero()
-                )
-            );
+            unsafe { matp.add(i).write(Vector::<T, {N}>::zero()); }
         }
-        Matrix::<T, {N}, {M}>(zero_mat)
+        Matrix::<T, {N}, {M}>(unsafe { zero_mat.assume_init() })
     }
 
     fn is_zero(&self) -> bool {
@@ -849,24 +890,26 @@ where
     Self: PartialEq<Self> + SquareMatrix<T, {N}>,
 {
     fn one() -> Self {
-        let mut unit_mat: [Vector<T, {N}>; {N}] = unsafe { mem::uninitialized() };
+        let mut unit_mat = MaybeUninit::<[Vector<T, {N}>; {N}]>::uninit();
+        let matp: *mut Vector<T, {N}> =
+            unsafe { mem::transmute(&mut unit_mat) };
         for i in 0..N {
-            let mut unit_vec: [T; {N}] = unsafe { mem::uninitialized() };
+            let mut unit_vec = MaybeUninit::<Vector<T, {N}>>::uninit();
+            let vecp: *mut T = unsafe { mem::transmute(&mut unit_vec) };
             for j in 0..i {
-                mem::forget(mem::replace(&mut unit_vec[j], <T as Zero>::zero()));
+                unsafe {
+                    vecp.add(j).write(<T as Zero>::zero());
+                }
             }
-            mem::forget(mem::replace(&mut unit_vec[i], <T as One>::one()));
+            unsafe { vecp.add(i).write(<T as One>::one()); }
             for j in (i+1)..N {
-                mem::forget(mem::replace(&mut unit_vec[j], <T as Zero>::zero()));
+                unsafe {
+                    vecp.add(j).write(<T as Zero>::zero());
+                }
             }
-            mem::forget(
-                mem::replace(
-                    &mut unit_mat[i],
-                    Vector::<T, {N}>(unit_vec)
-                )
-            );
+            unsafe { matp.add(i).write(unit_vec.assume_init()); }
         }
-        Matrix::<T, {N}, {N}>(unit_mat)
+        Matrix::<T, {N}, {N}>(unsafe { unit_mat.assume_init() })
     }
 
     fn is_one(&self) -> bool {
@@ -914,22 +957,26 @@ where
 {
     type Output = Matrix<<A as Add<B>>::Output, {N}, {M}>;
 
-    fn add(mut self, mut rhs: Matrix<B, {N}, {M}>) -> Self::Output {
-        let mut mat: [Vector<<A as Add<B>>::Output, {N}>; {M}] = unsafe { mem::uninitialized() };
+    fn add(self, rhs: Matrix<B, {N}, {M}>) -> Self::Output {
+        let mut mat =
+            MaybeUninit::<[Vector<<A as Add<B>>::Output, {N}>; {M}]>::uninit();
+        let mut lhs = MaybeUninit::new(self);
+        let mut rhs = MaybeUninit::new(rhs);
+        let matp: *mut Vector<<A as Add<B>>::Output, {N}> =
+            unsafe { mem::transmute(&mut mat) };
+        let lhsp: *mut MaybeUninit<Vector<A, {N}>> =
+            unsafe { mem::transmute(&mut lhs) };
+        let rhsp: *mut MaybeUninit<Vector<B, {N}>> =
+            unsafe { mem::transmute(&mut rhs) };
         for i in 0..M {
-            for j in 0..N {
-                mem::forget(
-                    mem::replace(
-                        &mut mat[i].0[j],
-                        mem::replace(&mut self.0[i].0[j], unsafe { mem::uninitialized() }) +
-                            mem::replace(&mut rhs.0[i].0[j], unsafe { mem::uninitialized() })
-                    )
-                )
+            unsafe {
+                matp.add(i).write(
+                    lhsp.add(i).replace(MaybeUninit::uninit()).assume_init() +
+                        rhsp.add(i).replace(MaybeUninit::uninit()).assume_init()
+                );
             }
         }
-        mem::forget(self);
-        mem::forget(rhs);
-        Matrix::<<A as Add<B>>::Output, {N}, {M}>(mat)
+        Matrix::<<A as Add<B>>::Output, {N}, {M}>(unsafe { mat.assume_init() })
     }
 }
 
@@ -937,13 +984,14 @@ impl<A, B, const N: usize, const M: usize> AddAssign<Matrix<B, {N}, {M}>> for Ma
 where
     A: AddAssign<B>,
 {
-    fn add_assign(&mut self, mut rhs: Matrix<B, {N}, {M}>) {
+    fn add_assign(&mut self, rhs: Matrix<B, {N}, {M}>) {
+        let mut rhs = MaybeUninit::new(rhs);
+        let rhsp: *mut MaybeUninit<Vector<B, {N}>> = unsafe { mem::transmute(&mut rhs) };
         for i in 0..M {
-            for j in 0..N {
-                self.0[i].0[j] += mem::replace(&mut rhs.0[i].0[j], unsafe { mem::uninitialized() });
-            }
+            self.0[i] += unsafe {
+                rhsp.add(i).replace(MaybeUninit::uninit()).assume_init()
+            };
         }
-        mem::forget(rhs);
     }
 }
     
@@ -954,22 +1002,26 @@ where
 {
     type Output = Matrix<<A as Sub<B>>::Output, {N}, {M}>;
 
-    fn sub(mut self, mut rhs: Matrix<B, {N}, {M}>) -> Self::Output {
-        let mut mat: [Vector<<A as Sub<B>>::Output, {N}>; {M}] = unsafe { mem::uninitialized() };
+    fn sub(self, rhs: Matrix<B, {N}, {M}>) -> Self::Output {
+        let mut mat =
+            MaybeUninit::<[Vector<<A as Sub<B>>::Output, {N}>; {M}]>::uninit();
+        let mut lhs = MaybeUninit::new(self);
+        let mut rhs = MaybeUninit::new(rhs);
+        let matp: *mut Vector<<A as Sub<B>>::Output, {N}> =
+            unsafe { mem::transmute(&mut mat) };
+        let lhsp: *mut MaybeUninit<Vector<A, {N}>> =
+            unsafe { mem::transmute(&mut lhs) };
+        let rhsp: *mut MaybeUninit<Vector<B, {N}>> =
+            unsafe { mem::transmute(&mut rhs) };
         for i in 0..M {
-            for j in 0..N {
-                mem::forget(
-                    mem::replace(
-                        &mut mat[i].0[j],
-                        mem::replace(&mut self.0[i].0[j], unsafe { mem::uninitialized() }) -
-                            mem::replace(&mut rhs.0[i].0[j], unsafe { mem::uninitialized() })
-                    )
-                )
+            unsafe {
+                matp.add(i).write(
+                    lhsp.add(i).replace(MaybeUninit::uninit()).assume_init() -
+                        rhsp.add(i).replace(MaybeUninit::uninit()).assume_init()
+                );
             }
         }
-        mem::forget(self);
-        mem::forget(rhs);
-        Matrix::<<A as Sub<B>>::Output, {N}, {M}>(mat)
+        Matrix::<<A as Sub<B>>::Output, {N}, {M}>(unsafe { mat.assume_init() })
     }
 }
 
@@ -977,13 +1029,14 @@ impl<A, B, const N: usize, const M: usize> SubAssign<Matrix<B, {N}, {M}>> for Ma
 where
     A: SubAssign<B>,
 {
-    fn sub_assign(&mut self, mut rhs: Matrix<B, {N}, {M}>) {
+    fn sub_assign(&mut self, rhs: Matrix<B, {N}, {M}>) {
+        let mut rhs = MaybeUninit::new(rhs);
+        let rhsp: *mut MaybeUninit<Vector<B, {N}>> = unsafe { mem::transmute(&mut rhs) };
         for i in 0..M {
-            for j in 0..N {
-                self.0[i].0[j] -= mem::replace(&mut rhs.0[i].0[j], unsafe { mem::uninitialized() });
-            }
+            self.0[i] -= unsafe {
+                rhsp.add(i).replace(MaybeUninit::uninit()).assume_init()
+            };
         }
-        mem::forget(rhs);
     }
 }
 
@@ -993,20 +1046,25 @@ where
 {
     type Output = Matrix<<T as Neg>::Output, {N}, {M}>;
 
-    fn neg(mut self) -> Self::Output {
-        let mut mat: [Vector<<T as Neg>::Output, {N}>; {M}] = unsafe { mem::uninitialized() };
+    fn neg(self) -> Self::Output {
+        let mut from = MaybeUninit::new(self);
+        let mut mat =
+            MaybeUninit::<[Vector<<T as Neg>::Output, {N}>; {M}]>::uninit();
+        let fromp: *mut MaybeUninit<Vector<T, {N}>> = unsafe { mem::transmute(&mut from) };
+        let matp: *mut Vector<<T as Neg>::Output, {N}> =
+            unsafe { mem::transmute(&mut mat) };
         for i in 0..M {
-            for j in 0..N {
-                mem::forget(
-                    mem::replace(
-                        &mut mat[i].0[j],
-                        mem::replace(&mut self.0[i].0[j], unsafe { mem::uninitialized() }).neg()
-                    )
-                )
+            unsafe {
+                matp.add(i).write(
+                    fromp
+                        .add(i)
+                        .replace(MaybeUninit::uninit())
+                        .assume_init()
+                        .neg()
+                );
             }
         }
-        mem::forget(self);
-        Matrix::<<T as Neg>::Output, {N}, {M}>(mat)
+        Matrix::<<T as Neg>::Output, {N}, {M}>(unsafe { mat.assume_init() })
     }
 }
 
@@ -1021,24 +1079,37 @@ where
         // It might not seem that Rust's type system is helping me at all here,
         // but that's absolutely not true. I got the arrays iterations wrong on
         // the first try and Rust was nice enough to inform me of that fact.
-        let mut mat: [Vector<<Vector<T, {M}> as VectorSpace>::Scalar, {N}>; {P}] = unsafe { mem::uninitialized() };
-        // There's a lesson here... about how these index variables should be
-        // named better.
+        let mut mat = MaybeUninit::<[Vector<<Vector<T, {M}> as VectorSpace>::Scalar, {N}>; {P}]>::uninit();
+        let matp: *mut Vector<<Vector<T, {M}> as VectorSpace>::Scalar, {N}> =
+            unsafe { mem::transmute(&mut mat) };
         for i in 0..P {
-            let mut column: [<Vector<T, {M}> as VectorSpace>::Scalar; {N}] = unsafe { mem::uninitialized() };
+            let mut column = MaybeUninit::<[<Vector<T, {M}> as VectorSpace>::Scalar; {N}]>::uninit();
+            let columnp: *mut <Vector<T, {M}> as VectorSpace>::Scalar =
+                unsafe { mem::transmute(&mut column) };
             for j in 0..N {
-                // Fetch the current row
-                let mut row: [T; {M}] = unsafe { mem::uninitialized() };
+                // Fetch the current row:
+                let mut row = MaybeUninit::<[T; {M}]>::uninit();
+                let rowp: *mut T = unsafe { mem::transmute(&mut row) };
                 for k in 0..M {
-                    mem::forget(mem::replace(&mut row[k], self.0[k].0[j].clone()));
+                    unsafe {
+                        rowp.add(k).write(self.0[k].0[j].clone());
+                    }
                 }
-                let row = Vector::<T, {M}>::from(row);
-                mem::forget(mem::replace(&mut column[j], row.dot(rhs.0[i].clone())))
+                let row = Vector::<T, {M}>::from(unsafe { row.assume_init() });
+                unsafe {
+                    columnp.add(j).write(row.dot(rhs.0[i].clone()));
+                }
             }
-            let column = Vector::<<Vector<T, {M}> as VectorSpace>::Scalar, {N}>(column);
-            mem::forget(mem::replace(&mut mat[i], column));
+            let column = Vector::<<Vector<T, {M}> as VectorSpace>::Scalar, {N}>(
+                unsafe { column.assume_init() }
+            );
+            unsafe {
+                matp.add(i).write(column);
+            }
         }
-        Matrix::<<Vector<T, {M}> as VectorSpace>::Scalar, {N}, {P}>(mat)
+        Matrix::<<Vector<T, {M}> as VectorSpace>::Scalar, {N}, {P}>(
+            unsafe { mat.assume_init() }
+        )
     }
 }
 
@@ -1050,17 +1121,26 @@ where
     type Output = Vector<<Vector<T, {M}> as VectorSpace>::Scalar, {N}>;
 
     fn mul(self, rhs: Vector<T, {M}>) -> Self::Output {
-        let mut column: [<Vector<T, {M}> as VectorSpace>::Scalar; {N}] = unsafe { mem::uninitialized() };
+        let mut column = MaybeUninit::<[<Vector<T, {M}> as VectorSpace>::Scalar; {N}]>::uninit();
+        let columnp: *mut <Vector<T, {M}> as VectorSpace>::Scalar =
+            unsafe { mem::transmute(&mut column) };
         for j in 0..N {
-            // Fetch the current row
-            let mut row: [T; {M}] = unsafe { mem::uninitialized() };
+            // Fetch the current row:
+            let mut row = MaybeUninit::<[T; {M}]>::uninit();
+            let rowp: *mut T = unsafe { mem::transmute(&mut row) };
             for k in 0..M {
-                mem::forget(mem::replace(&mut row[k], self.0[k].0[j].clone()));
+                unsafe {
+                    rowp.add(k).write(self.0[k].0[j].clone());
+                }
             }
-            let row = Vector::<T, {M}>::from(row);
-            mem::forget(mem::replace(&mut column[j], row.dot(rhs.clone())))
+            let row = Vector::<T, {M}>::from(unsafe { row.assume_init() });
+            unsafe {
+                columnp.add(j).write(row.dot(rhs.clone()));
+            }
         }
-        Vector::<<Vector<T, {M}> as VectorSpace>::Scalar, {N}>(column)
+        Vector::<<Vector<T, {M}> as VectorSpace>::Scalar, {N}>(
+            unsafe { column.assume_init() }
+        )
     }
 }
 
@@ -1072,43 +1152,45 @@ where
     type Output = Matrix<T, {N}, {M}>;
 
     fn mul(self, scalar: T) -> Self::Output {
-        let mut mat: [Vector<T, {N}>; {M}] = unsafe { mem::uninitialized() };
+        let mut mat = MaybeUninit::<[Vector<T, {N}>; {M}]>::uninit();
+        let matp: *mut Vector<T, {N}> = unsafe { mem::transmute(&mut mat) };
         for i in 0..M {
-            for j in 0..N {
-                mem::forget(
-                    mem::replace(
-                        &mut mat[i].0[j],
-                        scalar.clone() * self.0[i].0[j].clone()
-                    )
-                );
+            unsafe {
+                matp.add(i).write(self.0[i].clone() * scalar.clone());
             }
         }
-        Matrix::<T, {N}, {M}>(mat)
+        Matrix::<T, {N}, {M}>(unsafe { mat.assume_init() })
     }
 }
 
 impl<T, const N: usize, const M: usize> Matrix<T, {N}, {M}> {
     /// Returns the transpose of the matrix. 
-    pub fn transpose(mut self) -> Matrix<T, {M}, {N}> {
-        let mut mat: [Vector<T, {M}>; {N}] = unsafe { mem::uninitialized() };
+    pub fn transpose(self) -> Matrix<T, {M}, {N}> {
+        let mut from = MaybeUninit::new(self);
+        let mut trans = MaybeUninit::<[Vector<T, {M}>; {N}]>::uninit();
+        let fromp: *mut Vector<MaybeUninit<T>, {N}> = unsafe { mem::transmute(&mut from) };
+        let transp: *mut Vector<T, {M}> = unsafe{ mem::transmute(&mut trans) };
         for j in 0..N {
             // Fetch the current row
-            let mut row: [T; {M}] = unsafe { mem::uninitialized() };
+            let mut row = MaybeUninit::<[T; {M}]>::uninit();
+            let rowp: *mut T = unsafe { mem::transmute(&mut row) };
             for k in 0..M {
-                mem::forget(
-                    mem::replace(
-                        &mut row[k],
-                        mem::replace(
-                            &mut self.0[k].0[j],
-                            unsafe { mem::uninitialized() }
-                        )
-                    )
-                );
+                unsafe {
+                    let fromp: *mut MaybeUninit<T> = mem::transmute(fromp.add(k));
+                    rowp.add(k).write(
+                        fromp
+                            .add(j)
+                            .replace(MaybeUninit::uninit())
+                            .assume_init()
+                    );
+                }
             }
-            let row = Vector::<T, {M}>::from(row);
-            mem::forget(mem::replace(&mut mat[j], row));
+            let row = Vector::<T, {M}>::from(unsafe { row.assume_init() });
+            unsafe {
+                transp.add(j).write(row);
+            }
         }
-        Matrix::<T, {M}, {N}>(mat)
+        Matrix::<T, {M}, {N}>(unsafe { trans.assume_init() })
     }
 }
 
@@ -1148,22 +1230,26 @@ where
     }
 
     fn diagonal(&self) -> Vector<Scalar, {N}> {
-        let mut diag: [Scalar; {N}] = unsafe { mem::uninitialized() };
+        let mut diag = MaybeUninit::<[Scalar; {N}]>::uninit();
+        let diagp: *mut Scalar = unsafe { mem::transmute(&mut diag) };
         for i in 0..N {
-            mem::forget(
-                mem::replace(
-                    &mut diag[i],
-                    self.0[i].0[i].clone()
-                )
-            )
+            unsafe {
+                diagp.add(i).write(self.0[i].0[i].clone());
+            }
         }
-        Vector::<Scalar, {N}>(diag)
+        Vector::<Scalar, {N}>(unsafe { diag.assume_init() })
     }
 }
     
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_vec_zero() {
+        let a = Vector3::<u32>::zero();
+        assert_eq!(a, Vector3::<u32>::from([ 0, 0, 0 ]));
+    }
 
     #[test]
     fn test_vec_index() {
@@ -1208,7 +1294,38 @@ mod tests {
         let c = Vector2::<u32>::from([ 1, 3 ]);
         let d = Vector2::<u32>::from([ 2, 5 ]);
         assert_eq!(a + b, c);
-        assert_eq!(b + c, d);        
+        assert_eq!(b + c, d);
+        let mut c = Vector2::<u32>::from([ 1, 3 ]);
+        let d = Vector2::<u32>::from([ 2, 5 ]);
+        c += d;
+        let e = Vector2::<u32>::from([ 3, 8 ]);
+        assert_eq!(c, e);
+    }
+
+    #[test]
+    fn test_vec_subtraction() {
+        let mut a = Vector1::<u32>::from([ 3 ]);
+        let b = Vector1::<u32>::from([ 1 ]);
+        let c = Vector1::<u32>::from([ 2 ]);
+        assert_eq!(a - c, b);
+        a -= b;
+        assert_eq!(a, c);
+    }
+
+    #[test]
+    fn test_vec_negation() {
+        let a = Vector4::<i32>::from([ 1, 2, 3, 4 ]);
+        let b = Vector4::<i32>::from([ -1, -2, -3, -4 ]);
+        assert_eq!(-a, b);
+    }
+
+    #[test]
+    fn test_vec_scale() {
+        let a = Vector4::<f32>::from([ 2.0, 4.0, 2.0, 4.0 ]);
+        let b = Vector4::<f32>::from([ 4.0, 8.0, 4.0, 8.0 ]);
+        let c = Vector4::<f32>::from([ 1.0, 2.0, 1.0, 2.0 ]);
+        assert_eq!(a * 2.0, b);
+        assert_eq!(a / 2.0, c);
     }
 
     #[test]
@@ -1234,7 +1351,31 @@ mod tests {
     }
 
     #[test]
-    fn test_matrix_add() {
+    fn test_mat_identity() {
+        let unit = mat4x4( 1u32, 0, 0, 0,
+                           0, 1, 0, 0,
+                           0, 0, 1, 0,
+                           0, 0, 0, 1 );
+        assert_eq!(
+            Matrix::<u32, 4, 4>::one(),
+            unit
+        );
+    }
+
+    #[test]
+    fn test_mat_negation() {
+        let neg_unit = mat4x4( -1i32, 0, 0, 0,
+                                0, -1, 0, 0,
+                                0, 0, -1, 0,
+                                0, 0, 0, -1 );
+        assert_eq!(
+            -Matrix::<i32, 4, 4>::one(),
+            neg_unit
+        );
+    }
+
+    #[test]
+    fn test_mat_add() {
         let a = mat1x1( mat1x1( 1u32 ) );
         let b = mat1x1( mat1x1( 10u32 ) );
         let c = mat1x1( mat1x1( 11u32 ) );
@@ -1242,7 +1383,16 @@ mod tests {
     }
 
     #[test]
-    fn test_matrix_mult() {
+    fn test_mat_scalar_mult() {
+        let a = Matrix::<f32, 2, 2>::from( [ vec2( 0.0, 1.0 ),
+                                             vec2( 0.0, 2.0 ) ] );
+        let b = Matrix::<f32, 2, 2>::from( [ vec2( 0.0, 2.0 ),
+                                             vec2( 0.0, 4.0 ) ] );
+        assert_eq!(a * 2.0, b);
+    }
+
+    #[test]
+    fn test_mat_mult() {
         let a = Matrix::<f32, 2, 2>::from( [ vec2( 0.0, 0.0 ),
                                              vec2( 1.0, 0.0 ) ] );
         let b = Matrix::<f32, 2, 2>::from( [ vec2( 0.0, 1.0 ),
@@ -1286,7 +1436,7 @@ mod tests {
     }
 
     #[test]
-    fn test_matrix_transpose() {
+    fn test_mat_transpose() {
         assert_eq!(
             Matrix::<i32, 1, 2>::from( [ vec1( 1 ), vec1( 2 ) ] )
                 .transpose(),
