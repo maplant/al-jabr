@@ -1,5 +1,9 @@
 # aljabar 
 
+[![Documentation](https://docs.rs/aljabar/badge.svg)](https://docs.rs/aljabar)
+[![Version](https://img.shields.io/crates/v/aljabar.svg)](https://crates.io/crates/aljabar)
+[![Downloads](https://img.shields.io/crates/d/aljabar.svg)](https://crates.io/crates/aljabar)
+
 An experimental n-dimensional linear algebra and mathematics library for the 
 Rust programming language that makes extensive use of unstable Rust features.
 
