@@ -1371,6 +1371,14 @@ mod tests {
     }
 
     #[test]
+    fn test_vec_cross() {
+        let a = vec3(1isize, 2isize, 3isize);
+        let b = vec3(4isize, 5isize, 6isize);
+        let r = vec3(-3isize, 6isize, -3isize);
+        assert_eq!(a.cross(b), r);
+    }
+        
+    #[test]
     fn test_vec_distance() {
         let a = Vector1::<f32>::from([ 0.0 ]);
         let b = Vector1::<f32>::from([ 1.0 ]);
