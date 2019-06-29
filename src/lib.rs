@@ -18,6 +18,10 @@
 #![feature(specialization)]
 
 use std::{
+    hash::{
+        Hash,
+        Hasher,
+    },
     fmt,
     mem::{
         self,
@@ -296,6 +300,17 @@ impl<T, const N: usize> From<[T; N]> for Vector<T, {N}> {
 impl<T, const N: usize> Into<[T; {N}]> for Vector<T, {N}> {
     fn into(self) -> [T; {N}] {
         self.0
+    }
+}
+
+impl<T, const N: usize> Hash for Vector<T, {N}>
+where
+    T: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for i in 0..N {
+            self.0[i].hash(state);
+        }
     }
 }
 
@@ -869,6 +884,17 @@ impl<T, const N: usize, const M: usize> Deref for Matrix<T, {N}, {M}> {
 impl<T, const N: usize, const M: usize> DerefMut for Matrix<T, {N}, {M}> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+impl<T, const N: usize, const M: usize> Hash for Matrix<T, {N}, {M}>
+where
+    T: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for i in 0..M {
+            self.0[i].hash(state);
+        }
     }
 }
 
