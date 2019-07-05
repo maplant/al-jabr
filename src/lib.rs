@@ -22,7 +22,7 @@
 //! and specialization.
 //!
 //! It is not the specific goal of this project to be useful in any sense, but
-//! hopefully it will end up being roughly compatible with cgmath. 
+//! hopefully it will end up being roughly compatible with cgmath.
 //!
 //! The performance of Aljabar is currently probably pretty bad. I have yet to
 //! test it, but let's just say I haven't gotten very far on the matrix
@@ -67,50 +67,34 @@ pub trait Zero {
     fn is_zero(&self) -> bool;
 }
 
+
 macro_rules! impl_zero {
+    // Default $zero to '0' if not provided.
     (
         $type:ty
     ) => {
+        impl_zero!{ $type, 0 }
+    };
+    // Main impl.
+    (
+        $type:ty,
+        $zero:expr
+    ) => {
         impl Zero for $type {
             fn zero() -> Self  {
-                0
+                $zero
             }
 
             fn is_zero(&self) -> bool {
-                *self == 0
+                *self == $zero
             }
         }
     };
 }
 
-macro_rules! impl_zero_fp {
-    (
-        $type:ty
-    ) => {
-        impl Zero for $type {
-            fn zero() -> Self  {
-                0.0
-            }
-
-            fn is_zero(&self) -> bool {
-                *self == 0.0
-            }
-        }
-    };
-}
-
-impl Zero for bool {
-    fn zero() -> Self {
-        false
-    }
-
-    fn is_zero(&self) -> bool {
-        !self
-    }
-}
-
-impl_zero_fp!{ f32 }
-impl_zero_fp!{ f64 }
+impl_zero!{ bool, false }
+impl_zero!{ f32, 0.0 }
+impl_zero!{ f64, 0.0 }
 impl_zero!{ i8 }
 impl_zero!{ i16 }
 impl_zero!{ i32 }
@@ -136,49 +120,32 @@ pub trait One {
 }
 
 macro_rules! impl_one {
+    // Default $one to '1' if not provided.
     (
         $type:ty
     ) => {
+        impl_one!{ $type, 1 }
+    };
+    // Main impl.
+    (
+        $type:ty,
+        $one:expr
+    ) => {
         impl One for $type {
             fn one() -> Self  {
-                1
+                $one
             }
 
             fn is_one(&self) -> bool {
-                *self == 1
+                *self == $one
             }
         }
     };
 }
 
-macro_rules! impl_one_fp {
-    (
-        $type:ty
-    ) => {
-        impl One for $type {
-            fn one() -> Self  {
-                1.0
-            }
-
-            fn is_one(&self) -> bool {
-                *self == 1.0
-            }
-        }
-    };
-}
-
-impl One for bool {
-    fn one() -> Self {
-        true
-    }
-
-    fn is_one(&self) -> bool {
-        *self
-    }
-}
-
-impl_one_fp!{ f32 }
-impl_one_fp!{ f64 }
+impl_one!{ bool, true }
+impl_one!{ f32, 1.0 }
+impl_one!{ f64, 1.0 }
 impl_one!{ i8 }
 impl_one!{ i16 }
 impl_one!{ i32 }
@@ -207,7 +174,7 @@ impl Real for f64 {
 
 /// N-element vector.
 ///
-/// Vectors can be constructed from arrays of any type and size. There are 
+/// Vectors can be constructed from arrays of any type and size. There are
 /// convenience constructor functions provided for the most common sizes.
 ///
 /*
@@ -217,7 +184,7 @@ impl Real for f64 {
 /// let a Vector::<u32, 4> = vec4( 0u32, 1, 2, 3 );
 /// /*
 /// assert_eq!(
-///     a, 
+///     a,
 ///     Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
 /// );
 /// */
@@ -304,7 +271,7 @@ pub fn vec4<T>(x: T, y: T, z: T, w: T) -> Vector4<T> {
     Vector4::<T>::from([ x, y, z, w ])
 }
 
-/// 5-element vector. 
+/// 5-element vector.
 pub type Vector5<T> = Vector<T, 5>;
 
 impl<T, const N: usize> From<[T; N]> for Vector<T, {N}> {
@@ -582,7 +549,7 @@ where
     }
 }
 
-/// Scalar divide assign 
+/// Scalar divide assign
 impl<A, B, const N: usize> DivAssign<B> for Vector<A, {N}>
 where
     A: DivAssign<B>,
@@ -629,7 +596,7 @@ where
         Sub<Self::Scalar, Output = Self::Scalar> +
         Mul<Self::Scalar, Output = Self::Scalar> +
         Div<Self::Scalar, Output = Self::Scalar>;
-    
+
     fn lerp(self, other: Self, amount: Self::Scalar) -> Self;
 }
 
@@ -746,10 +713,10 @@ where
     T: Sub<T, Output = T>,
     T: Mul<T, Output = T>,
     T: Div<T, Output = T>,
-    // TODO: Remove this add assign bound. This is purely for ease of 
+    // TODO: Remove this add assign bound. This is purely for ease of
     // implementation.
     T: AddAssign<T>,
-    Self: Clone, 
+    Self: Clone,
 {
     fn dot(self, rhs: Self) -> T {
         let mut lhs = MaybeUninit::new(self);
@@ -768,8 +735,8 @@ where
 }
 
 /// An `N`-by-`M` Column Major matrix.
-/// 
-/// Matrices can be created from arrays of Vectors of any size and scalar type. 
+///
+/// Matrices can be created from arrays of Vectors of any size and scalar type.
 /// As with Vectors there are convenience constructor functions for square matrices
 /// of the most common sizes.
 ///
@@ -785,11 +752,11 @@ where
 ///                     6, 1, -4,
 ///                     2, 3, -2 );
 /// ```
-/// 
+///
 */
 /// All operations performed on matrices produce fixed-size outputs. For example,
-/// taking the `transpose` of a non-square matrix will produce a matrix with the 
-/// width and height swapped: 
+/// taking the `transpose` of a non-square matrix will produce a matrix with the
+/// width and height swapped:
 ///
 /*
 /// ```
@@ -855,7 +822,7 @@ pub fn mat3x3<T>(
 ) -> Mat3x3<T> {
     Matrix::<T, 3, 3>(
         [ Vector::<T, 3>([ x00, x10, x20, ]),
-          Vector::<T, 3>([ x01, x11, x21, ]),  
+          Vector::<T, 3>([ x01, x11, x21, ]),
           Vector::<T, 3>([ x02, x12, x22, ]),  ]
     )
 }
@@ -869,7 +836,7 @@ pub fn mat4x4<T>(
 ) -> Mat4x4<T> {
     Matrix::<T, 4, 4>(
         [ Vector::<T, 4>([ x00, x10, x20, x30 ]),
-          Vector::<T, 4>([ x01, x11, x21, x31 ]),  
+          Vector::<T, 4>([ x01, x11, x21, x31 ]),
           Vector::<T, 4>([ x02, x12, x22, x32 ]),
           Vector::<T, 4>([ x03, x13, x23, x33 ]) ]
     )
@@ -990,7 +957,7 @@ where
     }
 }
 
-/// I'm not quite sure how to format the debug output for a matrix. 
+/// I'm not quite sure how to format the debug output for a matrix.
 impl<T, const N: usize, const M: usize> fmt::Debug for Matrix<T, {N}, {M}>
 where
     T: fmt::Debug
@@ -1052,7 +1019,7 @@ where
         }
     }
 }
-    
+
 /// Element-wise subtraction of two equal sized matrices.
 impl<A, B, const N: usize, const M: usize> Sub<Matrix<B, {N}, {M}>> for Matrix<A, {N}, {M}>
 where
@@ -1222,7 +1189,7 @@ where
 }
 
 impl<T, const N: usize, const M: usize> Matrix<T, {N}, {M}> {
-    /// Returns the transpose of the matrix. 
+    /// Returns the transpose of the matrix.
     pub fn transpose(self) -> Matrix<T, {M}, {N}> {
         let mut from = MaybeUninit::new(self);
         let mut trans = MaybeUninit::<[Vector<T, {M}>; {N}]>::uninit();
@@ -1298,7 +1265,7 @@ where
         Vector::<Scalar, {N}>(unsafe { diag.assume_init() })
     }
 }
-    
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1333,7 +1300,7 @@ mod tests {
     /*
     #[test]
     fn test_vec_trunc() {
-        
+
         let (xyz, w): (TruncatedVector<_, 4>, _) = vec4(0u32, 1, 2, 3).trunc();
     }
     */
@@ -1393,7 +1360,7 @@ mod tests {
         let r = vec3(-3isize, 6isize, -3isize);
         assert_eq!(a.cross(b), r);
     }
-        
+
     #[test]
     fn test_vec_distance() {
         let a = Vector1::<f32>::from([ 0.0 ]);
@@ -1529,16 +1496,16 @@ mod tests {
 
     #[test]
     fn test_readme_code() {
-        let a = vec4( 0u32, 1, 2, 3 ); 
+        let a = vec4( 0u32, 1, 2, 3 );
         assert_eq!(
-	          a, 
+	          a,
             Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
         );
 
         let b = Vector::<f32, 7>::from([ 0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, ]);
-        let c = Vector::<f32, 7>::from([ 1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, ]) * 0.5; 
+        let c = Vector::<f32, 7>::from([ 1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, ]) * 0.5;
         assert_eq!(
-            b + c, 
+            b + c,
             Vector::<f32, 7>::from([ 0.5f32, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5 ])
         );
 
@@ -1573,16 +1540,16 @@ mod tests {
                     0, 2, 0,
                     0, 0, 3 )
                 .diagonal(),
-            vec3( 1i32, 2, 3 ) 
+            vec3( 1i32, 2, 3 )
         );
 
         assert_eq!(
-            mat4x4( 1i32, 0, 0, 0, 
-                    0, 2, 0, 0, 
-                    0, 0, 3, 0, 
+            mat4x4( 1i32, 0, 0, 0,
+                    0, 2, 0, 0,
+                    0, 0, 3, 0,
                     0, 0, 0, 4 )
                 .diagonal(),
-            vec4( 1i32, 2, 3, 4 ) 
+            vec4( 1i32, 2, 3, 4 )
         );
     }
 }
