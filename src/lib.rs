@@ -22,7 +22,7 @@
 //! and specialization.
 //!
 //! It is not the specific goal of this project to be useful in any sense, but
-//! hopefully it will end up being roughly compatible with cgmath. 
+//! hopefully it will end up being roughly compatible with cgmath.
 //!
 //! The performance of Aljabar is currently probably pretty bad. I have yet to
 //! test it, but let's just say I haven't gotten very far on the matrix
@@ -207,7 +207,7 @@ impl Real for f64 {
 
 /// N-element vector.
 ///
-/// Vectors can be constructed from arrays of any type and size. There are 
+/// Vectors can be constructed from arrays of any type and size. There are
 /// convenience constructor functions provided for the most common sizes.
 ///
 /*
@@ -217,7 +217,7 @@ impl Real for f64 {
 /// let a Vector::<u32, 4> = vec4( 0u32, 1, 2, 3 );
 /// /*
 /// assert_eq!(
-///     a, 
+///     a,
 ///     Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
 /// );
 /// */
@@ -259,6 +259,176 @@ impl<T, const N: usize> Vector<T, {N}> {
                     .assume_init()
             }
         )
+    }
+}
+
+// Generates all the 2, 3, and 4-level swizzle functions.
+macro_rules! swizzle {
+    // First level. Doesn't generate any functions itself because the one-letter functions
+    // are manually provided in the Swizzle trait.
+    ($a:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
+        // Pass the alphabet so the second level can choose the next letters.
+        swizzle!{ $a, $x, $x, $y, $z, $w }
+        swizzle!{ $a, $y, $x, $y, $z, $w }
+        swizzle!{ $a, $z, $x, $y, $z, $w }
+        swizzle!{ $a, $w, $x, $y, $z, $w }
+    };
+    // Second level. Generates all 2-element swizzle functions, and recursively calls the
+    // third level, specifying the third letter.
+    ($a:ident, $b:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
+        paste::item! {
+            // #[doc = $comment]
+            fn [< $a $b >](&self) -> Vector<T, 2> {
+                Vector::<T, 2>::from([
+                    self.$a(),
+                    self.$b(),
+                ])
+            }
+        }
+
+        // Pass the alphabet so the third level can choose the next letters.
+        swizzle!{ $a, $b, $x, $x, $y, $z, $w }
+        swizzle!{ $a, $b, $y, $x, $y, $z, $w }
+        swizzle!{ $a, $b, $z, $x, $y, $z, $w }
+        swizzle!{ $a, $b, $w, $x, $y, $z, $w }
+    };
+    // Third level. Generates all 3-element swizzle functions, and recursively calls the
+    // fourth level, specifying the fourth letter.
+    ($a:ident, $b:ident, $c:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
+        paste::item! {
+            // #[doc = $comment]
+            fn [< $a $b $c >](&self) -> Vector<T, 3> {
+                Vector::<T, 3>::from([
+                    self.$a(),
+                    self.$b(),
+                    self.$c(),
+                ])
+            }
+        }
+
+        // Do not need to pass the alphabet because the fourth level does not need to choose
+        // any more letters.
+        swizzle!{ $a, $b, $c, $x }
+        swizzle!{ $a, $b, $c, $y }
+        swizzle!{ $a, $b, $c, $z }
+        swizzle!{ $a, $b, $c, $w }
+    };
+    // Final level which halts the recursion. Generates all 4-element swizzle functions.
+    // No $x, $y, $z, $w parameters because this function does not need to know the alphabet,
+    // because it already has all the names assigned.
+    ($a:ident, $b:ident, $c:ident, $d:ident) => {
+        paste::item! {
+            // #[doc = $comment]
+            fn [< $a $b $c $d >](&self) -> Vector<T, 4> {
+                Vector::<T, 4>::from([
+                    self.$a(),
+                    self.$b(),
+                    self.$c(),
+                    self.$d(),
+                ])
+            }
+        }
+    };
+}
+
+/// Provides [swizzling](https://en.wikipedia.org/wiki/Swizzling_(computer_graphics)) support for up to four elements. Swizzling is a technique for easily
+/// rearranging and accessing elements of a vector, used commonly in graphics shader
+/// programming. Swizzling is available on vectors whose element type is Copy.
+///
+/// Single-element accessors return the element itself. Multi-element accessors return
+/// vectors of the appropriate size.
+///
+/// # Element names
+/// Only the first four elements of a vector may be swizzled. If you have vectors larger
+/// than length four and want to manipulate their elements, you must do so manually.
+///
+/// Because swizzling is often used in compute graphics contexts when dealing with colors,
+/// both 'xyzw' and 'rgba' element names are available. They cannot however be mixed.
+///
+/// | Element Index | xyzw Name | rgba Name |
+/// |---------------|-----------|-----------|
+/// | 0             | x         | r         |
+/// | 1             | y         | g         |
+/// | 2             | z         | b         |
+/// | 3             | w         | a         |
+///
+/// # Restrictions
+/// It is a compilation error to attempt to access an element beyond the bounds of a vector.
+/// For example, `vector![1, 2].z()` would fail because `z()` is only available on vectors of
+/// length 3 or greater.
+///
+/// # Examples
+///
+/// To get the first two elements of a 4-vector.
+/// ```ignore
+/// let v = vector![1, 2, 3, 4].xy();
+/// ```
+///
+/// To get the first and last element of a 4-vector.
+/// ```ignore
+/// let v = vector![1, 2, 3, 4].xw();
+/// ```
+///
+/// To reverse the order of a 3-vector.
+/// ```ignore
+/// let v = vector![1, 2, 3].zyx();
+/// ```
+///
+/// To select the first and third elements into the second and fourth elements, respectively.
+/// ```ignore
+/// let v = vector![1, 2, 3, 4].xxzz();
+/// ```
+pub trait Swizzle<T> {
+    fn x(&self) -> T;
+    fn y(&self) -> T;
+    fn z(&self) -> T;
+    fn w(&self) -> T;
+
+    fn r(&self) -> T {
+        self.x()
+    }
+
+    fn g(&self) -> T {
+        self.y()
+    }
+
+    fn b(&self) -> T {
+        self.z()
+    }
+
+    fn a(&self) -> T {
+        self.w()
+    }
+
+    swizzle!{x, x, y, z, w}
+    swizzle!{y, x, y, z, w}
+    swizzle!{z, x, y, z, w}
+    swizzle!{w, x, y, z, w}
+    swizzle!{r, r, g, b, a}
+    swizzle!{g, r, g, b, a}
+    swizzle!{b, r, g, b, a}
+    swizzle!{a, r, g, b, a}
+}
+
+// The cool thing about this is that Rust apparently monomorphizes only those functions which
+// are actually used. This means that this impl for vectors of any length N is able to support
+// vectors of length N < 4. For example, calling x() on a Vector2 works, but attempting to call
+// z() will result in a nice compile error.
+impl<T: Copy, const N: usize> Swizzle<T> for Vector<T, {N}> {
+    fn x(&self) -> T {
+        self.0[0]
+    }
+
+    fn y(&self) -> T {
+        self.0[1]
+    }
+
+    fn z(&self) -> T {
+        self.0[2]
+    }
+
+    fn w(&self) -> T {
+        self.0[3]
     }
 }
 
@@ -304,7 +474,7 @@ pub fn vec4<T>(x: T, y: T, z: T, w: T) -> Vector4<T> {
     Vector4::<T>::from([ x, y, z, w ])
 }
 
-/// 5-element vector. 
+/// 5-element vector.
 pub type Vector5<T> = Vector<T, 5>;
 
 impl<T, const N: usize> From<[T; N]> for Vector<T, {N}> {
@@ -582,7 +752,7 @@ where
     }
 }
 
-/// Scalar divide assign 
+/// Scalar divide assign
 impl<A, B, const N: usize> DivAssign<B> for Vector<A, {N}>
 where
     A: DivAssign<B>,
@@ -629,7 +799,7 @@ where
         Sub<Self::Scalar, Output = Self::Scalar> +
         Mul<Self::Scalar, Output = Self::Scalar> +
         Div<Self::Scalar, Output = Self::Scalar>;
-    
+
     fn lerp(self, other: Self, amount: Self::Scalar) -> Self;
 }
 
@@ -746,10 +916,10 @@ where
     T: Sub<T, Output = T>,
     T: Mul<T, Output = T>,
     T: Div<T, Output = T>,
-    // TODO: Remove this add assign bound. This is purely for ease of 
+    // TODO: Remove this add assign bound. This is purely for ease of
     // implementation.
     T: AddAssign<T>,
-    Self: Clone, 
+    Self: Clone,
 {
     fn dot(self, rhs: Self) -> T {
         let mut lhs = MaybeUninit::new(self);
@@ -768,8 +938,8 @@ where
 }
 
 /// An `N`-by-`M` Column Major matrix.
-/// 
-/// Matrices can be created from arrays of Vectors of any size and scalar type. 
+///
+/// Matrices can be created from arrays of Vectors of any size and scalar type.
 /// As with Vectors there are convenience constructor functions for square matrices
 /// of the most common sizes.
 ///
@@ -785,11 +955,11 @@ where
 ///                     6, 1, -4,
 ///                     2, 3, -2 );
 /// ```
-/// 
+///
 */
 /// All operations performed on matrices produce fixed-size outputs. For example,
-/// taking the `transpose` of a non-square matrix will produce a matrix with the 
-/// width and height swapped: 
+/// taking the `transpose` of a non-square matrix will produce a matrix with the
+/// width and height swapped:
 ///
 /*
 /// ```
@@ -855,7 +1025,7 @@ pub fn mat3x3<T>(
 ) -> Mat3x3<T> {
     Matrix::<T, 3, 3>(
         [ Vector::<T, 3>([ x00, x10, x20, ]),
-          Vector::<T, 3>([ x01, x11, x21, ]),  
+          Vector::<T, 3>([ x01, x11, x21, ]),
           Vector::<T, 3>([ x02, x12, x22, ]),  ]
     )
 }
@@ -869,7 +1039,7 @@ pub fn mat4x4<T>(
 ) -> Mat4x4<T> {
     Matrix::<T, 4, 4>(
         [ Vector::<T, 4>([ x00, x10, x20, x30 ]),
-          Vector::<T, 4>([ x01, x11, x21, x31 ]),  
+          Vector::<T, 4>([ x01, x11, x21, x31 ]),
           Vector::<T, 4>([ x02, x12, x22, x32 ]),
           Vector::<T, 4>([ x03, x13, x23, x33 ]) ]
     )
@@ -990,7 +1160,7 @@ where
     }
 }
 
-/// I'm not quite sure how to format the debug output for a matrix. 
+/// I'm not quite sure how to format the debug output for a matrix.
 impl<T, const N: usize, const M: usize> fmt::Debug for Matrix<T, {N}, {M}>
 where
     T: fmt::Debug
@@ -1052,7 +1222,7 @@ where
         }
     }
 }
-    
+
 /// Element-wise subtraction of two equal sized matrices.
 impl<A, B, const N: usize, const M: usize> Sub<Matrix<B, {N}, {M}>> for Matrix<A, {N}, {M}>
 where
@@ -1222,7 +1392,7 @@ where
 }
 
 impl<T, const N: usize, const M: usize> Matrix<T, {N}, {M}> {
-    /// Returns the transpose of the matrix. 
+    /// Returns the transpose of the matrix.
     pub fn transpose(self) -> Matrix<T, {M}, {N}> {
         let mut from = MaybeUninit::new(self);
         let mut trans = MaybeUninit::<[Vector<T, {M}>; {N}]>::uninit();
@@ -1298,7 +1468,7 @@ where
         Vector::<Scalar, {N}>(unsafe { diag.assume_init() })
     }
 }
-    
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1333,7 +1503,7 @@ mod tests {
     /*
     #[test]
     fn test_vec_trunc() {
-        
+
         let (xyz, w): (TruncatedVector<_, 4>, _) = vec4(0u32, 1, 2, 3).trunc();
     }
     */
@@ -1393,7 +1563,7 @@ mod tests {
         let r = vec3(-3isize, 6isize, -3isize);
         assert_eq!(a.cross(b), r);
     }
-        
+
     #[test]
     fn test_vec_distance() {
         let a = Vector1::<f32>::from([ 0.0 ]);
@@ -1529,16 +1699,16 @@ mod tests {
 
     #[test]
     fn test_readme_code() {
-        let a = vec4( 0u32, 1, 2, 3 ); 
+        let a = vec4( 0u32, 1, 2, 3 );
         assert_eq!(
-	          a, 
+	          a,
             Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
         );
 
         let b = Vector::<f32, 7>::from([ 0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, ]);
-        let c = Vector::<f32, 7>::from([ 1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, ]) * 0.5; 
+        let c = Vector::<f32, 7>::from([ 1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, ]) * 0.5;
         assert_eq!(
-            b + c, 
+            b + c,
             Vector::<f32, 7>::from([ 0.5f32, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5 ])
         );
 
@@ -1573,16 +1743,43 @@ mod tests {
                     0, 2, 0,
                     0, 0, 3 )
                 .diagonal(),
-            vec3( 1i32, 2, 3 ) 
+            vec3( 1i32, 2, 3 )
         );
 
         assert_eq!(
-            mat4x4( 1i32, 0, 0, 0, 
-                    0, 2, 0, 0, 
-                    0, 0, 3, 0, 
+            mat4x4( 1i32, 0, 0, 0,
+                    0, 2, 0, 0,
+                    0, 0, 3, 0,
                     0, 0, 0, 4 )
                 .diagonal(),
-            vec4( 1i32, 2, 3, 4 ) 
+            vec4( 1i32, 2, 3, 4 )
         );
+    }
+
+    #[test]
+    fn test_swizzle() {
+        let v: Vector<f32, 1> = Vector::<f32, 1>::from([1.0]);
+        assert_eq!(1.0, v.x());
+
+        let v: Vector<f32, 2> = Vector::<f32, 2>::from([1.0, 2.0]);
+        assert_eq!(1.0, v.x());
+        assert_eq!(2.0, v.y());
+
+        let v: Vector<f32, 3> = Vector::<f32, 3>::from([1.0, 2.0, 3.0]);
+        assert_eq!(1.0, v.x());
+        assert_eq!(2.0, v.y());
+        assert_eq!(3.0, v.z());
+
+        let v: Vector<f32, 4> = Vector::<f32, 4>::from([1.0, 2.0, 3.0, 4.0]);
+        assert_eq!(1.0, v.x());
+        assert_eq!(2.0, v.y());
+        assert_eq!(3.0, v.z());
+        assert_eq!(4.0, v.w());
+
+        let v: Vector<f32, 5> = Vector::<f32, 5>::from([1.0, 2.0, 3.0, 4.0, 5.0]);
+        assert_eq!(1.0, v.x());
+        assert_eq!(2.0, v.y());
+        assert_eq!(3.0, v.z());
+        assert_eq!(4.0, v.w());
     }
 }
