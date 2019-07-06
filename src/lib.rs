@@ -277,7 +277,6 @@ macro_rules! swizzle {
     // third level, specifying the third letter.
     ($a:ident, $b:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
         paste::item! {
-            // #[doc = $comment]
             fn [< $a $b >](&self) -> Vector<T, 2> {
                 Vector::<T, 2>::from([
                     self.$a(),
@@ -296,7 +295,6 @@ macro_rules! swizzle {
     // fourth level, specifying the fourth letter.
     ($a:ident, $b:ident, $c:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
         paste::item! {
-            // #[doc = $comment]
             fn [< $a $b $c >](&self) -> Vector<T, 3> {
                 Vector::<T, 3>::from([
                     self.$a(),
@@ -318,7 +316,6 @@ macro_rules! swizzle {
     // because it already has all the names assigned.
     ($a:ident, $b:ident, $c:ident, $d:ident) => {
         paste::item! {
-            // #[doc = $comment]
             fn [< $a $b $c $d >](&self) -> Vector<T, 4> {
                 Vector::<T, 4>::from([
                     self.$a(),
@@ -331,7 +328,8 @@ macro_rules! swizzle {
     };
 }
 
-/// Provides [swizzling](https://en.wikipedia.org/wiki/Swizzling_(computer_graphics)) support for up to four elements. Swizzling is a technique for easily
+/// Provides [swizzling](https://en.wikipedia.org/wiki/Swizzling_(computer_graphics))
+/// support for up to four elements. Swizzling is a technique for easily
 /// rearranging and accessing elements of a vector, used commonly in graphics shader
 /// programming. Swizzling is available on vectors whose element type is Copy.
 ///
