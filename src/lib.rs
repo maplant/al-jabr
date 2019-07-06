@@ -872,10 +872,8 @@ where
     /// must be of length 1 for the return value to be correct. The current vector is
     /// interpreted as pointing toward the surface, and does not need to be normalized.
     fn reflect(self, surface_normal: Self) -> Self {
-        // We can't multiply by a literal 2 or 2.0 value and we don't have a Two interface, but since
-        // we know the surface_normal is normalized then its magnitude squared is 1, and 1 + 1 = 2.
-        let two: Self::Scalar = surface_normal.clone().magnitude2() + surface_normal.clone().magnitude2();
-        self.clone() - surface_normal.clone() * two * self.dot(surface_normal)
+        let a = surface_normal.clone() * self.clone().dot(surface_normal);
+        self - (a.clone() + a)
     }
 }
 
