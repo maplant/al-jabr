@@ -226,6 +226,43 @@ a number of convenience methods:
 A `Matrix` that implements `Mul<Self>`. Has a `diagonal` and in the future a 
 possible inverse.
 
+### `Swizzle`
+
+Provides swizzling support for both the `xyzw` or `rgba` conventions.
+All possible combinations of the first four elements of a vector are
+supported. Single-element swizzle functions return scalar results,
+multi-element swizzle functions return vector results of the appropriate
+size based on the number of selected elements.
+
+```rust
+let a = vec4( 0.0, 1.0, 2.0, 3.0 );
+
+// A single element is returned as a scalar.
+assert_eq!(1.0, a.y());
+
+// Multiple elements are returned as a vector.
+assert_eq!(vec3(2.0, 0.0, 3.0), a.zxw());
+
+// The same element can be selected more than once.
+assert_eq!(vec2(0.0, 0.0), a.rr());
+```
+
+Mixing `xyzw` and `rgba` swizzle conventions is not allowed.
+
+```rust
+let a = vec4( 0.0, 1.0, 2.0, 3.0 );
+let b = a.rgzw(); // Does not compile.
+```
+
+Swizzling is supported on vectors of length less than 4. Attempting to access
+elements past the length of the vector is a compile error.
+
+```rust
+let a = vec3!(0.0, 1.0, 2.0);
+let b = a.xyz(); // OK, only accesses the first 3 elements.
+let c = a.rgba(); // Compile error, attempts to access missing 4th element.
+```
+
 ## Limitations
 
 Individual component access isn't implemented for vectors and most likely will 

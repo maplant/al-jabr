@@ -341,7 +341,7 @@ macro_rules! swizzle {
 /// than length four and want to manipulate their elements, you must do so manually.
 ///
 /// Because swizzling is often used in compute graphics contexts when dealing with colors,
-/// both 'xyzw' and 'rgba' element names are available. They cannot however be mixed.
+/// both 'xyzw' and 'rgba' element names are available.
 ///
 /// | Element Index | xyzw Name | rgba Name |
 /// |---------------|-----------|-----------|
@@ -354,6 +354,19 @@ macro_rules! swizzle {
 /// It is a compilation error to attempt to access an element beyond the bounds of a vector.
 /// For example, `vector![1, 2].z()` would fail because `z()` is only available on vectors of
 /// length 3 or greater.
+///
+/// ```compile_fail
+/// let v = vector![1, 2].z(); // Fails to compile.
+/// ```
+///
+/// Mixing
+///
+/// ```compile_fail
+/// let v = vector![1, 2, 3, 4];
+/// let xy = v.xy(); // OK, only uses xyzw names.
+/// let rg = v.rg(); // OK, only uses rgba names.
+/// let bad = v.xyrg(); // Compile error, mixes xyzw and rgba names.
+/// ```
 ///
 /// # Examples
 ///
@@ -376,7 +389,7 @@ macro_rules! swizzle {
 /// ```ignore
 /// let v = vector![1, 2, 3, 4].xxzz();
 /// ```
-pub trait Swizzle<T> {
+pub trait Swizzle<T> : Sized {
     fn x(&self) -> T;
     fn y(&self) -> T;
     fn z(&self) -> T;
