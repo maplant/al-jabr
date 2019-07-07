@@ -67,50 +67,34 @@ pub trait Zero {
     fn is_zero(&self) -> bool;
 }
 
+
 macro_rules! impl_zero {
+    // Default $zero to '0' if not provided.
     (
         $type:ty
     ) => {
+        impl_zero!{ $type, 0 }
+    };
+    // Main impl.
+    (
+        $type:ty,
+        $zero:expr
+    ) => {
         impl Zero for $type {
             fn zero() -> Self  {
-                0
+                $zero
             }
 
             fn is_zero(&self) -> bool {
-                *self == 0
+                *self == $zero
             }
         }
     };
 }
 
-macro_rules! impl_zero_fp {
-    (
-        $type:ty
-    ) => {
-        impl Zero for $type {
-            fn zero() -> Self  {
-                0.0
-            }
-
-            fn is_zero(&self) -> bool {
-                *self == 0.0
-            }
-        }
-    };
-}
-
-impl Zero for bool {
-    fn zero() -> Self {
-        false
-    }
-
-    fn is_zero(&self) -> bool {
-        !self
-    }
-}
-
-impl_zero_fp!{ f32 }
-impl_zero_fp!{ f64 }
+impl_zero!{ bool, false }
+impl_zero!{ f32, 0.0 }
+impl_zero!{ f64, 0.0 }
 impl_zero!{ i8 }
 impl_zero!{ i16 }
 impl_zero!{ i32 }
@@ -136,49 +120,32 @@ pub trait One {
 }
 
 macro_rules! impl_one {
+    // Default $one to '1' if not provided.
     (
         $type:ty
     ) => {
+        impl_one!{ $type, 1 }
+    };
+    // Main impl.
+    (
+        $type:ty,
+        $one:expr
+    ) => {
         impl One for $type {
             fn one() -> Self  {
-                1
+                $one
             }
 
             fn is_one(&self) -> bool {
-                *self == 1
+                *self == $one
             }
         }
     };
 }
 
-macro_rules! impl_one_fp {
-    (
-        $type:ty
-    ) => {
-        impl One for $type {
-            fn one() -> Self  {
-                1.0
-            }
-
-            fn is_one(&self) -> bool {
-                *self == 1.0
-            }
-        }
-    };
-}
-
-impl One for bool {
-    fn one() -> Self {
-        true
-    }
-
-    fn is_one(&self) -> bool {
-        *self
-    }
-}
-
-impl_one_fp!{ f32 }
-impl_one_fp!{ f64 }
+impl_one!{ bool, true }
+impl_one!{ f32, 1.0 }
+impl_one!{ f64, 1.0 }
 impl_one!{ i8 }
 impl_one!{ i16 }
 impl_one!{ i32 }
