@@ -336,6 +336,69 @@ macro_rules! swizzle {
     };
 }
 
+
+impl<T, const N: usize> Vector<T, {N}> {
+    /// Converts the Vector into a Matrix with `N` columns each of size `1`.
+    ///
+    /// ```ignore
+    /// # use aljabar::*;
+    /// let v = vec4(1i32, 2, 3, 4);
+    /// let m = Matrix::<i32, 1, 4>::from([
+    ///     vec1(1i32),
+    ///     vec1(2),
+    ///     vec1(3),
+    ///     vec1(4),
+    /// ]);
+    /// assert_eq!(v.tranpose(), m);
+    /// ```
+    pub fn transpose(self) -> Matrix<T, 1, {N}> {
+        let mut from = MaybeUninit::new(self);
+        let mut st = MaybeUninit::<Matrix<T, 1, {N}>>::uninit();
+        let fromp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut from) };
+        let stp: *mut Vector<T, 1> = unsafe { mem::transmute(&mut st) };
+        for i in 0..N {
+            unsafe {
+                stp.add(i).write(
+                    Vector1::<T>::from([
+                        fromp
+                            .add(i)
+                            .replace(MaybeUninit::uninit())
+                            .assume_init()
+                    ])
+                );
+            }
+        }
+        unsafe { st.assume_init() }
+    }
+
+    /// Drop the last component and return the vector with one fewer dimension.
+    pub fn trunc(self) -> (TruncatedVector<T, {N}>, T) {
+        let mut from = MaybeUninit::new(self);
+        let mut head = MaybeUninit::<TruncatedVector<T, {N}>>::uninit();
+        let fromp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut from) };
+        let headp: *mut T = unsafe { mem::transmute(&mut head) };
+        for i in 0..N {
+            unsafe {
+                headp.add(i).write(
+                    fromp
+                        .add(i)
+                        .replace(MaybeUninit::uninit())
+                        .assume_init()
+                );
+            }
+        }
+        (
+            unsafe { head.assume_init() },
+            unsafe {
+                fromp
+                    .add(N-1)
+                    .replace(MaybeUninit::uninit())
+                    .assume_init()
+            }
+        )
+    }
+}
+
 // @EkardNT: The cool thing about this is that Rust apparently monomorphizes only
 // those functions which are actually used. This means that this impl for vectors
 // of any length N is able to support vectors of length N < 4. For example,
@@ -448,68 +511,6 @@ where
 /// Not particularly useful other than as the return value of the `trunc`
 /// method.
 pub type TruncatedVector<T, const N: usize> = Vector<T, {N - 1}>;
-
-impl<T, const N: usize> Vector<T, {N}> {
-    /// Converts the Vector into a Matrix with `N` columns each of size `1`.
-    ///
-    /// ```ignore
-    /// # use aljabar::*;
-    /// let v = vec4(1i32, 2, 3, 4);
-    /// let m = Matrix::<i32, 1, 4>::from([
-    ///     vec1(1i32),
-    ///     vec1(2),
-    ///     vec1(3),
-    ///     vec1(4),
-    /// ]);
-    /// assert_eq!(v.tranpose(), m);
-    /// ```
-    pub fn transpose(self) -> Matrix<T, 1, {N}> {
-        let mut from = MaybeUninit::new(self);
-        let mut st = MaybeUninit::<Matrix<T, 1, {N}>>::uninit();
-        let fromp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut from) };
-        let stp: *mut Vector<T, 1> = unsafe { mem::transmute(&mut st) };
-        for i in 0..N {
-            unsafe {
-                stp.add(i).write(
-                    Vector1::<T>::from([
-                        fromp
-                            .add(i)
-                            .replace(MaybeUninit::uninit())
-                            .assume_init()
-                    ])
-                );
-            }
-        }
-        unsafe { st.assume_init() }
-    }
-
-    /// Drop the last component and return the vector with one fewer dimension.
-    pub fn trunc(self) -> (TruncatedVector<T, {N}>, T) {
-        let mut from = MaybeUninit::new(self);
-        let mut head = MaybeUninit::<TruncatedVector<T, {N}>>::uninit();
-        let fromp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut from) };
-        let headp: *mut T = unsafe { mem::transmute(&mut head) };
-        for i in 0..N {
-            unsafe {
-                headp.add(i).write(
-                    fromp
-                        .add(i)
-                        .replace(MaybeUninit::uninit())
-                        .assume_init()
-                );
-            }
-        }
-        (
-            unsafe { head.assume_init() },
-            unsafe {
-                fromp
-                    .add(N-1)
-                    .replace(MaybeUninit::uninit())
-                    .assume_init()
-            }
-        )
-    }
-}
 
 impl<T, const N: usize> Clone for Vector<T, {N}>
 where
