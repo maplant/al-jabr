@@ -563,6 +563,13 @@ impl<T, const N: usize> From<[T; N]> for Vector<T, {N}> {
     }
 }
 
+impl<T, const N: usize> From<Matrix<T, {N}, 1>> for Vector<T, {N}> {
+    fn from(mat: Matrix<T, {N}, 1>) -> Self {
+        let Matrix([ v ]) = mat;
+        v
+    }
+}
+
 impl<T, const N: usize> Into<[T; {N}]> for Vector<T, {N}> {
     fn into(self) -> [T; {N}] {
         self.0
