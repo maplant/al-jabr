@@ -76,7 +76,7 @@ assert_eq!(
 #### Swizzling
 
 [Swizzling](https://en.wikipedia.org/wiki/Swizzling_(computer_graphics))
-is supporte for both the `xyzw` or `rgba` conventions. All possible combinations
+is supported for both the `xyzw` or `rgba` conventions. All possible combinations
 of the first four elements of a vector are supported. Single-element swizzle
 functions return scalar results, multi-element swizzle functions return vector 
 results of the appropriate size based on the number of selected elements.
