@@ -24,9 +24,8 @@
 //! It is not the specific goal of this project to be useful in any sense, but
 //! hopefully it will end up being roughly compatible with cgmath. 
 //!
-//! The performance of Aljabar is currently probably pretty bad. I have yet to
-//! test it, but let's just say I haven't gotten very far on the matrix
-//! multiplication page on wikipedia.
+//! Aljabar has no benchmarks and cannot make any performance guarantees at the
+//! moment.
 //!
 
 #![feature(const_generics)]

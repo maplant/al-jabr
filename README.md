@@ -208,6 +208,31 @@ assert_eq!(
 );
 ```          
 
+
+Matrices can be indexed by either their native column major storage or by
+the more natural row major method. In order to use row-major indexing, call
+`.index` or `.index_mut` on the matrix with a pair of indices. Calling 
+`.index.` with a single index will produce a Vector representing the
+appropriate column of the matrix.
+
+```rust
+let m: Matrix::<i32, 2, 2> =
+           mat2x2( 0, 2,
+                   1, 3 );
+
+// Column-major indexing:
+assert_eq!(m[0][0], 0);
+assert_eq!(m[0][1], 1);
+assert_eq!(m[1][0], 2);
+assert_eq!(m[1][1], 3);
+
+// Row-major indexing:
+assert_eq!(m[(0, 0)], 0);
+assert_eq!(m[(1, 0)], 1);
+assert_eq!(m[(0, 1)], 2);
+assert_eq!(m[(1, 1)], 3);
+```
+
 ## Provided traits
 
 ### `Zero` and `One`
@@ -260,8 +285,14 @@ a number of convenience methods:
 
 ### `SquareMatrix`
 
-A `Matrix` that implements `Mul<Self>`. Has a `diagonal` and in the future a 
-possible inverse.
+A `Matrix` that implements `Mul<Self>`. Square matrices have a number of methods
+defined for them:
+
+* `.diagonal()`: returns the diaganol vector of the matrix.
+* `.determinant()`: returns the determinant of the matrix.
+                    **currently only supported for matrices of `N <= 3`**
+* `.invert()`: returns the inverse of the matrix if one exists. 
+                    **currently unimplemented**
 
 ## Limitations
 
