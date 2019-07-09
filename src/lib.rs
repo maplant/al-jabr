@@ -172,28 +172,230 @@ impl Real for f64 {
     fn sqrt(self) -> Self { self.sqrt() }
 }
 
-/// N-element vector.
+/// `N`-element vector.
 ///
 /// Vectors can be constructed from arrays of any type and size. There are 
 /// convenience constructor functions provided for the most common sizes.
 ///
-/*
-/// ```
-/// use aljabar::*;
-///
-/// let a Vector::<u32, 4> = vec4( 0u32, 1, 2, 3 );
-/// /*
+/// ```ignore
+/// let a: Vector::<u32, 4> = vec4( 0u32, 1, 2, 3 );
+/// 
 /// assert_eq!(
 ///     a, 
 ///     Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
 /// );
-/// */
 /// ```
-*/
-
+///
+/// # Swizzling 
+/// [Swizzling](https://en.wikipedia.org/wiki/Swizzling_(computer_graphics))
+/// is supported for up to four elements. Swizzling is a technique for easily
+/// rearranging and accessing elements of a vector, used commonly in graphics
+/// shader programming. Swizzling is available on vectors whose element type
+/// implements `Clone`.
+///
+/// Single-element accessors return the element itself. Multi-element accessors
+/// return vectors of the appropriate size.
+///
+/// ## Element names
+/// Only the first four elements of a vector may be swizzled. If you have vectors 
+/// larger than length four and want to manipulate their elements, you must do so
+/// manually.
+///
+/// Because swizzling is often used in compute graphics contexts when dealing with
+/// colors, both 'xyzw' and 'rgba' element names are available.
+///
+/// | Element Index | xyzw Name | rgba Name |
+/// |---------------|-----------|-----------|
+/// | 0             | x         | r         |
+/// | 1             | y         | g         |
+/// | 2             | z         | b         |
+/// | 3             | w         | a         |
+///
+/// ## Restrictions
+/// It is a compilation error to attempt to access an element beyond the bounds of a vector.
+/// For example, `vec2(1i32, 2).z()` would fail because `z()` is only available on vectors of
+/// length 3 or greater.
+///
+/// ```compile_fail
+/// use aljabar::*;
+///
+/// let z = vec2(1i32, 2).z(); // Fails to compile.
+/// ```
+///
+/// ### Mixing
+///
+/// Swizzle methods are not implemented for mixed xyzw/rgba methods.
+///
+/// ```ignore
+/// let v = vec4(1i32, 2, 3, 4);
+/// let xy = v.xy(); // OK, only uses xyzw names.
+/// let ba = v.ba(); // OK, only uses rgba names.
+/// assert_eq!(xy, vec2(1i32, 2));
+/// assert_eq!(ba, vec2(3i32, 4));
+/// ```
+///
+/// ```compile_fail
+/// let v = vec4(1i32, 2, 3, 4);
+/// let bad = v.xyrg(); // Compile error, mixes xyzw and rgba names.
+/// ```
+///
+/// ## Examples
+///
+/// To get the first two elements of a 4-vector.
+/// ```ignore
+/// let v = vec4(1i32, 2, 3, 4).xy();
+/// ```
+///
+/// To get the first and last element of a 4-vector.
+/// ```ignore
+/// let v = vec4(1i32, 2, 3, 4).xw();
+/// ```
+///
+/// To reverse the order of a 3-vector.
+/// ```ignore
+/// let v = vec3(1i32, 2, 3).zyx();
+/// ```
+///
+/// To select the first and third elements into the second and fourth elements, respectively.
+/// ```ignore
+/// let v = vec4(1i32, 2, 3, 4).xxzz();
+/// ```
 #[repr(transparent)]
 pub struct Vector<T, const N: usize>([T; N]);
 
+// Generates all the 2, 3, and 4-level swizzle functions.
+macro_rules! swizzle {
+    // First level. Doesn't generate any functions itself because the one-letter functions
+    // are manually provided in the Swizzle trait.
+    ($a:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
+        // Pass the alphabet so the second level can choose the next letters.
+        swizzle!{ $a, $x, $x, $y, $z, $w }
+        swizzle!{ $a, $y, $x, $y, $z, $w }
+        swizzle!{ $a, $z, $x, $y, $z, $w }
+        swizzle!{ $a, $w, $x, $y, $z, $w }
+    };
+    // Second level. Generates all 2-element swizzle functions, and recursively calls the
+    // third level, specifying the third letter.
+    ($a:ident, $b:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
+        paste::item! {
+            pub fn [< $a $b >](&self) -> Vector<T, 2> {
+                Vector::<T, 2>::from([
+                    self.$a(),
+                    self.$b(),
+                ])
+            }
+        }
+
+        // Pass the alphabet so the third level can choose the next letters.
+        swizzle!{ $a, $b, $x, $x, $y, $z, $w }
+        swizzle!{ $a, $b, $y, $x, $y, $z, $w }
+        swizzle!{ $a, $b, $z, $x, $y, $z, $w }
+        swizzle!{ $a, $b, $w, $x, $y, $z, $w }
+    };
+    // Third level. Generates all 3-element swizzle functions, and recursively calls the
+    // fourth level, specifying the fourth letter.
+    ($a:ident, $b:ident, $c:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
+        paste::item! {
+            pub fn [< $a $b $c >](&self) -> Vector<T, 3> {
+                Vector::<T, 3>::from([
+                    self.$a(),
+                    self.$b(),
+                    self.$c(),
+                ])
+            }
+        }
+
+        // Do not need to pass the alphabet because the fourth level does not need to choose
+        // any more letters.
+        swizzle!{ $a, $b, $c, $x }
+        swizzle!{ $a, $b, $c, $y }
+        swizzle!{ $a, $b, $c, $z }
+        swizzle!{ $a, $b, $c, $w }
+    };
+    // Final level which halts the recursion. Generates all 4-element swizzle functions.
+    // No $x, $y, $z, $w parameters because this function does not need to know the alphabet,
+    // because it already has all the names assigned.
+    ($a:ident, $b:ident, $c:ident, $d:ident) => {
+        paste::item! {
+            pub fn [< $a $b $c $d >](&self) -> Vector<T, 4> {
+                Vector::<T, 4>::from([
+                    self.$a(),
+                    self.$b(),
+                    self.$c(),
+                    self.$d(),
+                ])
+            }
+        }
+    };
+}
+
+// @EkardNT: The cool thing about this is that Rust apparently monomorphizes only
+// those functions which are actually used. This means that this impl for vectors
+// of any length N is able to support vectors of length N < 4. For example,
+// calling x() on a Vector2 works, but attempting to call z() will result in a
+// nice compile error.
+impl<T, const N: usize> Vector<T, {N}>
+where
+    T: Clone,
+{
+    /// Alias for `.get(0).clone()`.
+    ///
+    /// Calling `x` on a Vector with `N = 0` is a compile error.
+    pub fn x(&self) -> T {
+        self.0[0].clone()
+    }
+
+    /// Alias for `.get(1).clone()`.
+    ///
+    /// Calling `y` on a Vector with `N < 2` is a compile error.
+    pub fn y(&self) -> T {
+        self.0[1].clone()
+    }
+
+    /// Alias for `.get(2).clone()`.
+    ///
+    /// Calling `z` on a Vector with `N < 3` is a compile error.
+    pub fn z(&self) -> T {
+        self.0[2].clone()
+    }
+
+    /// Alias for `.get(3).clone()`.
+    ///
+    /// Calling `w` on a Vector with `N < 4` is a compile error.
+    pub fn w(&self) -> T {
+        self.0[3].clone()
+    }
+
+    /// Alias for `.x()`.
+    pub fn r(&self) -> T {
+        self.x()
+    }
+
+    /// Alias for `.y()`.
+    pub fn g(&self) -> T {
+        self.y()
+    }
+
+    /// Alias for `.z()`.
+    pub fn b(&self) -> T {
+        self.z()
+    }
+
+    /// Alias for `.w()`.
+    pub fn a(&self) -> T {
+        self.w()
+    }
+
+    swizzle!{x, x, y, z, w}
+    swizzle!{y, x, y, z, w}
+    swizzle!{z, x, y, z, w}
+    swizzle!{w, x, y, z, w}
+    swizzle!{r, r, g, b, a}
+    swizzle!{g, r, g, b, a}
+    swizzle!{b, r, g, b, a}
+    swizzle!{a, r, g, b, a}
+}
+    
 /// A `Vector` with one fewer dimension than `N`.
 ///
 /// Not particularly useful other than as the return value of the `trunc`
@@ -740,10 +942,7 @@ where
 /// As with Vectors there are convenience constructor functions for square matrices
 /// of the most common sizes.
 ///
-/*
-/// ```
-/// use aljabar::*;
-///
+/// ```ignore
 /// let a = Matrix::<f32, 3, 3>::from( [ vec3( 1.0, 0.0, 0.0 ),
 ///                                      vec3( 0.0, 1.0, 0.0 ),
 ///                                      vec3( 0.0, 0.0, 1.0 ), ] );
@@ -753,24 +952,18 @@ where
 ///                     2, 3, -2 );
 /// ```
 /// 
-*/
 /// All operations performed on matrices produce fixed-size outputs. For example,
 /// taking the `transpose` of a non-square matrix will produce a matrix with the 
 /// width and height swapped: 
 ///
-/*
-/// ```
-/// /*
-/// use aljabar::*;
+/// ```ignore
 ///
 /// assert_eq!(
 ///     Matrix::<i32, 1, 2>::from( [ vec1( 1 ), vec1( 2 ) ] )
 ///         .transpose(),
 ///     Matrix::<i32, 2, 1>::from( [ vec2( 1, 2 ) ] )
 /// );
-/// */
 /// ```
- */
 #[repr(transparent)]
 pub struct Matrix<T, const N: usize, const M: usize>([Vector<T, {N}>; {M}]);
 
@@ -1551,5 +1744,32 @@ mod tests {
                 .diagonal(),
             vec4( 1i32, 2, 3, 4 ) 
         );
+    }
+
+    #[test]
+    fn test_swizzle() {
+        let v: Vector<f32, 1> = Vector::<f32, 1>::from([1.0]);
+        assert_eq!(1.0, v.x());
+
+        let v: Vector<f32, 2> = Vector::<f32, 2>::from([1.0, 2.0]);
+        assert_eq!(1.0, v.x());
+        assert_eq!(2.0, v.y());
+
+        let v: Vector<f32, 3> = Vector::<f32, 3>::from([1.0, 2.0, 3.0]);
+        assert_eq!(1.0, v.x());
+        assert_eq!(2.0, v.y());
+        assert_eq!(3.0, v.z());
+
+        let v: Vector<f32, 4> = Vector::<f32, 4>::from([1.0, 2.0, 3.0, 4.0]);
+        assert_eq!(1.0, v.x());
+        assert_eq!(2.0, v.y());
+        assert_eq!(3.0, v.z());
+        assert_eq!(4.0, v.w());
+
+        let v: Vector<f32, 5> = Vector::<f32, 5>::from([1.0, 2.0, 3.0, 4.0, 5.0]);
+        assert_eq!(1.0, v.x());
+        assert_eq!(2.0, v.y());
+        assert_eq!(3.0, v.z());
+        assert_eq!(4.0, v.w());
     }
 }
