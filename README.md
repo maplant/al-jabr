@@ -285,8 +285,8 @@ a number of convenience methods:
 
 ### `SquareMatrix`
 
-A `Matrix` that implements `Mul<Self>`. Square matrices have a number of methods
-defined for them:
+A `Matrix` that implements `Mul<Self>`. Square matrices have the following 
+methods defined for them:
 
 * `.diagonal()`: returns the diaganol vector of the matrix.
 * `.determinant()`: returns the determinant of the matrix.
