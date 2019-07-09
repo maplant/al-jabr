@@ -1058,7 +1058,7 @@ where
 /// Matrices can be indexed by either their native column major storage or by
 /// the more natural row major method. In order to use row-major indexing, call
 /// `.index` or `.index_mut` on the matrix with a pair of indices. Calling 
-/// `.index.` with a single index will produce a Vector representing the
+/// `.index` with a single index will produce a vector representing the
 /// appropriate column of the matrix.
 ///
 /// ```ignore
