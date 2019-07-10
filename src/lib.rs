@@ -24,9 +24,8 @@
 //! It is not the specific goal of this project to be useful in any sense, but
 //! hopefully it will end up being roughly compatible with cgmath. 
 //!
-//! The performance of Aljabar is currently probably pretty bad. I have yet to
-//! test it, but let's just say I haven't gotten very far on the matrix
-//! multiplication page on wikipedia.
+//! Aljabar has no benchmarks and cannot make any performance guarantees at the
+//! moment.
 //!
 
 #![feature(const_generics)]
@@ -52,6 +51,8 @@ use std::{
         DerefMut,
         Div,
         DivAssign,
+        Index,
+        IndexMut,
         Mul,
         MulAssign,
         Neg,
@@ -178,8 +179,8 @@ impl Real for f64 {
 /// convenience constructor functions provided for the most common sizes.
 ///
 /// ```ignore
+/// # use aljabar::*;
 /// let a: Vector::<u32, 4> = vec4( 0u32, 1, 2, 3 );
-/// 
 /// assert_eq!(
 ///     a, 
 ///     Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
@@ -217,8 +218,7 @@ impl Real for f64 {
 /// length 3 or greater.
 ///
 /// ```compile_fail
-/// use aljabar::*;
-///
+/// # use aljabar::*;
 /// let z = vec2(1i32, 2).z(); // Fails to compile.
 /// ```
 ///
@@ -227,6 +227,7 @@ impl Real for f64 {
 /// Swizzle methods are not implemented for mixed xyzw/rgba methods.
 ///
 /// ```ignore
+/// # use aljabar::*;
 /// let v = vec4(1i32, 2, 3, 4);
 /// let xy = v.xy(); // OK, only uses xyzw names.
 /// let ba = v.ba(); // OK, only uses rgba names.
@@ -235,6 +236,7 @@ impl Real for f64 {
 /// ```
 ///
 /// ```compile_fail
+/// # use aljabar::*;
 /// let v = vec4(1i32, 2, 3, 4);
 /// let bad = v.xyrg(); // Compile error, mixes xyzw and rgba names.
 /// ```
@@ -243,21 +245,25 @@ impl Real for f64 {
 ///
 /// To get the first two elements of a 4-vector.
 /// ```ignore
+/// # use aljabar::*;
 /// let v = vec4(1i32, 2, 3, 4).xy();
 /// ```
 ///
 /// To get the first and last element of a 4-vector.
 /// ```ignore
+/// # use aljabar::*;
 /// let v = vec4(1i32, 2, 3, 4).xw();
 /// ```
 ///
 /// To reverse the order of a 3-vector.
 /// ```ignore
+/// # use aljabar::*;
 /// let v = vec3(1i32, 2, 3).zyx();
 /// ```
 ///
 /// To select the first and third elements into the second and fourth elements, respectively.
 /// ```ignore
+/// # use aljabar::*;
 /// let v = vec4(1i32, 2, 3, 4).xxzz();
 /// ```
 #[repr(transparent)]
@@ -329,6 +335,69 @@ macro_rules! swizzle {
     };
 }
 
+
+impl<T, const N: usize> Vector<T, {N}> {
+    /// Converts the Vector into a Matrix with `N` columns each of size `1`.
+    ///
+    /// ```ignore
+    /// # use aljabar::*;
+    /// let v = vec4(1i32, 2, 3, 4);
+    /// let m = Matrix::<i32, 1, 4>::from([
+    ///     vec1(1i32),
+    ///     vec1(2),
+    ///     vec1(3),
+    ///     vec1(4),
+    /// ]);
+    /// assert_eq!(v.tranpose(), m);
+    /// ```
+    pub fn transpose(self) -> Matrix<T, 1, {N}> {
+        let mut from = MaybeUninit::new(self);
+        let mut st = MaybeUninit::<Matrix<T, 1, {N}>>::uninit();
+        let fromp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut from) };
+        let stp: *mut Vector<T, 1> = unsafe { mem::transmute(&mut st) };
+        for i in 0..N {
+            unsafe {
+                stp.add(i).write(
+                    Vector1::<T>::from([
+                        fromp
+                            .add(i)
+                            .replace(MaybeUninit::uninit())
+                            .assume_init()
+                    ])
+                );
+            }
+        }
+        unsafe { st.assume_init() }
+    }
+
+    /// Drop the last component and return the vector with one fewer dimension.
+    pub fn trunc(self) -> (TruncatedVector<T, {N}>, T) {
+        let mut from = MaybeUninit::new(self);
+        let mut head = MaybeUninit::<TruncatedVector<T, {N}>>::uninit();
+        let fromp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut from) };
+        let headp: *mut T = unsafe { mem::transmute(&mut head) };
+        for i in 0..N {
+            unsafe {
+                headp.add(i).write(
+                    fromp
+                        .add(i)
+                        .replace(MaybeUninit::uninit())
+                        .assume_init()
+                );
+            }
+        }
+        (
+            unsafe { head.assume_init() },
+            unsafe {
+                fromp
+                    .add(N-1)
+                    .replace(MaybeUninit::uninit())
+                    .assume_init()
+            }
+        )
+    }
+}
+
 // @EkardNT: The cool thing about this is that Rust apparently monomorphizes only
 // those functions which are actually used. This means that this impl for vectors
 // of any length N is able to support vectors of length N < 4. For example,
@@ -338,6 +407,46 @@ impl<T, const N: usize> Vector<T, {N}>
 where
     T: Clone,
 {
+    /// Returns the first `M` elements of `self` in an appropriately sized
+    /// `Vector`.
+    ///
+    /// Calling `first` with `M > N` is a compile error.
+    pub fn first<const M: usize>(&self) -> Vector<T, {M}> {
+        if M > N {
+            panic!("attempt to return {} elements from a {}-vector", M, N);
+        }
+        let mut head = MaybeUninit::<Vector<T, {M}>>::uninit();
+        let headp: *mut T = unsafe { mem::transmute(&mut head) };
+        for i in 0..M {
+            unsafe {
+                headp
+                    .add(i)
+                    .write(self[i].clone());
+            }
+        }
+        unsafe { head.assume_init() }
+    }
+
+    /// Returns the last `M` elements of `self` in an appropriately sized
+    /// `Vector`.
+    ///
+    /// Calling `last` with `M > N` is a compile error.
+    pub fn last<const M: usize>(&self) -> Vector<T, {M}> {
+        if M > N {
+            panic!("attempt to return {} elements from a {}-vector", M, N);
+        }
+        let mut tail = MaybeUninit::<Vector<T, {M}>>::uninit();
+        let tailp: *mut T = unsafe { mem::transmute(&mut tail) };
+        for i in 0..M {
+            unsafe {
+                tailp
+                    .add(i + N - M)
+                    .write(self[i].clone());
+            }
+        }
+        unsafe { tail.assume_init() }
+    }
+
     /// Alias for `.get(0).clone()`.
     ///
     /// Calling `x` on a Vector with `N = 0` is a compile error.
@@ -401,35 +510,6 @@ where
 /// Not particularly useful other than as the return value of the `trunc`
 /// method.
 pub type TruncatedVector<T, const N: usize> = Vector<T, {N - 1}>;
-
-impl<T, const N: usize> Vector<T, {N}> {
-    /// Drop the last component and return the vector with one fewer dimension.
-    pub fn trunc(self) -> (TruncatedVector<T, {N}>, T) {
-        let mut from = MaybeUninit::new(self);
-        let mut head = MaybeUninit::<TruncatedVector<T, {N}>>::uninit();
-        let fromp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut from) };
-        let headp: *mut T = unsafe { mem::transmute(&mut head) };
-        for i in 0..N {
-            unsafe {
-                headp.add(i).write(
-                    fromp
-                        .add(i)
-                        .replace(MaybeUninit::uninit())
-                        .assume_init()
-                );
-            }
-        }
-        (
-            unsafe { head.assume_init() },
-            unsafe {
-                fromp
-                    .add(N-1)
-                    .replace(MaybeUninit::uninit())
-                    .assume_init()
-            }
-        )
-    }
-}
 
 impl<T, const N: usize> Clone for Vector<T, {N}>
 where
@@ -508,6 +588,13 @@ macro_rules! vector {
 impl<T, const N: usize> From<[T; N]> for Vector<T, {N}> {
     fn from(array: [T; N]) -> Self {
         Vector::<T, {N}>(array)
+    }
+}
+
+impl<T, const N: usize> From<Matrix<T, {N}, 1>> for Vector<T, {N}> {
+    fn from(mat: Matrix<T, {N}, 1>) -> Self {
+        let Matrix([ v ]) = mat;
+        v
     }
 }
 
@@ -972,6 +1059,7 @@ where
 /// of the most common sizes.
 ///
 /// ```ignore
+/// # use aljabar::*;
 /// let a = Matrix::<f32, 3, 3>::from( [ vec3( 1.0, 0.0, 0.0 ),
 ///                                      vec3( 0.0, 1.0, 0.0 ),
 ///                                      vec3( 0.0, 0.0, 1.0 ), ] );
@@ -986,13 +1074,41 @@ where
 /// width and height swapped: 
 ///
 /// ```ignore
-///
+/// # use aljabar::*;
 /// assert_eq!(
 ///     Matrix::<i32, 1, 2>::from( [ vec1( 1 ), vec1( 2 ) ] )
 ///         .transpose(),
 ///     Matrix::<i32, 2, 1>::from( [ vec2( 1, 2 ) ] )
 /// );
 /// ```
+///
+/// # Indexing
+///
+/// Matrices can be indexed by either their native column major storage or by
+/// the more natural row major method. In order to use row-major indexing, call
+/// `.index` or `.index_mut` on the matrix with a pair of indices. Calling 
+/// `.index` with a single index will produce a vector representing the
+/// appropriate column of the matrix.
+///
+/// ```ignore
+/// # use aljabar::*;
+/// let m: Matrix::<i32, 2, 2> =
+///            mat2x2( 0, 2,
+///                    1, 3 );
+///
+/// // Column-major indexing:
+/// assert_eq!(m[0][0], 0);
+/// assert_eq!(m[0][1], 1);
+/// assert_eq!(m[1][0], 2);
+/// assert_eq!(m[1][1], 3);
+///
+/// // Row-major indexing:
+/// assert_eq!(m[(0, 0)], 0);
+/// assert_eq!(m[(1, 0)], 1);
+/// assert_eq!(m[(0, 1)], 2);
+/// assert_eq!(m[(1, 1)], 3);
+/// ```
+ 
 #[repr(transparent)]
 pub struct Matrix<T, const N: usize, const M: usize>([Vector<T, {N}>; {M}]);
 
@@ -1237,6 +1353,34 @@ where
         self == &<Self as One>::one()
     }
 }
+
+impl<T, const N: usize, const M: usize> Index<usize> for Matrix<T, {N}, {M}> {
+    type Output = Vector<T, {N}>;
+
+    fn index(&self, column: usize) -> &Self::Output {
+        &self.0[column]
+    }
+}
+
+impl<T, const N: usize, const M: usize> IndexMut<usize> for Matrix<T, {N}, {M}> {
+    fn index_mut(&mut self, column: usize) -> &mut Self::Output {
+        &mut self.0[column]
+    }
+}
+
+impl<T, const N: usize, const M: usize> Index<(usize, usize)> for Matrix<T, {N}, {M}> {
+    type Output = T;
+
+    fn index(&self, (row, column): (usize, usize)) -> &Self::Output {
+        &self.0[column][row]
+    }
+}   
+
+impl<T, const N: usize, const M: usize> IndexMut<(usize, usize)> for Matrix<T, {N}, {M}> {
+    fn index_mut(&mut self, (row, column): (usize, usize)) -> &mut Self::Output {
+        &mut self.0[column][row]
+    }
+}   
 
 impl<A, B, RHS, const N: usize, const M: usize> PartialEq<RHS> for Matrix<A, {N}, {M}>
 where
@@ -1531,6 +1675,10 @@ where
     Self: Mul<Self>,
     Self: Mul<Vector<Scalar, {N}>, Output = Vector<Scalar, {N}>>,
 {
+    /// Returns the [determinant](https://en.wikipedia.org/wiki/Determinant) of
+    /// the Matrix.
+    fn determinant(&self) -> Scalar;
+
     /// Attempt to invert the matrix.
     fn invert(self) -> Option<Self>;
 
@@ -1540,12 +1688,38 @@ where
 
 impl<Scalar, const N: usize> SquareMatrix<Scalar, {N}> for Matrix<Scalar, {N}, {N}>
 where
-    Scalar: Clone,
+    Scalar: Clone + One,
+    Scalar: Add<Scalar, Output = Scalar> + Sub<Scalar, Output = Scalar>,
+    Scalar: Mul<Scalar, Output = Scalar>,
     Self: Add<Self>,
     Self: Sub<Self>,
     Self: Mul<Self>,
     Self: Mul<Vector<Scalar, {N}>, Output = Vector<Scalar, {N}>>,
 {
+    fn determinant(&self) -> Scalar {
+        match N {
+            0 => <Scalar as One>::one(),
+            1 => self[0][0].clone(),
+            2 => (self[(0, 0)].clone() * self[(1, 1)].clone()
+                  - self[(1, 0)].clone() * self[(0, 1)].clone()),
+            3 => {
+                let minor1 =
+                    self[(1, 1)].clone() * self[(2, 2)].clone()
+                    - self[(2, 1)].clone() * self[(1, 2)].clone();
+                let minor2 =
+                    self[(1, 0)].clone() * self[(2, 2)].clone()
+                    - self[(2, 0)].clone() * self[(1, 2)].clone();
+                let minor3 =
+                    self[(1, 0)].clone() * self[(2, 1)].clone()
+                    - self[(2, 0)].clone() * self[(1, 1)].clone();
+                self[(0, 0)].clone() * minor1
+                    - self[(0, 1)].clone() * minor2
+                    + self[(0, 2)].clone() * minor3
+            },
+            _ => unimplemented!(),
+        }
+    }
+
     fn invert(self) -> Option<Self> {
         unimplemented!()
     }
@@ -1680,6 +1854,27 @@ mod tests {
     }
 
     #[test]
+    fn test_vec_transpose() {
+        let v = vec4(1i32, 2, 3, 4);
+        let m = Matrix::<i32, 1, 4>::from([
+            vec1(1i32),
+            vec1(2),
+            vec1(3),
+            vec1(4),
+        ]);
+        assert_eq!(v.transpose(), m);
+    }
+
+    /*
+    #[test]
+    fn test_vec_first() {
+        let a = Vector2::<i32>::from([ 1, 2 ]);
+        let b = Vector3::<i32>::from([ 1, 2, 3 ]);
+        let c = first::<i32, 2, 3>(&b);
+    }
+    */
+
+    #[test]
     fn test_mat_identity() {
         let unit = mat4x4( 1u32, 0, 0, 0,
                            0, 1, 0, 0,
@@ -1762,6 +1957,21 @@ mod tests {
             a * b,
             c
         );
+    }
+
+    #[test]
+    fn test_mat_index() {
+        let m: Matrix::<i32, 2, 2> =
+            mat2x2(0, 2,
+                   1, 3);
+        assert_eq!(m[(0, 0)], 0);
+        assert_eq!(m[0][0], 0);
+        assert_eq!(m[(1, 0)], 1);
+        assert_eq!(m[0][1], 1);
+        assert_eq!(m[(0, 1)], 2);
+        assert_eq!(m[1][0], 2);
+        assert_eq!(m[(1, 1)], 3);
+        assert_eq!(m[1][1], 3);
     }
 
     #[test]
