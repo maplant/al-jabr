@@ -1133,7 +1133,9 @@ impl<T, const N: usize, const M: usize> From<[Vector<T, {N}>; {M}]> for Matrix<T
 /// Construct a matrix of any size. The matrix is specified in row-major order,
 /// but this function converts it to aljabar's native column-major order.
 ///
-/// ```
+/// ```ignore
+/// # NOTE: This code fails to compile in a doc test, although it works fine in a
+/// # regular unit test.
 /// # use aljabar::*;
 /// // `matrix` allows you to create a matrix using natural writing order (row-major).
 /// let m1: Matrix<u32, 4, 3> = matrix([
@@ -1174,7 +1176,9 @@ pub fn matrix<T: Clone, const N: usize, const M: usize>(rows: [[T; M]; N]) -> Ma
 /// Construct a matrix of any size. The matrix is specified in row-major order,
 /// but this function converts it to aljabar's native column-major order.
 ///
-/// ```
+/// ```ignore
+/// # NOTE: This code fails to compile in a doc test, although it works fine in a
+/// # regular unit test.
 /// # use aljabar::*;
 /// // `matrix` allows you to create a matrix using natural writing order (row-major).
 /// let m1: Matrix<u32, 4, 3> = matrix![
@@ -2127,6 +2131,7 @@ mod tests {
             Vector::<u32, 3>::from([1, 3, 5]),
             Vector::<u32, 3>::from([2, 4, 6])
         ]));
+    }
 
     fn test_swizzle() {
         let v: Vector<f32, 1> = Vector::<f32, 1>::from([1.0]);
