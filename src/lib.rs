@@ -160,8 +160,16 @@ impl_one!{ u64 }
 impl_one!{ u128 }
 impl_one!{ usize }
 
-/// Types that have an exact square root.
-pub trait Real {
+/// Values that are [Real numbers](https://en.wikipedia.org/wiki/Real_number#Axiomatic_approach).
+pub trait Real
+where
+    Self: Sized,
+    Self: Add<Output = Self>,
+    Self: Sub<Output = Self>,
+    Self: Mul<Output = Self>,
+    Self: Div<Output = Self>,
+    Self: Neg<Output = Self>,
+{
     fn sqrt(self) -> Self;
 }
 
@@ -896,6 +904,94 @@ where
     }
 }
 
+/// A point in space.
+#[repr(transparent)]
+pub struct Point<T, const N: usize>([T; N]);
+
+impl<T, const N: usize> From<[T; N]> for Point<T, {N}> {
+    fn from(array: [T; N]) -> Self {
+        Point::<T, {N}>(array)
+    }
+}
+
+/// A point in 1-dimensional space.
+pub type Point1<T> = Point<T, 1>;
+
+/// A point in 2-dimensional space.
+pub type Point2<T> = Point<T, 2>;
+
+/// A point in 3-dimensional space.
+pub type Point3<T> = Point<T, 3>;
+
+/// A point in 4-dimensional space.
+pub type Point4<T> = Point<T, 4>;
+
+/// A point in 5-dimensional space.
+pub type Point5<T> = Point<T, 5>;
+
+/// Constructs a new point from an array. Necessary to help the compiler. Prefer
+/// calling the macro `point!`, which calls `new_point` internally.
+#[inline]
+pub fn new_point<T, const N: usize>(elements: [T; N]) -> Point<T, {N}> {
+    Point(elements)
+}
+
+/// Construct a new vector of any size.
+///
+/// ```
+/// # use aljabar::*;
+/// let v: Vector<u32, 0> = vector![];
+/// let v = vector![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+/// let v = vector![true, false, false, true];
+/// ```
+#[macro_export]
+macro_rules! point {
+    ( $($elem:expr),* $(,)? ) => {
+        $crate::new_point([
+            $($elem),*
+        ])
+    }
+}
+
+impl<T, const N: usize> Clone for Point<T, {N}>
+where
+    T: Clone
+{
+    fn clone(&self) -> Self {
+        Point::<T, {N}>(self.0.clone())
+    }
+}
+
+impl<T, const N: usize> Copy for Point<T, {N}>
+where
+    T: Copy
+{}
+
+
+impl<T, const N: usize> Into<[T; {N}]> for Point<T, {N}> {
+    fn into(self) -> [T; {N}] {
+        self.0
+    }
+}
+
+impl<T, const N: usize> Hash for Point<T, {N}>
+where
+    T: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for i in 0..N {
+            self.0[i].hash(state);
+        }
+    }
+}
+
+impl<T, const N: usize> Point<T, {N}> {
+    /// Constructs a point from an appropriately sized vector.
+    pub fn from_vec(vec: Vector<T, {N}>) -> Self {
+        Point(vec.0)
+    }
+}
+
 /// Vectors that can be added together and multiplied by scalars form a
 /// VectorSpace.
 ///
@@ -1217,8 +1313,6 @@ pub fn new_matrix<T: Clone, const N: usize, const M: usize>(rows: [[T; M]; N]) -
 /// but this function converts it to aljabar's native column-major order.
 ///
 /// ```ignore
-/// # NOTE: This code fails to compile in a doc test, although it works fine in a
-/// # regular unit test.
 /// # use aljabar::*;
 /// // `matrix` allows you to create a matrix using natural writing order (row-major).
 /// let m1: Matrix<u32, 4, 3> = matrix![
@@ -1729,6 +1823,83 @@ where
         Vector::<Scalar, {N}>(unsafe { diag.assume_init() })
     }
 }
+
+/// A type that can rotate a `Vector` of a given dimension.   
+pub trait Rotation<const DIM: usize> {
+    type Scalar;
+
+    fn rotate_vector(self, v: Vector<Self::Scalar, {DIM}>) -> Vector<Self::Scalar, {DIM}>;
+}
+
+pub trait Angle: Real {
+    fn sin(self) -> Self;
+
+    fn cos(self) -> Self;
+
+    fn sin_cos(self) -> (Self, Self);
+}
+
+impl Angle for f32 {
+    fn sin(self) -> Self { self.sin() }
+
+    fn cos(self) -> Self { self.cos() }
+
+    fn sin_cos(self) -> (Self, Self) { (self.sin(), self.cos()) }
+}
+    
+impl Angle for f64 {
+    fn sin(self) -> Self { self.sin() }
+
+    fn cos(self) -> Self { self.cos() }
+
+    fn sin_cos(self) -> (Self, Self) { (self.sin(), self.cos()) }
+}
+
+/// A representation of a rotation in three dimensional space. Each component is
+/// the rotation around its respective axis is radians.
+#[repr(C)]
+pub struct Euler<T> {
+    pub x: T,
+    pub y: T,
+    pub z: T,
+}
+
+/// A `Matrix` that forms an orthonormal basis. Commonly known as a rotation
+/// matrix.
+pub struct Orthonormal<T, const DIM: usize>(Matrix<T, {DIM}, {DIM}>);
+
+impl<T> From<Euler<T>> for Orthonormal<T, 3>
+where
+    T: Copy + Clone + Real + Angle,
+{
+    fn from(Euler{ x, y, z }: Euler<T>) -> Self {
+        let (
+            (xs, xc),
+            (ys, yc),
+            (zs, zc)
+        ) = (
+            x.sin_cos(),
+            y.sin_cos(),
+            z.sin_cos()
+        );
+        Orthonormal(matrix![
+            [ yc * zc, xc * zs + xs * ys * zc, xs * zs - xc * ys * zc ],
+            [ -yc * zs, xc * zc - xs * ys * zs, xs * zc + xc * ys * zs ],
+            [ ys, -xs * yc, xc * yc ],
+        ])
+    }
+}
+
+impl<T> Rotation<3> for Orthonormal<T, 3>
+where
+    Matrix<T, 3, 3>: Mul<Vector<T, 3>, Output = Vector<T, 3>>,
+{
+    type Scalar = T;
+
+    fn rotate_vector(self, v: Vector<Self::Scalar, 3>) -> Vector<Self::Scalar, 3> {
+        self.0 * v
+    }
+} 
     
 #[cfg(test)]
 mod tests {
@@ -2150,5 +2321,20 @@ mod tests {
         assert_eq!(2.0, v.y());
         assert_eq!(3.0, v.z());
         assert_eq!(4.0, v.w());
+    }
+
+    #[test]
+    fn test_rotation() {
+        let rot = Orthonormal::<f64, 3>::from(
+            Euler {
+                x: 0.0,
+                y: 0.0,
+                z: std::f64::consts::FRAC_PI_2,
+            }
+        );
+        assert_eq!(
+            rot.rotate_vector(vector![ 1.0f64, 0.0, 0.0 ]).y(),
+            -1.0
+        );
     }
 }
