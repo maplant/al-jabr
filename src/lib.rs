@@ -556,35 +556,6 @@ pub fn vec4<T>(x: T, y: T, z: T, w: T) -> Vector4<T> {
 /// 5-element vector. 
 pub type Vector5<T> = Vector<T, 5>;
 
-/// Construct a new vector of any size.
-///
-/// ```
-/// # use aljabar::*;
-/// let v: Vector<u32, 0> = vector([]);
-/// let v = vector([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
-/// let v = vector([true, false, false, true]);
-/// ```
-pub fn vector<T, const N: usize>(elements: [T; N]) -> Vector<T, {N}> {
-    Vector(elements)
-}
-
-/// Construct a new vector of any size.
-///
-/// ```
-/// # use aljabar::*;
-/// let v: Vector<u32, 0> = vector![];
-/// let v = vector![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
-/// let v = vector![true, false, false, true];
-/// ```
-#[macro_export]
-macro_rules! vector {
-    ( $($elem:expr),* $(,)? ) => {
-        $crate::vector([
-            $($elem),*
-        ])
-    }
-}
-
 impl<T, const N: usize> From<[T; N]> for Vector<T, {N}> {
     fn from(array: [T; N]) -> Self {
         Vector::<T, {N}>(array)
@@ -1130,47 +1101,42 @@ impl<T, const N: usize, const M: usize> From<[Vector<T, {N}>; {M}]> for Matrix<T
     }
 }
 
-/// Construct a matrix of any size. The matrix is specified in row-major order,
-/// but this function converts it to aljabar's native column-major order.
-///
-/// ```ignore
-/// # NOTE: This code fails to compile in a doc test, although it works fine in a
-/// # regular unit test.
-/// # use aljabar::*;
-/// // `matrix` allows you to create a matrix using natural writing order (row-major).
-/// let m1: Matrix<u32, 4, 3> = matrix([
-///     [0, 1, 2],
-///     [3, 4, 5],
-///     [6, 7, 8],
-///     [9, 0, 1],
-/// ]);
-///
-/// // The equivalent code using the From implementation is below. Note the From
-/// // usage requires you to specify the entries in column-major order, and create
-/// // the sub-Vectors explicitly.
-/// let m2: Matrix<u32, 4, 3> = Matrix::<u32, 4, 3>::from([
-///     Vector::<u32, 4>::from([0, 3, 6, 9]),
-///     Vector::<u32, 4>::from([1, 4, 7, 0]),
-///     Vector::<u32, 4>::from([2, 5, 8, 1]),
-/// ]);
-///
-/// assert_eq!(m1, m2);
-/// ```
-pub fn matrix<T: Clone, const N: usize, const M: usize>(rows: [[T; M]; N]) -> Matrix<T, {N}, {M}> {
-    unsafe {
-        // Need to swap from row-major to column-major.
-        let mut columns: MaybeUninit<[Vector<T, {N}>; {M}]> = MaybeUninit::uninit();
-        let columnp: *mut Vector<T, {N}> = mem::transmute(columns.as_mut_ptr());
-        for column_index in 0..M {
-            let mut column: MaybeUninit<Vector<T, {N}>> = MaybeUninit::uninit();
-            let entryp: *mut T = mem::transmute(column.as_mut_ptr());
-            for row_index in 0..N {
-                entryp.add(row_index).write(rows[row_index][column_index].clone());
+impl<T, const N: usize, const M: usize> From<[[T; {N}]; {M}]> for Matrix<T, {N}, {M}> {
+    fn from(array: [[T; {N}]; {M}]) -> Self {
+        let mut array = MaybeUninit::<[[T; N]; M]>::new(array);
+        let mut vec_array: MaybeUninit::<[Vector<T, {N}>; M]> = MaybeUninit::uninit();
+        let arrayp: *mut MaybeUninit::<[T; N]> =
+            unsafe { mem::transmute(&mut array) };
+        let vec_arrayp: *mut Vector<T, {N}> =
+            unsafe { mem::transmute(&mut vec_array) };
+        for i in 0..M {
+            unsafe {
+                vec_arrayp.add(i).write(
+                    Vector::<T, {N}>(
+                        arrayp.add(i)
+                            .replace(MaybeUninit::uninit())
+                            .assume_init()
+                    )
+                );
             }
-            columnp.add(column_index).write(column.assume_init());
         }
-        Matrix(columns.assume_init())
+        Matrix::<T, {N}, {M}>(unsafe { vec_array.assume_init() })
     }
+}
+
+/// Constructs a new vector from an array. Necessary to help the compiler. Prefer
+/// calling the macro `vector!`, which calls `new_vector` internally.
+#[inline]
+pub fn new_vector<T, const N: usize>(elements: [T; N]) -> Vector<T, {N}> {
+    Vector(elements)
+}
+
+/// Constructs a new matrix from an array, using the more visually natural row 
+/// major order. Necessary to help the compiler. Prefer calling the macro 
+/// `matrix!`, which calls `new_matrix` internally.
+#[inline]
+pub fn new_matrix<T: Clone, const N: usize, const M: usize>(rows: [[T; M]; N]) -> Matrix<T, {N}, {M}> {
+    Matrix::<T, {M}, {N}>::from(rows).transpose()
 }
 
 /// Construct a matrix of any size. The matrix is specified in row-major order,
@@ -1202,15 +1168,29 @@ pub fn matrix<T: Clone, const N: usize, const M: usize>(rows: [[T; M]; N]) -> Ma
 #[macro_export]
 macro_rules! matrix {
     ( $($rows:expr),* $(,)? ) => {
-        $crate::matrix([
+        $crate::new_matrix([
             $($rows),*
         ])
     }
 }
-
-/// Returns, uh, a 1-by-1 square matrix.
+/// Construct a new vector of any size.
 ///
-/// I mean, I use it for testing, so I think it's kind of cool.
+/// ```
+/// # use aljabar::*;
+/// let v: Vector<u32, 0> = vector![];
+/// let v = vector![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+/// let v = vector![true, false, false, true];
+/// ```
+#[macro_export]
+macro_rules! vector {
+    ( $($elem:expr),* $(,)? ) => {
+        $crate::new_vector([
+            $($elem),*
+        ])
+    }
+}
+
+/// Returns a 1-by-1 square matrix.
 pub fn mat1x1<T>(
     x00: T,
 ) -> Mat1x1<T> {
@@ -2064,20 +2044,6 @@ mod tests {
     }
 
     #[test]
-    fn vector_constructor() {
-        let v: Vector<f32, 0> = vector([]);
-        assert!(v.is_empty());
-
-        let v = vector([1]);
-        assert_eq!(1, v[0]);
-
-        let v = vector([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-        for i in 0..10 {
-            assert_eq!(i + 1, v[i]);
-        }
-    }
-
-    #[test]
     fn vector_macro_constructor() {
         let v: Vector<f32, 0> = vector![];
         assert!(v.is_empty());
@@ -2089,27 +2055,6 @@ mod tests {
         for i in 0..10 {
             assert_eq!(i + 1, v[i]);
         }
-    }
-
-    #[test]
-    fn matrix_constructor() {
-        let m: Matrix<f32, 0, 0> = matrix([]);
-        assert!(m.is_empty());
-
-        let m = matrix([
-            [1]
-        ]);
-        assert_eq!(1, m[0][0]);
-
-        let m = matrix([
-            [1, 2],
-            [3, 4],
-            [5, 6],
-        ]);
-        assert_eq!(m, Matrix::<u32, 3, 2>::from([
-            Vector::<u32, 3>::from([1, 3, 5]),
-            Vector::<u32, 3>::from([2, 4, 6])
-        ]));
     }
 
     #[test]
@@ -2133,6 +2078,7 @@ mod tests {
         ]));
     }
 
+    #[test]
     fn test_swizzle() {
         let v: Vector<f32, 1> = Vector::<f32, 1>::from([1.0]);
         assert_eq!(1.0, v.x());
