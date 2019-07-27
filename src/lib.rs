@@ -269,6 +269,140 @@ impl Real for f64 {
 #[repr(transparent)]
 pub struct Vector<T, const N: usize>([T; N]);
 
+impl<T, const N: usize> From<[T; N]> for Vector<T, {N}> {
+    fn from(array: [T; N]) -> Self {
+        Vector::<T, {N}>(array)
+    }
+}
+
+impl<T, const N: usize> From<Matrix<T, {N}, 1>> for Vector<T, {N}> {
+    fn from(mat: Matrix<T, {N}, 1>) -> Self {
+        let Matrix([ v ]) = mat;
+        v
+    }
+}
+
+/// 1-element vector.
+pub type Vector1<T> = Vector<T, 1>;
+
+/// 2-element vector.
+pub type Vector2<T> = Vector<T, 2>;
+
+/// 3-element vector.
+pub type Vector3<T> = Vector<T, 3>;
+
+/// 4-element vector.
+pub type Vector4<T> = Vector<T, 4>;
+
+/// 5-element vector. 
+pub type Vector5<T> = Vector<T, 5>;
+
+#[deprecated(since = "0.3", note = "use the more powerful vector! macro")]
+pub fn vec1<T>(x: T) -> Vector1<T> {
+    Vector1::<T>::from([ x ])
+}
+
+#[deprecated(since = "0.3", note = "use the more powerful vector! macro")]
+pub fn vec2<T>(x: T, y: T) -> Vector2<T> {
+    Vector2::<T>::from([ x, y ])
+}
+
+#[deprecated(since = "0.3", note = "use the more powerful vector! macro")]
+pub fn vec3<T>(x: T, y: T, z: T) -> Vector3<T> {
+    Vector3::<T>::from([ x, y, z ])
+}
+
+#[deprecated(since = "0.3", note = "use the more powerful vector! macro")]
+pub fn vec4<T>(x: T, y: T, z: T, w: T) -> Vector4<T> {
+    Vector4::<T>::from([ x, y, z, w ])
+}
+
+/// Constructs a new vector from an array. Necessary to help the compiler. Prefer
+/// calling the macro `vector!`, which calls `new_vector` internally.
+#[inline]
+pub fn new_vector<T, const N: usize>(elements: [T; N]) -> Vector<T, {N}> {
+    Vector(elements)
+}
+
+/// Construct a new vector of any size.
+///
+/// ```
+/// # use aljabar::*;
+/// let v: Vector<u32, 0> = vector![];
+/// let v = vector![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+/// let v = vector![true, false, false, true];
+/// ```
+#[macro_export]
+macro_rules! vector {
+    ( $($elem:expr),* $(,)? ) => {
+        $crate::new_vector([
+            $($elem),*
+        ])
+    }
+}
+
+impl<T, const N: usize> Clone for Vector<T, {N}>
+where
+    T: Clone
+{
+    fn clone(&self) -> Self {
+        Vector::<T, {N}>(self.0.clone())
+    }
+}
+
+impl<T, const N: usize> Copy for Vector<T, {N}>
+where
+    T: Copy
+{}
+
+
+impl<T, const N: usize> Into<[T; {N}]> for Vector<T, {N}> {
+    fn into(self) -> [T; {N}] {
+        self.0
+    }
+}
+
+impl<T, const N: usize> Hash for Vector<T, {N}>
+where
+    T: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for i in 0..N {
+            self.0[i].hash(state);
+        }
+    }
+}
+
+impl<T, const N: usize> fmt::Debug for Vector<T, {N}>
+where
+    T: fmt::Debug
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match N {
+            0 => unimplemented!(),
+            1 => write!(f, "Vector {{ x: {:?} }}", self.0[0]),
+            2 => write!(f, "Vector {{ x: {:?}, y: {:?} }}", self.0[0], self.0[1]),
+            3 => write!(f, "Vector {{ x: {:?}, y: {:?}, z: {:?} }}", self.0[0], self.0[1], self.0[2]),
+            4 => write!(f, "Vector {{ x: {:?}, y: {:?}, z: {:?}, w: {:?} }}", self.0[0], self.0[1], self.0[2], self.0[3]),
+            _ => write!(f, "Vector {{ x: {:?}, y: {:?}, z: {:?}, w: {:?}, [..]: {:?} }}", self.0[0], self.0[1], self.0[2], self.0[3], &self.0[4..]),
+        }
+    }
+}
+
+impl<T, const N: usize> Deref for Vector<T, {N}> {
+    type Target = [T; {N}];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T, const N: usize> DerefMut for Vector<T, {N}> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 // Generates all the 2, 3, and 4-level swizzle functions.
 macro_rules! swizzle {
     // First level. Doesn't generate any functions itself because the one-letter functions
@@ -510,111 +644,6 @@ where
 /// Not particularly useful other than as the return value of the `trunc`
 /// method.
 pub type TruncatedVector<T, const N: usize> = Vector<T, {N - 1}>;
-
-impl<T, const N: usize> Clone for Vector<T, {N}>
-where
-    T: Clone
-{
-    fn clone(&self) -> Self {
-        Vector::<T, {N}>(self.0.clone())
-    }
-}
-
-impl<T, const N: usize> Copy for Vector<T, {N}>
-where
-    T: Copy
-{}
-
-/// 1-element vector.
-pub type Vector1<T> = Vector<T, 1>;
-
-pub fn vec1<T>(x: T) -> Vector1<T> {
-    Vector1::<T>::from([ x ])
-}
-
-/// 2-element vector.
-pub type Vector2<T> = Vector<T, 2>;
-
-pub fn vec2<T>(x: T, y: T) -> Vector2<T> {
-    Vector2::<T>::from([ x, y ])
-}
-
-/// 3-element vector.
-pub type Vector3<T> = Vector<T, 3>;
-
-pub fn vec3<T>(x: T, y: T, z: T) -> Vector3<T> {
-    Vector3::<T>::from([ x, y, z ])
-}
-
-/// 4-element vector.
-pub type Vector4<T> = Vector<T, 4>;
-
-pub fn vec4<T>(x: T, y: T, z: T, w: T) -> Vector4<T> {
-    Vector4::<T>::from([ x, y, z, w ])
-}
-
-/// 5-element vector. 
-pub type Vector5<T> = Vector<T, 5>;
-
-impl<T, const N: usize> From<[T; N]> for Vector<T, {N}> {
-    fn from(array: [T; N]) -> Self {
-        Vector::<T, {N}>(array)
-    }
-}
-
-impl<T, const N: usize> From<Matrix<T, {N}, 1>> for Vector<T, {N}> {
-    fn from(mat: Matrix<T, {N}, 1>) -> Self {
-        let Matrix([ v ]) = mat;
-        v
-    }
-}
-
-impl<T, const N: usize> Into<[T; {N}]> for Vector<T, {N}> {
-    fn into(self) -> [T; {N}] {
-        self.0
-    }
-}
-
-impl<T, const N: usize> Hash for Vector<T, {N}>
-where
-    T: Hash,
-{
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for i in 0..N {
-            self.0[i].hash(state);
-        }
-    }
-}
-
-impl<T, const N: usize> fmt::Debug for Vector<T, {N}>
-where
-    T: fmt::Debug
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match N {
-            0 => unimplemented!(),
-            1 => write!(f, "Vector {{ x: {:?} }}", self.0[0]),
-            2 => write!(f, "Vector {{ x: {:?}, y: {:?} }}", self.0[0], self.0[1]),
-            3 => write!(f, "Vector {{ x: {:?}, y: {:?}, z: {:?} }}", self.0[0], self.0[1], self.0[2]),
-            4 => write!(f, "Vector {{ x: {:?}, y: {:?}, z: {:?}, w: {:?} }}", self.0[0], self.0[1], self.0[2], self.0[3]),
-            _ => write!(f, "Vector {{ x: {:?}, y: {:?}, z: {:?}, w: {:?}, [..]: {:?} }}", self.0[0], self.0[1], self.0[2], self.0[3], &self.0[4..]),
-        }
-    }
-}
-
-impl<T, const N: usize> Deref for Vector<T, {N}> {
-    type Target = [T; {N}];
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T, const N: usize> DerefMut for Vector<T, {N}> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
 
 impl<T, const N: usize> Zero for Vector<T, {N}>
 where
@@ -1124,11 +1153,56 @@ impl<T, const N: usize, const M: usize> From<[[T; {N}]; {M}]> for Matrix<T, {N},
     }
 }
 
-/// Constructs a new vector from an array. Necessary to help the compiler. Prefer
-/// calling the macro `vector!`, which calls `new_vector` internally.
-#[inline]
-pub fn new_vector<T, const N: usize>(elements: [T; N]) -> Vector<T, {N}> {
-    Vector(elements)
+/// Returns a 1-by-1 square matrix.
+#[deprecated(since = "0.3", note = "use the more powerful matrix! macro")]
+pub fn mat1x1<T>(
+    x00: T,
+) -> Mat1x1<T> {
+    Matrix::<T, 1, 1>([ Vector::<T, 1>([ x00 ]) ])
+}
+
+/// Returns a 2-by-2 square matrix. Although matrices are stored column wise,
+/// the order of arguments is row by row, as a matrix would be typically
+/// displayed.
+#[deprecated(since = "0.3", note = "use the more powerful matrix! macro")]
+pub fn mat2x2<T>(
+    x00: T, x01: T,
+    x10: T, x11: T,
+) -> Mat2x2<T> {
+    Matrix::<T, 2, 2>(
+        [ Vector::<T, 2>([ x00, x10 ]),
+          Vector::<T, 2>([ x01, x11 ]),  ]
+    )
+}
+
+/// Returns a 3-by-3 square matrix.
+#[deprecated(since = "0.3", note = "use the more powerful matrix! macro")]
+pub fn mat3x3<T>(
+    x00: T, x01: T, x02: T,
+    x10: T, x11: T, x12: T,
+    x20: T, x21: T, x22: T,
+) -> Mat3x3<T> {
+    Matrix::<T, 3, 3>(
+        [ Vector::<T, 3>([ x00, x10, x20, ]),
+          Vector::<T, 3>([ x01, x11, x21, ]),  
+          Vector::<T, 3>([ x02, x12, x22, ]),  ]
+    )
+}
+
+/// Returns a 4-by-4 square matrix.
+#[deprecated(since = "0.3", note = "use the more powerful matrix! macro")]
+pub fn mat4x4<T>(
+    x00: T, x01: T, x02: T, x03: T,
+    x10: T, x11: T, x12: T, x13: T,
+    x20: T, x21: T, x22: T, x23: T,
+    x30: T, x31: T, x32: T, x33: T,
+) -> Mat4x4<T> {
+    Matrix::<T, 4, 4>(
+        [ Vector::<T, 4>([ x00, x10, x20, x30 ]),
+          Vector::<T, 4>([ x01, x11, x21, x31 ]),  
+          Vector::<T, 4>([ x02, x12, x22, x32 ]),
+          Vector::<T, 4>([ x03, x13, x23, x33 ]) ]
+    )
 }
 
 /// Constructs a new matrix from an array, using the more visually natural row 
@@ -1172,70 +1246,6 @@ macro_rules! matrix {
             $($rows),*
         ])
     }
-}
-/// Construct a new vector of any size.
-///
-/// ```
-/// # use aljabar::*;
-/// let v: Vector<u32, 0> = vector![];
-/// let v = vector![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
-/// let v = vector![true, false, false, true];
-/// ```
-#[macro_export]
-macro_rules! vector {
-    ( $($elem:expr),* $(,)? ) => {
-        $crate::new_vector([
-            $($elem),*
-        ])
-    }
-}
-
-/// Returns a 1-by-1 square matrix.
-pub fn mat1x1<T>(
-    x00: T,
-) -> Mat1x1<T> {
-    Matrix::<T, 1, 1>([ Vector::<T, 1>([ x00 ]) ])
-}
-
-/// Returns a 2-by-2 square matrix. Although matrices are stored column wise,
-/// the order of arguments is row by row, as a matrix would be typically
-/// displayed.
-pub fn mat2x2<T>(
-    x00: T, x01: T,
-    x10: T, x11: T,
-) -> Mat2x2<T> {
-    Matrix::<T, 2, 2>(
-        [ Vector::<T, 2>([ x00, x10 ]),
-          Vector::<T, 2>([ x01, x11 ]),  ]
-    )
-}
-
-/// Returns a 3-by-3 square matrix.
-pub fn mat3x3<T>(
-    x00: T, x01: T, x02: T,
-    x10: T, x11: T, x12: T,
-    x20: T, x21: T, x22: T,
-) -> Mat3x3<T> {
-    Matrix::<T, 3, 3>(
-        [ Vector::<T, 3>([ x00, x10, x20, ]),
-          Vector::<T, 3>([ x01, x11, x21, ]),  
-          Vector::<T, 3>([ x02, x12, x22, ]),  ]
-    )
-}
-
-/// Returns a 4-by-4 square matrix.
-pub fn mat4x4<T>(
-    x00: T, x01: T, x02: T, x03: T,
-    x10: T, x11: T, x12: T, x13: T,
-    x20: T, x21: T, x22: T, x23: T,
-    x30: T, x31: T, x32: T, x33: T,
-) -> Mat4x4<T> {
-    Matrix::<T, 4, 4>(
-        [ Vector::<T, 4>([ x00, x10, x20, x30 ]),
-          Vector::<T, 4>([ x01, x11, x21, x31 ]),  
-          Vector::<T, 4>([ x02, x12, x22, x32 ]),
-          Vector::<T, 4>([ x03, x13, x23, x33 ]) ]
-    )
 }
 
 impl<T, const N: usize, const M: usize> Clone for Matrix<T, {N}, {M}>
@@ -1755,7 +1765,7 @@ mod tests {
     #[test]
     fn test_vec_trunc() {
         
-        let (xyz, w): (TruncatedVector<_, 4>, _) = vec4(0u32, 1, 2, 3).trunc();
+        let (xyz, w): (TruncatedVector<_, 4>, _) = vector!(0u32, 1, 2, 3).trunc();
     }
     */
 
@@ -1809,9 +1819,9 @@ mod tests {
 
     #[test]
     fn test_vec_cross() {
-        let a = vec3(1isize, 2isize, 3isize);
-        let b = vec3(4isize, 5isize, 6isize);
-        let r = vec3(-3isize, 6isize, -3isize);
+        let a = vector!(1isize, 2isize, 3isize);
+        let b = vector!(4isize, 5isize, 6isize);
+        let r = vector!(-3isize, 6isize, -3isize);
         assert_eq!(a.cross(b), r);
     }
         
@@ -1831,20 +1841,20 @@ mod tests {
 
     #[test]
     fn test_vec_normalize() {
-        let a = vec1(5.0);
+        let a = vector!(5.0);
         assert_eq!(a.clone().magnitude(), 5.0);
         let a_norm = a.normalize();
-        assert_eq!(a_norm, vec1(1.0));
+        assert_eq!(a_norm, vector!(1.0));
     }
 
     #[test]
     fn test_vec_transpose() {
-        let v = vec4(1i32, 2, 3, 4);
+        let v = vector!(1i32, 2, 3, 4);
         let m = Matrix::<i32, 1, 4>::from([
-            vec1(1i32),
-            vec1(2),
-            vec1(3),
-            vec1(4),
+            vector!(1i32),
+            vector!(2),
+            vector!(3),
+            vector!(4),
         ]);
         assert_eq!(v.transpose(), m);
     }
@@ -1860,10 +1870,12 @@ mod tests {
 
     #[test]
     fn test_mat_identity() {
-        let unit = mat4x4( 1u32, 0, 0, 0,
-                           0, 1, 0, 0,
-                           0, 0, 1, 0,
-                           0, 0, 0, 1 );
+        let unit = matrix![
+            [ 1u32, 0, 0, 0 ],
+            [ 0, 1, 0, 0 ],
+            [ 0, 0, 1, 0 ],
+            [ 0, 0, 0, 1 ],
+        ];
         assert_eq!(
             Matrix::<u32, 4, 4>::one(),
             unit
@@ -1872,10 +1884,12 @@ mod tests {
 
     #[test]
     fn test_mat_negation() {
-        let neg_unit = mat4x4( -1i32, 0, 0, 0,
-                                0, -1, 0, 0,
-                                0, 0, -1, 0,
-                                0, 0, 0, -1 );
+        let neg_unit = matrix![
+            [ -1i32, 0, 0, 0 ],
+            [ 0, -1, 0, 0 ],
+            [ 0, 0, -1, 0 ],
+            [ 0, 0, 0, -1 ],
+        ];
         assert_eq!(
             -Matrix::<i32, 4, 4>::one(),
             neg_unit
@@ -1884,59 +1898,80 @@ mod tests {
 
     #[test]
     fn test_mat_add() {
-        let a = mat1x1( mat1x1( 1u32 ) );
-        let b = mat1x1( mat1x1( 10u32 ) );
-        let c = mat1x1( mat1x1( 11u32 ) );
+        let a = matrix![ [ matrix![ [ 1u32 ] ] ] ];
+        let b = matrix![ [ matrix![ [ 10u32 ] ] ] ];
+        let c = matrix![ [ matrix![ [ 11u32 ] ] ] ];
         assert_eq!(a + b, c);
     }
 
     #[test]
     fn test_mat_scalar_mult() {
-        let a = Matrix::<f32, 2, 2>::from( [ vec2( 0.0, 1.0 ),
-                                             vec2( 0.0, 2.0 ) ] );
-        let b = Matrix::<f32, 2, 2>::from( [ vec2( 0.0, 2.0 ),
-                                             vec2( 0.0, 4.0 ) ] );
+        let a = Matrix::<f32, 2, 2>::from( [ vector!( 0.0, 1.0 ),
+                                             vector!( 0.0, 2.0 ) ] );
+        let b = Matrix::<f32, 2, 2>::from( [ vector!( 0.0, 2.0 ),
+                                             vector!( 0.0, 4.0 ) ] );
         assert_eq!(a * 2.0, b);
     }
 
     #[test]
     fn test_mat_mult() {
-        let a = Matrix::<f32, 2, 2>::from( [ vec2( 0.0, 0.0 ),
-                                             vec2( 1.0, 0.0 ) ] );
-        let b = Matrix::<f32, 2, 2>::from( [ vec2( 0.0, 1.0 ),
-                                             vec2( 0.0, 0.0 ) ] );
-        assert_eq!(a * b, mat2x2( 1.0, 0.0,
-                                  0.0, 0.0 ));
-        assert_eq!(b * a, mat2x2( 0.0, 0.0,
-                                  0.0, 1.0 ));
+        let a = Matrix::<f32, 2, 2>::from( [ vector!( 0.0, 0.0 ),
+                                             vector!( 1.0, 0.0 ) ] );
+        let b = Matrix::<f32, 2, 2>::from( [ vector!( 0.0, 1.0 ),
+                                             vector!( 0.0, 0.0 ) ] );
+        assert_eq!(
+            a * b,
+            matrix![
+                [ 1.0, 0.0 ],
+                [ 0.0, 0.0 ],
+            ]
+        );
+        assert_eq!(
+            b * a,
+            matrix![
+                [ 0.0, 0.0 ],
+                [ 0.0, 1.0 ],
+            ]
+        );
         // Basic example:
-        let a: Matrix::<usize, 1, 1> = mat1x1( 1 );
-        let b: Matrix::<usize, 1, 1> = mat1x1( 2 );
-        let c: Matrix::<usize, 1, 1> = mat1x1( 2 );
+        let a: Matrix::<usize, 1, 1> = matrix![ [ 1 ] ];
+        let b: Matrix::<usize, 1, 1> = matrix![ [ 2 ] ];
+        let c: Matrix::<usize, 1, 1> = matrix![ [ 2 ] ];
         assert_eq!(a * b, c);
         // Removing the type signature here caused the compiler to crash.
         // Since then I've been wary.
-        let a = Matrix::<f32, 3, 3>::from( [ vec3( 1.0, 0.0, 0.0 ),
-                                             vec3( 0.0, 1.0, 0.0 ),
-                                             vec3( 0.0, 0.0, 1.0 ), ] );
+        let a = Matrix::<f32, 3, 3>::from( [ vector!( 1.0, 0.0, 0.0 ),
+                                             vector!( 0.0, 1.0, 0.0 ),
+                                             vector!( 0.0, 0.0, 1.0 ), ] );
         let b = a.clone();
         let c = a * b;
-        assert_eq!(c, mat3x3( 1.0, 0.0, 0.0,
-                              0.0, 1.0, 0.0,
-                              0.0, 0.0, 1.0 ));
+        assert_eq!(
+            c,
+            matrix![
+                [ 1.0, 0.0, 0.0 ],
+                [ 0.0, 1.0, 0.0 ],
+                [ 0.0, 0.0, 1.0 ],
+            ]
+        );
         // Here is another random example I found online.
         let a: Matrix::<i32, 3, 3> =
-            mat3x3( 0, -3, 5,
-                    6, 1, -4,
-                    2, 3, -2 );
+            matrix![
+                [ 0, -3, 5 ],
+                [ 6, 1, -4 ], 
+                [ 2, 3, -2 ],
+            ];
         let b: Matrix::<i32, 3, 3> =
-            mat3x3( -1, 0, -3,
-                     4, 5, 1,
-                     2, 6, -2 );
+            matrix![
+                [ -1, 0, -3 ],
+                [ 4, 5, 1 ],
+                [ 2, 6, -2 ]
+            ];
         let c: Matrix::<i32, 3, 3> =
-            mat3x3( -2, 15, -13,
-                    -10, -19, -9,
-                     6, 3, 1 );
+            matrix![
+                [ -2, 15, -13 ],
+                [ -10, -19, -9 ],
+                [ 6, 3, 1 ]
+            ];
         assert_eq!(
             a * b,
             c
@@ -1946,8 +1981,10 @@ mod tests {
     #[test]
     fn test_mat_index() {
         let m: Matrix::<i32, 2, 2> =
-            mat2x2(0, 2,
-                   1, 3);
+            matrix![
+                [ 0, 2 ],
+                [ 1, 3 ],
+            ];
         assert_eq!(m[(0, 0)], 0);
         assert_eq!(m[0][0], 0);
         assert_eq!(m[(1, 0)], 1);
@@ -1961,32 +1998,38 @@ mod tests {
     #[test]
     fn test_mat_transpose() {
         assert_eq!(
-            Matrix::<i32, 1, 2>::from( [ vec1( 1 ), vec1( 2 ) ] )
+            Matrix::<i32, 1, 2>::from( [ vector!( 1 ), vector!( 2 ) ] )
                 .transpose(),
-            Matrix::<i32, 2, 1>::from( [ vec2( 1, 2 ) ] )
+            Matrix::<i32, 2, 1>::from( [ vector!( 1, 2 ) ] )
         );
         assert_eq!(
-            mat2x2( 1, 2,
-                    3, 4 ).transpose(),
-            mat2x2( 1, 3,
-                    2, 4 )
+            matrix![
+                [ 1, 2 ],
+                [ 3, 4 ],
+            ].transpose(),
+            matrix![
+                [ 1, 3 ],
+                [ 2, 4 ],
+            ]
         );
     }
 
     #[test]
     fn test_square_matrix() {
         let a: Matrix::<i32, 3, 3> =
-            mat3x3( 5, 0, 0,
-                    0, 8, 12,
-                    0, 0, 16 );
+            matrix![
+                [  5, 0, 0 ],
+                [ 0, 8, 12 ],
+                [ 0, 0, 16 ],
+            ];
         let diag: Vector::<i32, 3> =
-            vec3( 5, 8, 16 );
+            vector!( 5, 8, 16 );
         assert_eq!(a.diagonal(), diag);
     }
 
     #[test]
     fn test_readme_code() {
-        let a = vec4( 0u32, 1, 2, 3 ); 
+        let a = vector!( 0u32, 1, 2, 3 ); 
         assert_eq!(
 	          a, 
             Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
@@ -1999,47 +2042,51 @@ mod tests {
             Vector::<f32, 7>::from([ 0.5f32, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5 ])
         );
 
-        let a = vec2( 1i32, 1);
-        let b = vec2( 5i32, 5 );
+        let a = vector!( 1i32, 1);
+        let b = vector!( 5i32, 5 );
         assert_eq!(a.distance2(b), 32);       // distance method not implemented.
         assert_eq!((b - a).magnitude2(), 32); // magnitude method not implemented.
 
-        let a = vec2( 1.0f32, 1.0 );
-        let b = vec2( 5.0f32, 5.0 );
+        let a = vector!( 1.0f32, 1.0 );
+        let b = vector!( 5.0f32, 5.0 );
         const CLOSE: f32 = 5.65685424949;
         assert_eq!(a.distance(b), CLOSE);       // distance is implemented.
         assert_eq!((b - a).magnitude(), CLOSE); // magnitude is implemented.
 
         // Vector normalization is also supported for floating point scalars.
         assert_eq!(
-            vec3( 0.0f32, 20.0, 0.0 )
+            vector!( 0.0f32, 20.0, 0.0 )
                 .normalize(),
-            vec3( 0.0f32, 1.0, 0.0 )
+            vector!( 0.0f32, 1.0, 0.0 )
         );
 
-        let _a = Matrix::<f32, 3, 3>::from( [ vec3( 1.0, 0.0, 0.0 ),
-                                              vec3( 0.0, 1.0, 0.0 ),
-                                              vec3( 0.0, 0.0, 1.0 ), ] );
+        let _a = Matrix::<f32, 3, 3>::from( [ vector!( 1.0, 0.0, 0.0 ),
+                                              vector!( 0.0, 1.0, 0.0 ),
+                                              vector!( 0.0, 0.0, 1.0 ), ] );
         let _b: Matrix::<i32, 3, 3> =
-            mat3x3( 0, -3, 5,
-                    6, 1, -4,
-                    2, 3, -2 );
+            matrix![
+                [ 0, -3, 5 ],
+                [ 6, 1, -4 ],
+                [ 2, 3, -2 ]
+            ];
 
         assert_eq!(
-            mat3x3( 1i32, 0, 0,
-                    0, 2, 0,
-                    0, 0, 3 )
-                .diagonal(),
-            vec3( 1i32, 2, 3 ) 
+            matrix![
+                [ 1i32, 0, 0, ],
+                [ 0, 2, 0 ],
+                [ 0, 0, 3 ],
+            ].diagonal(),
+            vector!( 1i32, 2, 3 ) 
         );
 
         assert_eq!(
-            mat4x4( 1i32, 0, 0, 0, 
-                    0, 2, 0, 0, 
-                    0, 0, 3, 0, 
-                    0, 0, 0, 4 )
-                .diagonal(),
-            vec4( 1i32, 2, 3, 4 ) 
+            matrix![
+                [ 1i32, 0, 0, 0 ], 
+                [ 0, 2, 0, 0 ], 
+                [ 0, 0, 3, 0 ], 
+                [ 0, 0, 0, 4 ]
+            ].diagonal(),
+            vector!( 1i32, 2, 3, 4 ) 
         );
     }
 
