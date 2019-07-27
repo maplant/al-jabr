@@ -59,6 +59,19 @@ use std::{
     },
 };
 
+#[cfg(feature = "rand")]
+use rand::{
+    Rng,
+    distributions::{Distribution, Standard},
+};
+
+// #[cfg(feature = "serde")]
+use serde::{
+    Serialize,
+    Serializer,
+    ser::SerializeTuple,    
+};
+
 /// Defines the additive identity for `Self`.
 pub trait Zero {
     /// Returns the additive identity of `Self`.
@@ -408,6 +421,42 @@ impl<T, const N: usize> Deref for Vector<T, {N}> {
 impl<T, const N: usize> DerefMut for Vector<T, {N}> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+#[cfg(feature = "rand")]
+impl<T, const N: usize> Distribution<Vector<T, {N}>> for Standard
+where
+    Standard: Distribution<T>,
+{
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Vector<T, {N}> {
+        let mut rand = MaybeUninit::<Vector<T, {N}>>::uninit();
+        let randp: *mut T = unsafe { mem::transmute(&mut rand) };
+
+        for i in 0..N {
+            unsafe {
+                randp.add(i).write(self.sample(rng))
+            }
+        }
+
+        unsafe { rand.assume_init() }
+    }
+}
+
+// #[cfg(feature = "serde")]
+impl<T, const N: usize> Serialize for Vector<T, {N}>
+where
+    T: Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_tuple(N)?;
+        for i in 0..N {
+            seq.serialize_element(&self.0[i])?;
+        }
+        seq.end()
     }
 }
 
@@ -985,6 +1034,72 @@ where
     }
 }
 
+impl<T, const N: usize> fmt::Debug for Point<T, {N}>
+where
+    T: fmt::Debug
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match N {
+            0 => unimplemented!(),
+            1 => write!(f, "Point {{ x: {:?} }}", self.0[0]),
+            2 => write!(f, "Point {{ x: {:?}, y: {:?} }}", self.0[0], self.0[1]),
+            3 => write!(f, "Point {{ x: {:?}, y: {:?}, z: {:?} }}", self.0[0], self.0[1], self.0[2]),
+            4 => write!(f, "Point {{ x: {:?}, y: {:?}, z: {:?}, w: {:?} }}", self.0[0], self.0[1], self.0[2], self.0[3]),
+            _ => write!(f, "Point {{ x: {:?}, y: {:?}, z: {:?}, w: {:?}, [..]: {:?} }}", self.0[0], self.0[1], self.0[2], self.0[3], &self.0[4..]),
+        }
+    }
+}
+
+impl<T, const N: usize> Deref for Point<T, {N}> {
+    type Target = [T; {N}];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T, const N: usize> DerefMut for Point<T, {N}> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+#[cfg(feature = "rand")]
+impl<T, const N: usize> Distribution<Point<T, {N}>> for Standard
+where
+    Standard: Distribution<T>,
+{
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Point<T, {N}> {
+        let mut rand = MaybeUninit::<Point<T, {N}>>::uninit();
+        let randp: *mut T = unsafe { mem::transmute(&mut rand) };
+
+        for i in 0..N {
+            unsafe {
+                randp.add(i).write(self.sample(rng))
+            }
+        }
+
+        unsafe { rand.assume_init() }
+    }
+}
+
+// #[cfg(feature = "serde")]
+impl<T, const N: usize> Serialize for Point<T, {N}>
+where
+    T: Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_tuple(N)?;
+        for i in 0..N {
+            seq.serialize_element(&self.0[i])?;
+        }
+        seq.end()
+    }
+}
+
 impl<T, const N: usize> Point<T, {N}> {
     /// Constructs a point from an appropriately sized vector.
     pub fn from_vec(vec: Vector<T, {N}>) -> Self {
@@ -1381,6 +1496,41 @@ where
     }
 }
 
+#[cfg(feature = "rand")]
+impl<T, const N: usize, const M: usize> Distribution<Matrix<T, {N}, {M}>> for Standard
+where
+    Standard: Distribution<Vector<T, {N}>>,
+{
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Matrix<T, {N}, {M}> {
+        let mut rand = MaybeUninit::<[Vector<T, {N}>; {M}]>::uninit();
+        let randp: *mut Vector<T, {N}> =
+            unsafe { mem::transmute(&mut rand) };
+
+        for i in 0..M {
+            unsafe { randp.add(i).write(self.sample(rng)); }
+        }
+
+        Matrix::<T, {N}, {M}>(unsafe { rand.assume_init() }) 
+    }
+}
+
+// #[cfg(feature = "serde")]
+impl<T, const N: usize, const M: usize> Serialize for Matrix<T, {N}, {M}>
+where
+    Vector<T, {N}>: Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_tuple(M)?;
+        for i in 0..M {
+            seq.serialize_element(&self.0[i])?;
+        }
+        seq.end()
+    }
+}
+
 impl<T, const N: usize, const M: usize> Zero for Matrix<T, {N}, {M}>
 where
     T: Zero,
@@ -1392,9 +1542,11 @@ where
         let mut zero_mat = MaybeUninit::<[Vector<T, {N}>; {M}]>::uninit();
         let matp: *mut Vector<T, {N}> =
             unsafe { mem::transmute(&mut zero_mat) };
+
         for i in 0..M {
             unsafe { matp.add(i).write(Vector::<T, {N}>::zero()); }
         }
+
         Matrix::<T, {N}, {M}>(unsafe { zero_mat.assume_init() })
     }
 
@@ -1825,10 +1977,17 @@ where
 }
 
 /// A type that can rotate a `Vector` of a given dimension.   
-pub trait Rotation<const DIM: usize> {
+pub trait Rotation<const DIM: usize>
+where
+    Self: Sized,
+{
     type Scalar;
 
     fn rotate_vector(self, v: Vector<Self::Scalar, {DIM}>) -> Vector<Self::Scalar, {DIM}>;
+
+    fn rotate_point(self, p: Point<Self::Scalar, {DIM}>) -> Point<Self::Scalar, {DIM}> {
+        Point(self.rotate_vector(Vector(p.0)).0)
+    }
 }
 
 pub trait Angle: Real {

@@ -18,3 +18,5 @@ name = "aljabar"
 
 [dependencies]
 paste = "0.1"
+rand = { version = "0.7", optional = true }
+serde = "1.0"
