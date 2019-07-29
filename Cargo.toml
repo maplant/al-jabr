@@ -1,6 +1,6 @@
 [package]
 name = "aljabar"
-version = "0.2.7"
+version = "0.3.0"
 authors = ["Matthew Plant <map@maplant.com>"]
 edition = "2018"
 description = "A super generic, super experimental linear algebra library."
@@ -19,4 +19,12 @@ name = "aljabar"
 [dependencies]
 paste = "0.1"
 rand = { version = "0.7", optional = true }
-serde = "1.0"
+serde = { version = "1.0", features = ["derive"], optional = true }
+
+[[test]]
+name = "serde_tests"
+path = "tests/serde_tests.rs"
+required-features = ["serde"]
+
+[dev-dependencies]
+serde_json = "1.0"

@@ -22,11 +22,11 @@ term aljabar is intended to be feature compliant with [cgmath](https://github.co
 
 ### `Vector` 
 
-Vectors can be constructed from arrays of any type and size. There are 
-convenience constructor functions provided for the most common sizes:
+Vectors can be constructed from arrays of any type and size. Use the `vector!`
+macro to easily construct a vector:
 
 ```rust
-let a = vec4( 0u32, 1, 2, 3 ); 
+let a = vector![ 0u32, 1, 2, 3 ]; 
 assert_eq!(
     a, 
     Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
@@ -54,22 +54,22 @@ distance between two vectors and the magnitude of a vector can be found in
 addition:
 
 ```rust
-let a = vec2( 1i32, 1);
-let b = vec2( 5i32, 5 );
+let a = vector!(1i32, 1);
+let b = vector!(5i32, 5);
 assert_eq!(a.distance2(b), 32);       // distance method not implemented.
 assert_eq!((b - a).magnitude2(), 32); // magnitude method not implemented.
 
-let a = vec2( 1.0f32, 1.0 );
-let b = vec2( 5.0f32, 5.0 );
+let a = vector!(1.0f32, 1.0);
+let b = vector!(5.0f32, 5.0);
 const close: f32 = 5.65685424949;
 assert_eq!(a.distance(b), close);       // distance is implemented.
 assert_eq!((b - a).magnitude(), close); // magnitude is implemented.
 
 // Vector normalization is also supported for floating point scalars.
 assert_eq!(
-    vec3( 0.0f32, 20.0, 0.0 )
+    vector!(0.0f32, 20.0, 0.0)
         .normalize(),
-    vec3( 0.0f32, 1.0, 0.0 )
+    vector!(0.0f32, 1.0, 0.0)
 );
 ```
 
@@ -82,22 +82,22 @@ functions return scalar results, multi-element swizzle functions return vector
 results of the appropriate size based on the number of selected elements.
 
 ```rust
-let a = vec4(0.0f32, 1.0, 2.0, 3.0 );
+let a = vector!(0.0f32, 1.0, 2.0, 3.0);
 
 // A single element is returned as a scalar.
 assert_eq!(1.0, a.y());
 
 // Multiple elements are returned as a vector.
-assert_eq!(vec3(2.0, 0.0, 3.0), a.zxw());
+assert_eq!(vector!(2.0, 0.0, 3.0), a.zxw());
 
 // The same element can be selected more than once.
-assert_eq!(vec2(0.0f32, 0.0), a.rr());
+assert_eq!(vector!(0.0f32, 0.0), a.rr());
 ```
 
 Mixing `xyzw` and `rgba` swizzle conventions is not allowed.
 
 ```rust
-let a = vec4(0.0f32, 1.0, 2.0, 3.0);
+let a = vector!(0.0f32, 1.0, 2.0, 3.0);
 let b = a.rgzw(); // Does not compile.
 ```
 
@@ -105,25 +105,26 @@ Swizzling is supported on vectors of length less than 4. Attempting to access
 elements past the length of the vector is a compile error.
 
 ```rust
-let a = vec3(0.0f32, 1.0, 2.0);
+let a = vector!(0.0f32, 1.0, 2.0);
 let b = a.xyz(); // OK, only accesses the first 3 elements.
 let c = a.rgba(); // Compile error, attempts to access missing 4th element.
 ```
 
 ### `Matrix`
 
-Matrices can be created from arrays of Vectors of any size and scalar type. 
-As with Vectors there are convenience constructor functions for square matrices
-of the most common sizes: 
+Matrices can be created from arrays of vectors of any size and scalar type. 
+Matrices are column-major and constructing a matrix from a raw array reflects 
+that. The `matrix!` macro can be used to construct a matrix in row-major order:
 
 ```rust 
-let a = Matrix::<f32, 3, 3>::from( [ vec3( 1.0, 0.0, 0.0 ),
-                                     vec3( 0.0, 1.0, 0.0 ),
-                                     vec3( 0.0, 0.0, 1.0 ), ] );
-let b: Matrix::<i32, 3, 3> =
-            mat3x3( 0, -3, 5,
-                    6, 1, -4,
-                    2, 3, -2 );
+let a = Matrix::<f32, 3, 3>::from( [ vector!(1.0, 0.0, 0.0),
+                                     vector!(0.0, 1.0, 0.0),
+                                     vector!(0.0, 0.0, 1.0), ] );
+let b: Matrix::<i32, 3, 3> = matrix![
+    [ 0, -3, 5 ],
+    [ 6, 1, -4 ],
+    [ 2, 3, -2 ]
+];
 ```
 
 All operations performed on matrices produce fixed-size outputs. For example,
@@ -164,18 +165,21 @@ multiplication is defined for `Matrix<T, N, M> * Matrix<T, M, P>`. The result is
 a `Matrix<T, N, P>`: 
 
 ```rust
-let a: Matrix::<i32, 3, 3> =
-    mat3x3( 0, -3, 5,
-            6, 1, -4,
-            2, 3, -2 );
-let b: Matrix::<i32, 3, 3> =
-    mat3x3( -1, 0, -3,
-             4, 5, 1,
-             2, 6, -2 );
-let c: Matrix::<i32, 3, 3> =
-    mat3x3( -2, 15, -13,
-            -10, -19, -9,
-             6, 3, 1 );
+let a: Matrix::<i32, 3, 3> = matrix![
+    [ 0, -3, 5 ],
+    [ 6, 1, -4 ],
+    [ 2, 3, -2 ],
+];
+let b: Matrix::<i32, 3, 3> = matrix![
+    [ -1, 0, -3 ],
+    [  4, 5,  1 ],
+    [  2, 6, -2 ],
+];
+let c: Matrix::<i32, 3, 3> = matrix![
+    [  -2,  15, -13 ],
+    [ -10, -19,  -9 ],
+    [   6,   3,   1 ],
+];
 assert_eq!(
     a * b,
     c
@@ -191,20 +195,22 @@ extract a diagonal vector from it:
 
 ```rust
 assert_eq!(
-    mat3x3( 1i32, 0, 0,
-            0, 2, 0,
-            0, 0, 3 )
-        .diagonal(),
-    vec3( 1i32, 2, 3 ) 
+    matrix![
+        [ 1i32, 0, 0 ],
+        [    0, 2, 0 ],
+        [    0, 0, 3 ],
+    ].diagonal(),
+    vector!(1i32, 2, 3) 
 );
 
 assert_eq!(
-    mat4x4( 1i32, 0, 0, 0, 
-            0, 2, 0, 0, 
-            0, 0, 3, 0, 
-            0, 0, 0, 4 )
-        .diagonal(),
-    vec4( 1i32, 2, 3, 4 ) 
+    matrix![
+        [ 1i32, 0, 0, 0 ],
+        [    0, 2, 0, 0 ],
+        [    0, 0, 3, 0 ],
+        [    0, 0, 0, 4 ],
+    ].diagonal(),
+    vector!(1i32, 2, 3, 4) 
 );
 ```          
 
@@ -216,9 +222,10 @@ the more natural row major method. In order to use row-major indexing, call
 appropriate column of the matrix.
 
 ```rust
-let m: Matrix::<i32, 2, 2> =
-           mat2x2( 0, 2,
-                   1, 3 );
+let m: Matrix::<i32, 2, 2> = matrix![
+    [ 0, 2 ],
+    [ 1, 3 ],
+];
 
 // Column-major indexing:
 assert_eq!(m[0][0], 0);
@@ -321,11 +328,7 @@ There is a lot of work that needs to be done on aljabar before it can be
 considered stable or non-experimental.
 
 * Implement `Matrix::invert`.
-* Add optional Serde support.
-* Add and implement rotational and angular data structures. 
 * Convert `Vector` ops to SIMD implementations.
 * Add more tests and get code coverage to 100%.
-* Implement better methods for accessing components of Vectors. 
 * Add `Point` type.
 * Implement faster matrix multiplication algorithms. 
-* Add procedural macro to create matrices of any width and height combination

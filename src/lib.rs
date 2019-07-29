@@ -59,17 +59,27 @@ use std::{
     },
 };
 
+#[cfg(feature = "serde")]
+use std::marker::PhantomData;
+
 #[cfg(feature = "rand")]
 use rand::{
     Rng,
     distributions::{Distribution, Standard},
 };
 
-// #[cfg(feature = "serde")]
+#[cfg(feature = "serde")]
 use serde::{
     Serialize,
     Serializer,
-    ser::SerializeTuple,    
+    ser::SerializeTuple,
+    Deserialize,
+    Deserializer,
+    de::{
+        Error,
+        SeqAccess,
+        Visitor,
+    },        
 };
 
 /// Defines the additive identity for `Self`.
@@ -80,7 +90,6 @@ pub trait Zero {
     /// Returns true if the value is the additive identity.
     fn is_zero(&self) -> bool;
 }
-
 
 macro_rules! impl_zero {
     // Default $zero to '0' if not provided.
@@ -184,14 +193,26 @@ where
     Self: Neg<Output = Self>,
 {
     fn sqrt(self) -> Self;
+
+    fn mul2(self) -> Self;
+
+    fn div2(self) -> Self;
 }
 
 impl Real for f32 {
     fn sqrt(self) -> Self { self.sqrt() }
+
+    fn mul2(self) -> Self { 2.0 * self }
+
+    fn div2(self) -> Self { self / 2.0 }
 }
 
 impl Real for f64 {
     fn sqrt(self) -> Self { self.sqrt() }
+
+    fn mul2(self) -> Self { 2.0 * self }
+
+    fn div2(self) -> Self { self / 2.0 }
 }
 
 /// `N`-element vector.
@@ -249,7 +270,7 @@ impl Real for f64 {
 ///
 /// ```ignore
 /// # use aljabar::*;
-/// let v = vec4(1i32, 2, 3, 4);
+/// let v = vector!(1i32, 2, 3, 4);
 /// let xy = v.xy(); // OK, only uses xyzw names.
 /// let ba = v.ba(); // OK, only uses rgba names.
 /// assert_eq!(xy, vec2(1i32, 2));
@@ -258,7 +279,7 @@ impl Real for f64 {
 ///
 /// ```compile_fail
 /// # use aljabar::*;
-/// let v = vec4(1i32, 2, 3, 4);
+/// let v = vector!(1i32, 2, 3, 4);
 /// let bad = v.xyrg(); // Compile error, mixes xyzw and rgba names.
 /// ```
 ///
@@ -267,25 +288,25 @@ impl Real for f64 {
 /// To get the first two elements of a 4-vector.
 /// ```ignore
 /// # use aljabar::*;
-/// let v = vec4(1i32, 2, 3, 4).xy();
+/// let v = vector!(1i32, 2, 3, 4).xy();
 /// ```
 ///
 /// To get the first and last element of a 4-vector.
 /// ```ignore
 /// # use aljabar::*;
-/// let v = vec4(1i32, 2, 3, 4).xw();
+/// let v = vector!(1i32, 2, 3, 4).xw();
 /// ```
 ///
 /// To reverse the order of a 3-vector.
 /// ```ignore
 /// # use aljabar::*;
-/// let v = vec3(1i32, 2, 3).zyx();
+/// let v = vector!(1i32, 2, 3).zyx();
 /// ```
 ///
 /// To select the first and third elements into the second and fourth elements, respectively.
 /// ```ignore
 /// # use aljabar::*;
-/// let v = vec4(1i32, 2, 3, 4).xxzz();
+/// let v = vector!(1i32, 2, 3, 4).xxzz();
 /// ```
 #[repr(transparent)]
 pub struct Vector<T, const N: usize>([T; N]);
@@ -443,7 +464,55 @@ where
     }
 }
 
-// #[cfg(feature = "serde")]
+#[cfg(feature = "serde")]
+struct ArrayVisitor<A> {
+    marker: PhantomData<A>,
+}
+
+#[cfg(feature = "serde")]
+impl<A> ArrayVisitor<A> {
+    fn new() -> Self {
+        ArrayVisitor {
+            marker: PhantomData,
+        }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, T, const N: usize> Visitor<'de> for ArrayVisitor<[T; N]>
+where
+    T: Deserialize<'de>,
+{
+    type Value = [T; N];
+    
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        if N == 0 {
+            write!(formatter, "an empty array")
+        } else {
+            write!(formatter, "an array of length {}", N)
+        }
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut to = MaybeUninit::<[T; N]>::uninit();
+        let top: *mut T = unsafe { mem::transmute(&mut to) };
+        for i in 0..N {
+            if let Some(element) = seq.next_element()? {
+                unsafe {
+                    top.add(i).write(element);
+                }
+            } else {
+                return Err(A::Error::invalid_length(i, &self));
+            }
+        }
+        unsafe { Ok(to.assume_init()) }
+    }
+}
+
+#[cfg(feature = "serde")]
 impl<T, const N: usize> Serialize for Vector<T, {N}>
 where
     T: Serialize,
@@ -457,6 +526,20 @@ where
             seq.serialize_element(&self.0[i])?;
         }
         seq.end()
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, T, const N: usize> Deserialize<'de> for Vector<T, {N}>
+where
+    T: Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_tuple(N, ArrayVisitor::<[T; {N}]>::new())
+            .map(|a|Vector(a))
     }
 }
 
@@ -528,16 +611,41 @@ macro_rules! swizzle {
 
 
 impl<T, const N: usize> Vector<T, {N}> {
+    /// Applies the given function to each element of the vector, constructing a
+    /// new vector with the returned outputs.
+    pub fn map<Out, F>(self, mut f: F) -> Vector<Out, {N}>
+    where
+        F: FnMut(T) -> Out,
+    {
+        let mut from = MaybeUninit::new(self);
+        let mut to = MaybeUninit::<Vector<Out, {N}>>::uninit();
+        let fromp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut from) };
+        let top: *mut Out = unsafe { mem::transmute(&mut to) };
+        for i in 0..N {
+            unsafe {
+                top.add(i).write(
+                    f(
+                        fromp
+                            .add(i)
+                            .replace(MaybeUninit::uninit())
+                            .assume_init()
+                    )
+                );
+            }
+        }
+        unsafe { to.assume_init() }
+    }
+
     /// Converts the Vector into a Matrix with `N` columns each of size `1`.
     ///
     /// ```ignore
     /// # use aljabar::*;
-    /// let v = vec4(1i32, 2, 3, 4);
+    /// let v = vector!(1i32, 2, 3, 4);
     /// let m = Matrix::<i32, 1, 4>::from([
-    ///     vec1(1i32),
-    ///     vec1(2),
-    ///     vec1(3),
-    ///     vec1(4),
+    ///     vector!(1i32),
+    ///     vector!(2),
+    ///     vector!(3),
+    ///     vector!(4),
     /// ]);
     /// assert_eq!(v.tranpose(), m);
     /// ```
@@ -1083,7 +1191,7 @@ where
     }
 }
 
-// #[cfg(feature = "serde")]
+#[cfg(feature = "serde")]
 impl<T, const N: usize> Serialize for Point<T, {N}>
 where
     T: Serialize,
@@ -1100,10 +1208,64 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
+impl<'de, T, const N: usize> Deserialize<'de> for Point<T, {N}>
+where
+    T: Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_tuple(N, ArrayVisitor::<[T; {N}]>::new())
+            .map(|a|Point(a))
+    }
+}
+
 impl<T, const N: usize> Point<T, {N}> {
     /// Constructs a point from an appropriately sized vector.
     pub fn from_vec(vec: Vector<T, {N}>) -> Self {
         Point(vec.0)
+    }
+}
+
+impl<A, B, const N: usize> Add<Vector<B, {N}>> for Point<A, {N}>
+where
+    A: Add<B>,
+{
+    type Output = Point<<A as Add<B>>::Output, {N}>;
+
+    fn add(self, rhs: Vector<B, {N}>) -> Self::Output {
+        let lhs = Vector(self.0);
+        let rhs = Vector(rhs.0);
+        Point((lhs + rhs).0)
+    }
+}
+
+impl<A, B, const N: usize> Sub<Vector<B, {N}>> for Point<A, {N}>
+where
+    A: Sub<B>,
+{
+    type Output = Point<<A as Sub<B>>::Output, {N}>;
+
+    fn sub(self, rhs: Vector<B, {N}>) -> Self::Output {
+        let lhs = Vector(self.0);
+        let rhs = Vector(rhs.0);
+        Point((lhs - rhs).0)
+    }
+}
+
+
+impl<A, B, const N: usize> Sub<Point<B, {N}>> for Point<A, {N}>
+where
+    A: Sub<B>,
+{
+    type Output = Vector<<A as Sub<B>>::Output, {N}>;
+
+    fn sub(self, rhs: Point<B, {N}>) -> Self::Output {
+        let lhs = Vector(self.0);
+        let rhs = Vector(rhs.0);
+        lhs - rhs
     }
 }
 
@@ -1274,10 +1436,11 @@ where
 /// let a = Matrix::<f32, 3, 3>::from( [ vec3( 1.0, 0.0, 0.0 ),
 ///                                      vec3( 0.0, 1.0, 0.0 ),
 ///                                      vec3( 0.0, 0.0, 1.0 ), ] );
-/// let b: Matrix::<i32, 3, 3> =
-///             mat3x3( 0, -3, 5,
-///                     6, 1, -4,
-///                     2, 3, -2 );
+/// let b: Matrix::<i32, 3, 3> = matrix![
+///     [ 0, -3, 5 ],
+///     [ 6, 1, -4 ],
+///     [ 2, 3, -2 ]
+/// ];
 /// ```
 /// 
 /// All operations performed on matrices produce fixed-size outputs. For example,
@@ -1287,9 +1450,9 @@ where
 /// ```ignore
 /// # use aljabar::*;
 /// assert_eq!(
-///     Matrix::<i32, 1, 2>::from( [ vec1( 1 ), vec1( 2 ) ] )
+///     Matrix::<i32, 1, 2>::from( [ vector!( 1 ), vector!( 2 ) ] )
 ///         .transpose(),
-///     Matrix::<i32, 2, 1>::from( [ vec2( 1, 2 ) ] )
+///     Matrix::<i32, 2, 1>::from( [ vector!( 1, 2 ) ] )
 /// );
 /// ```
 ///
@@ -1303,9 +1466,10 @@ where
 ///
 /// ```ignore
 /// # use aljabar::*;
-/// let m: Matrix::<i32, 2, 2> =
-///            mat2x2( 0, 2,
-///                    1, 3 );
+/// let m: Matrix::<i32, 2, 2> = matrix![
+///     [ 0, 2 ],
+///     [ 1, 3 ],
+/// ];
 ///
 /// // Column-major indexing:
 /// assert_eq!(m[0][0], 0);
@@ -1514,7 +1678,7 @@ where
     }
 }
 
-// #[cfg(feature = "serde")]
+#[cfg(feature = "serde")]
 impl<T, const N: usize, const M: usize> Serialize for Matrix<T, {N}, {M}>
 where
     Vector<T, {N}>: Serialize,
@@ -1528,6 +1692,21 @@ where
             seq.serialize_element(&self.0[i])?;
         }
         seq.end()
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, T, const N: usize, const M: usize> Deserialize<'de> for Matrix<T, {N}, {M}>
+where
+    T: Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_tuple(
+            N, ArrayVisitor::<[Vector<T, {N}>; {M}]>::new()
+        ).map(|a|Matrix(a))
     }
 }
 
@@ -1869,6 +2048,34 @@ where
 }
 
 impl<T, const N: usize, const M: usize> Matrix<T, {N}, {M}> {
+    /// Applies the given function to each element of the matrix, constructing a
+    /// new matrix with the returned outputs.
+    pub fn map<Out, F>(self, mut f: F) -> Matrix<Out, {N}, {M}>
+    where
+        F: FnMut(T) -> Out,
+    {
+        let mut from = MaybeUninit::new(self);
+        let mut to = MaybeUninit::<Matrix<Out, {N}, {M}>>::uninit();
+        let fromp: *mut MaybeUninit<Vector<T, {N}>> = unsafe { mem::transmute(&mut from) };
+        let top: *mut Vector<Out, {N}> = unsafe { mem::transmute(&mut to) };
+        for i in 0..M {
+            unsafe {
+                let fromp: *mut MaybeUninit<T> = mem::transmute(fromp.add(i));
+                let top: *mut Out = mem::transmute(top.add(i));
+                for j in 0..N {
+                    top.add(j).write(
+                        f(
+                            fromp.add(j)
+                                .replace(MaybeUninit::uninit())
+                                .assume_init()
+                        )
+                    );
+                }
+            }
+        }
+        unsafe { to.assume_init() }
+    }
+
     /// Returns the transpose of the matrix. 
     pub fn transpose(self) -> Matrix<T, {M}, {N}> {
         let mut from = MaybeUninit::new(self);
@@ -1976,25 +2183,35 @@ where
     }
 }
 
-/// A type that can rotate a `Vector` of a given dimension.   
-pub trait Rotation<const DIM: usize>
+/// A type that can rotate a `Vector` of a given dimension.
+pub trait Rotation<const DIMS: usize>
 where
     Self: Sized,
 {
     type Scalar;
 
-    fn rotate_vector(self, v: Vector<Self::Scalar, {DIM}>) -> Vector<Self::Scalar, {DIM}>;
+    fn rotate_vector(self, v: Vector<Self::Scalar, {DIMS}>) -> Vector<Self::Scalar, {DIMS}>;
 
-    fn rotate_point(self, p: Point<Self::Scalar, {DIM}>) -> Point<Self::Scalar, {DIM}> {
+    fn rotate_point(self, p: Point<Self::Scalar, {DIMS}>) -> Point<Self::Scalar, {DIMS}> {
         Point(self.rotate_vector(Vector(p.0)).0)
     }
 }
 
+/// A value for which the usual set of trigonometric functions are defined.
 pub trait Angle: Real {
+    /// Returns the sine of the angle.
     fn sin(self) -> Self;
 
+    /// Returns the cosine of the angle.
     fn cos(self) -> Self;
 
+    /// Returns the tangent of the angle.
+    fn tan(self) -> Self;
+
+    /// Returns the four quadrant arctangent of `self` and `x` in radians.
+    fn atan2(self, x: Self) -> Self;
+
+    /// Returns the sine and the cosine of the angle.
     fn sin_cos(self) -> (Self, Self);
 }
 
@@ -2002,6 +2219,10 @@ impl Angle for f32 {
     fn sin(self) -> Self { self.sin() }
 
     fn cos(self) -> Self { self.cos() }
+
+    fn tan(self) -> Self { self.tan() }
+
+    fn atan2(self, x: Self) -> Self { self.atan2(x) }
 
     fn sin_cos(self) -> (Self, Self) { (self.sin(), self.cos()) }
 }
@@ -2011,12 +2232,17 @@ impl Angle for f64 {
 
     fn cos(self) -> Self { self.cos() }
 
+    fn tan(self) -> Self { self.tan() }
+
+    fn atan2(self, x: Self) -> Self { self.atan2(x) }
+
     fn sin_cos(self) -> (Self, Self) { (self.sin(), self.cos()) }
 }
 
 /// A representation of a rotation in three dimensional space. Each component is
 /// the rotation around its respective axis is radians.
 #[repr(C)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Euler<T> {
     pub x: T,
     pub y: T,
@@ -2027,9 +2253,19 @@ pub struct Euler<T> {
 /// matrix.
 pub struct Orthonormal<T, const DIM: usize>(Matrix<T, {DIM}, {DIM}>);
 
+impl<T> From<T> for Orthonormal<T, 2>
+where
+    T: Angle + Clone,
+{
+    fn from(angle: T) -> Self {
+        let (s, c) = angle.sin_cos();
+        Orthonormal(Matrix([vector!(c.clone(), s.clone()), vector!(-s, c)]))
+    }
+}
+
 impl<T> From<Euler<T>> for Orthonormal<T, 3>
 where
-    T: Copy + Clone + Real + Angle,
+    T: Angle + Copy + Clone,
 {
     fn from(Euler{ x, y, z }: Euler<T>) -> Self {
         let (
@@ -2041,24 +2277,196 @@ where
             y.sin_cos(),
             z.sin_cos()
         );
-        Orthonormal(matrix![
-            [ yc * zc, xc * zs + xs * ys * zc, xs * zs - xc * ys * zc ],
-            [ -yc * zs, xc * zc - xs * ys * zs, xs * zc + xc * ys * zs ],
-            [ ys, -xs * yc, xc * yc ],
-        ])
+        Orthonormal(Matrix([
+            vector![  yc * zc, xc * zs + xs * ys * zc, xs * zs - xc * ys * zc ],
+            vector![ -yc * zs, xc * zc - xs * ys * zs, xs * zc + xc * ys * zs ],
+            vector![       ys,               -xs * yc,                xc * yc ],
+        ]))
     }
 }
 
-impl<T> Rotation<3> for Orthonormal<T, 3>
+#[cfg(feature = "serde")]
+impl<T, const DIMS: usize> Serialize for Orthonormal<T, {DIMS}>
 where
-    Matrix<T, 3, 3>: Mul<Vector<T, 3>, Output = Vector<T, 3>>,
+    Matrix<T, {DIMS}, {DIMS}>: Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, T, const DIMS: usize> Deserialize<'de> for Orthonormal<T, {DIMS}>
+where
+    for <'a> Matrix<T, {DIMS}, {DIMS}>: Deserialize<'a>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(Orthonormal(Matrix::<T, {DIMS}, {DIMS}>::deserialize(deserializer)?))
+    }
+}
+
+impl<T, const DIMS: usize> Rotation<{DIMS}> for Orthonormal<T, {DIMS}>
+where
+    Matrix<T, {DIMS}, {DIMS}>: Mul<Vector<T, {DIMS}>, Output = Vector<T, {DIMS}>>,
+{
+    type Scalar = T;
+
+    fn rotate_vector(self, v: Vector<Self::Scalar, {DIMS}>) -> Vector<Self::Scalar, {DIMS}> {
+        self.0 * v
+    }
+}
+
+/// A `Quaternion`, composed of a scalar and a `Vector3`.
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct Quaternion<T> {
+    pub s: T,
+    pub v: Vector3<T>,
+}
+
+impl<T> From<Euler<T>> for Quaternion<T>
+where
+    T: Angle + Clone,
+{
+    fn from(euler: Euler<T>) -> Quaternion<T> {
+        let Euler { x, y, z } = euler;
+        let (xs, xc) = x.div2().sin_cos();
+        let (ys, yc) = y.div2().sin_cos();
+        let (zs, zc) = z.div2().sin_cos();
+
+        Quaternion::new(
+            -xs.clone() * ys.clone() * zs.clone() + xc.clone() * yc.clone() * zc.clone(),
+             xs.clone() * yc.clone() * zc.clone() + ys.clone() * zs.clone() * xc.clone(),
+            -xs.clone() * zs.clone() * yc.clone() + ys.clone() * xc.clone() * zc.clone(),
+             xs.clone() * ys.clone() * zc.clone() + zs.clone() * xc.clone() * yc.clone(),
+        )
+    }
+}
+
+impl<T> Quaternion<T> {
+    pub const fn new(w: T, xi: T, yj: T, zk: T) -> Quaternion<T> {
+        Quaternion {
+            s: w,
+            v: Vector([xi, yj, zk])
+        }
+    }
+}
+
+impl<T> Quaternion<T>
+where
+    T: Clone,
+{
+    /// Alias for `.s.clone()`
+    pub fn s(&self) -> T {
+        self.s.clone()
+    }
+}
+
+impl<T> Mul<T> for Quaternion<T>
+where
+    T: Real + Clone,
+{
+    type Output = Quaternion<T>;
+
+    fn mul(self, scalar: T) -> Self {
+        let Quaternion { s, v: Vector([x, y, z]) } = self;
+        Quaternion::new(
+            s * scalar.clone(),
+            x * scalar.clone(),
+            y * scalar.clone(),
+            z * scalar,
+        )
+    }
+}
+
+impl<T> Div<T> for Quaternion<T>
+where
+    T: Real + Clone,
+{
+    type Output = Quaternion<T>;
+
+    fn div(self, scalar: T) -> Self {
+        let Quaternion { s, v: Vector([x, y, z]) } = self;
+        Quaternion::new(
+            s / scalar.clone(),
+            x / scalar.clone(),
+            y / scalar.clone(),
+            z / scalar,
+        )
+    }
+}
+
+impl<T> MulAssign<T> for Quaternion<T>
+where
+    T: Real + Clone,
+{
+    fn mul_assign(&mut self, scalar: T) {
+        self.s = self.s() * scalar.clone();
+        self.v[0] = self.v[0].clone() * scalar.clone();
+        self.v[1] = self.v[1].clone() * scalar.clone();
+        self.v[2] = self.v[2].clone() * scalar.clone();
+    }
+}
+
+impl<T> DivAssign<T> for Quaternion<T>
+where
+    T: Real + Clone,
+{
+    fn div_assign(&mut self, scalar: T) {
+        self.s = self.s() / scalar.clone();
+        self.v[0] = self.v[0].clone() / scalar.clone();
+        self.v[1] = self.v[1].clone() / scalar.clone();
+        self.v[2] = self.v[2].clone() / scalar.clone();
+    }
+}
+
+impl<T> Mul<Quaternion<T>> for Quaternion<T>
+where
+    T: Real + Clone,
+{
+    type Output = Quaternion<T>;
+
+    fn mul(self, rhs: Quaternion<T>) -> Self {
+        Quaternion::new(
+            // source: cgmath/quaternion.rs
+            self.s() *   rhs.s() - self.v.x() * rhs.v.x() - self.v.y() * rhs.v.y() - self.v.z() * rhs.v.z(),
+            self.s() * rhs.v.x() + self.v.x() *   rhs.s() + self.v.y() * rhs.v.z() - self.v.z() * rhs.v.y(),
+            self.s() * rhs.v.y() + self.v.y() *   rhs.s() + self.v.z() * rhs.v.x() - self.v.x() * rhs.v.z(),
+            self.s() * rhs.v.z() + self.v.z() *   rhs.s() + self.v.x() * rhs.v.y() - self.v.y() * rhs.v.x(),
+        )
+    }
+}
+
+impl<T> Mul<Vector3<T>> for Quaternion<T>
+where
+    T: Real + Clone,
+{
+    type Output = Vector3<T>;
+
+    fn mul(self, rhs: Vector3<T>) -> Vector3<T> {
+        let s = self.s();
+        self.v.clone()
+            .cross(self.v.clone().cross(rhs.clone()) + (rhs.clone() * s))
+            .map(Real::mul2) + rhs
+            
+    }
+}
+
+impl<T> Rotation<3> for Quaternion<T>
+where
+    T: Real + Clone,
 {
     type Scalar = T;
 
     fn rotate_vector(self, v: Vector<Self::Scalar, 3>) -> Vector<Self::Scalar, 3> {
-        self.0 * v
+        self * v
     }
-} 
+}
     
 #[cfg(test)]
 mod tests {
@@ -2187,6 +2595,16 @@ mod tests {
             vector!(4),
         ]);
         assert_eq!(v.transpose(), m);
+    }
+
+    #[test]
+    fn test_vec_map() {
+        let int = vector!(1i32, 0, 1, 1, 0, 1, 1, 0, 0, 0);
+        let boolean = vector!(true, false, true, true, false, true, true, false, false, false);
+        assert_eq!(
+            int.map(|i| i != 0),
+            boolean
+        );
     }
 
     /*
@@ -2421,6 +2839,29 @@ mod tests {
     }
 
     #[test]
+    fn test_mat_map() {
+        let int = matrix![
+            [ 1i32, 0 ],
+            [    1, 1 ],
+            [    0, 1 ],
+            [    1, 0 ],
+            [    0, 0 ]
+        ];
+        let boolean = matrix![
+            [  true, false ],
+            [  true,  true ],
+            [ false,  true ],
+            [  true, false ],
+            [ false, false ]
+        ];
+        assert_eq!(
+            int.map(|i| i != 0),
+            boolean
+        );
+    }
+
+
+    #[test]
     fn vector_macro_constructor() {
         let v: Vector<f32, 0> = vector![];
         assert!(v.is_empty());
@@ -2484,16 +2925,28 @@ mod tests {
 
     #[test]
     fn test_rotation() {
-        let rot = Orthonormal::<f64, 3>::from(
+        let rot = Orthonormal::<f32, 3>::from(
             Euler {
                 x: 0.0,
                 y: 0.0,
-                z: std::f64::consts::FRAC_PI_2,
+                z: std::f32::consts::FRAC_PI_2,
             }
         );
         assert_eq!(
-            rot.rotate_vector(vector![ 1.0f64, 0.0, 0.0 ]).y(),
-            -1.0
+            rot.rotate_vector(vector![ 1.0f32, 0.0, 0.0 ]).y(),
+            1.0
+        );
+        let v = vector![ 1.0f32, 0.0, 0.0 ];
+        let q1 = Quaternion::from(
+            Euler {
+                x: 0.0,
+                y: 0.0,
+                z: std::f32::consts::FRAC_PI_2,
+            }
+        );
+        assert_eq!(
+            q1.rotate_vector(v).normalize().y(),
+            1.0
         );
     }
 }
