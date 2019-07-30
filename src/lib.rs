@@ -1093,13 +1093,13 @@ pub fn new_point<T, const N: usize>(elements: [T; N]) -> Point<T, {N}> {
     Point(elements)
 }
 
-/// Construct a new vector of any size.
+/// Construct a new `Point` of any size.
 ///
 /// ```
 /// # use aljabar::*;
-/// let v: Vector<u32, 0> = vector![];
-/// let v = vector![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
-/// let v = vector![true, false, false, true];
+/// let p: Point<u32, 0> = point![];
+/// let p = point![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+/// let p = point![true, false, false, true];
 /// ```
 #[macro_export]
 macro_rules! point {
@@ -2240,7 +2240,7 @@ impl Angle for f64 {
 }
 
 /// A representation of a rotation in three dimensional space. Each component is
-/// the rotation around its respective axis is radians.
+/// the rotation around its respective axis in radians.
 #[repr(C)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Euler<T> {
