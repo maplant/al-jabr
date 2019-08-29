@@ -1,10 +1,10 @@
 [package]
 name = "aljabar"
-version = "0.3.1"
+version = "0.3.2"
 authors = ["Matthew Plant <map@maplant.com>"]
 edition = "2018"
 description = "A super generic, super experimental linear algebra library."
-license = "GPL-3.0"
+license = "MIT/Apache-2.0"
 
 documentation = "https://docs.rs/crate/aljabar"
 homepage = "https://github.com/maplant/aljabar"

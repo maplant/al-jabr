@@ -4,7 +4,17 @@ All notable changes to this project will be documented in this file, following
 the format defined at [keepachangelog.com](http://keepachangelog.com/).
 This project adheres to [Semantic Versioning](http://semver.org/) as of version 0.3.
 
-## [v0.3.0]
+## [v0.3.2] - 2019-08-29
+
+- Remove `trunc` method and deprecated `TruncatedVector` due to an ice.
+- Added `reflect` method simply because it was already in master. Sorry semver.
+- Change license to dual MIT/Apache-2.0
+
+## [v0.3.1] 
+
+- Fix some typos in the docs.
+
+## [v0.3.0] - 2019-07-28
 
 - Add `vector!` and `matrix!` macros, deprecate other construction methods.
 - Add `Point` type.

@@ -1,4 +1,4 @@
-use aljabar::{Matrix, matrix, Vector, vector};
+ use aljabar::{Matrix, matrix, Vector, vector};
 
 #[test]
 fn test_serialize() {
@@ -17,7 +17,6 @@ fn test_serialize() {
     );
 }
 
-/*
 // Doesn't currently work due to a compiler bug.
 #[test]
 fn test_deserialize() {
@@ -35,4 +34,4 @@ fn test_deserialize() {
         ],
     );
 }
-*/
+

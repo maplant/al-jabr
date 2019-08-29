@@ -1,19 +1,12 @@
 // Copyright 2019 The Aljabar Developers. For a full listing of authors,
 // refer to the Cargo.toml file at the top-level directory of this distribution.
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
+// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// https://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
+// option. This file may not be copied, modified, or distributed
+// except according to those terms.
 //
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 //! The super generic super experimental linear algebra library.
 //!
 //! This library serves the dual purpose of being an experimental API for
@@ -669,6 +662,7 @@ impl<T, const N: usize> Vector<T, {N}> {
         unsafe { st.assume_init() }
     }
 
+    /*
     /// Drop the last component and return the vector with one fewer dimension.
     pub fn trunc(self) -> (TruncatedVector<T, {N}>, T) {
         let mut from = MaybeUninit::new(self);
@@ -695,6 +689,7 @@ impl<T, const N: usize> Vector<T, {N}> {
             }
         )
     }
+     */
 }
 
 // @EkardNT: The cool thing about this is that Rust apparently monomorphizes only
@@ -808,6 +803,9 @@ where
 ///
 /// Not particularly useful other than as the return value of the `trunc`
 /// method.
+#[deprecated(since = "0.3.1", note = "as of rustc 1.39 the `trunc` method\
+                                      causes an ICE and therefore had to\
+                                      be removed")]
 pub type TruncatedVector<T, const N: usize> = Vector<T, {N - 1}>;
 
 impl<T, const N: usize> Zero for Vector<T, {N}>
@@ -2934,16 +2932,16 @@ mod tests {
 
     fn test_reflect() {
         // Incident straight on to the surface.
-        let v = vec2(1, 0);
-        let n = vec2(-1, 0);
+        let v = vector!(1, 0);
+        let n = vector!(-1, 0);
         let r = v.reflect(n);
-        assert_eq!(r, vec2(-1, 0));
+        assert_eq!(r, vector!(-1, 0));
 
         // Incident at 45 degree angle to the surface.
-        let v = vec2(1, 1);
-        let n = vec2(-1, 0);
+        let v = vector!(1, 1);
+        let n = vector!(-1, 0);
         let r = v.reflect(n);
-        assert_eq!(r, vec2(-1, 1));
+        assert_eq!(r, vector!(-1, 1));
     }
 
     #[test]
