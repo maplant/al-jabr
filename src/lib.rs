@@ -454,8 +454,12 @@ impl<T, const N: usize> FromIterator<T> for Vector<T, {N}> {
             if let Some(next) = iter.next() {
                 unsafe { newp.add(i).write(next) };
             } else {
-                panic!("too few items in iterator to create Vector{}", N);
+                panic!("too few items in iterator to create Vector<_, {}>", N);
             }
+        }
+
+        if iter.next().is_some() {
+            panic!("too many items in iterator to create Vector<_, {}>", N);
         }
 
         unsafe { new.assume_init() }
