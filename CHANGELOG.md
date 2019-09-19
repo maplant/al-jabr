@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file, following
 the format defined at [keepachangelog.com](http://keepachangelog.com/).
 This project adheres to [Semantic Versioning](http://semver.org/) as of version 0.3.
 
+## [v0.4.0] - 2019-09-20
+
+- Add `FromIterator` implementation for `Vector` and `Matrix`.
+- Remove redundant `SquareMatrix` requirement from  `Matrix` impl of `One`.
+- Implement `invert`  for Matrices up to dimension of 2.
+- Add `One`, `Div<Self, Output = Self>` and `Neg<Output = Self>` constraints 
+  to `SquareMatrix::Scalar`.
+
 ## [v0.3.2] - 2019-08-29
 
 - Remove `trunc` method and deprecated `TruncatedVector` due to an ice.

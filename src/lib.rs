@@ -26,11 +26,12 @@
 #![feature(specialization)]
 
 use std::{
+    fmt,
     hash::{
         Hash,
         Hasher,
     },
-    fmt,
+    iter::FromIterator,
     mem::{
         self,
         MaybeUninit,
@@ -74,6 +75,8 @@ use serde::{
         Visitor,
     },        
 };
+
+use smallvec::SmallVec;
 
 /// Defines the additive identity for `Self`.
 pub trait Zero {
@@ -397,17 +400,6 @@ impl<T, const N: usize> Into<[T; {N}]> for Vector<T, {N}> {
     }
 }
 
-impl<T, const N: usize> Hash for Vector<T, {N}>
-where
-    T: Hash,
-{
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for i in 0..N {
-            self.0[i].hash(state);
-        }
-    }
-}
-
 impl<T, const N: usize> fmt::Debug for Vector<T, {N}>
 where
     T: fmt::Debug
@@ -437,6 +429,38 @@ impl<T, const N: usize> DerefMut for Vector<T, {N}> {
         &mut self.0
     }
 }
+
+impl<T, const N: usize> Hash for Vector<T, {N}>
+where
+    T: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for i in 0..N {
+            self.0[i].hash(state);
+        }
+    }
+}
+
+impl<T, const N: usize> FromIterator<T> for Vector<T, {N}> {
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+    {
+        let mut iter = iter.into_iter();
+        let mut new = MaybeUninit::<Vector<T, {N}>>::uninit();
+        let newp: *mut T = unsafe { mem::transmute(&mut new) };
+
+        for i in 0..N {
+            if let Some(next) = iter.next() {
+                unsafe { newp.add(i).write(next) };
+            } else {
+                panic!("too few items in iterator to create Vector{}", N);
+            }
+        }
+
+        unsafe { new.assume_init() }
+    }
+}       
 
 #[cfg(feature = "rand")]
 impl<T, const N: usize> Distribution<Vector<T, {N}>> for Standard
@@ -1129,17 +1153,6 @@ impl<T, const N: usize> Into<[T; {N}]> for Point<T, {N}> {
     }
 }
 
-impl<T, const N: usize> Hash for Point<T, {N}>
-where
-    T: Hash,
-{
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for i in 0..N {
-            self.0[i].hash(state);
-        }
-    }
-}
-
 impl<T, const N: usize> fmt::Debug for Point<T, {N}>
 where
     T: fmt::Debug
@@ -1167,6 +1180,17 @@ impl<T, const N: usize> Deref for Point<T, {N}> {
 impl<T, const N: usize> DerefMut for Point<T, {N}> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+impl<T, const N: usize> Hash for Point<T, {N}>
+where
+    T: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for i in 0..N {
+            self.0[i].hash(state);
+        }
     }
 }
 
@@ -1667,6 +1691,44 @@ where
     }
 }
 
+impl<T, const N: usize, const M: usize> FromIterator<T> for Matrix<T, {N}, {M}> {
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+    {
+        let mut iter = iter.into_iter();
+        let mut new = MaybeUninit::<[Vector<T, {N}>; {M}]>::uninit();
+        let newp: *mut Vector<T, {N}> = unsafe { mem::transmute(&mut new) };
+
+        for i in 0..M {
+            let mut newv = MaybeUninit::<Vector<T, {N}>>::uninit();
+            let newvp: *mut T = unsafe { mem::transmute(&mut newv) };
+            for j in 0..N {
+                if let Some(next) = iter.next() {
+                    unsafe { newvp.add(j).write(next) };
+                } else {
+                    panic!("too few items in iterator to create Matrix<_, {}, {}>", N, M);
+                }
+            }
+            unsafe {
+                newp.add(i)
+                    .write(
+                        mem::replace(
+                            &mut newv,
+                            MaybeUninit::uninit()
+                        ).assume_init()
+                    );
+            }
+        }
+
+        if iter.next().is_some() {
+            panic!("too many items in iterator to create Matrix<_, {}, {}>", N, M);
+        }
+
+        Matrix::<T, {N}, {M}>(unsafe { new.assume_init() })
+    }
+}
+
 #[cfg(feature = "rand")]
 impl<T, const N: usize, const M: usize> Distribution<Matrix<T, {N}, {M}>> for Standard
 where
@@ -1750,7 +1812,7 @@ where
 impl<T, const N: usize> One for Matrix<T, {N}, {N}>
 where
     T: Zero + One + Clone,
-    Self: PartialEq<Self> + SquareMatrix<T, {N}>,
+    Self: PartialEq<Self>,
 {
     fn one() -> Self {
         let mut unit_mat = MaybeUninit::<[Vector<T, {N}>; {N}]>::uninit();
@@ -2142,9 +2204,10 @@ where
 
 impl<Scalar, const N: usize> SquareMatrix<Scalar, {N}> for Matrix<Scalar, {N}, {N}>
 where
-    Scalar: Clone + One,
+    Scalar: Clone + One + Zero,
+    Scalar: Neg<Output = Scalar>,
     Scalar: Add<Scalar, Output = Scalar> + Sub<Scalar, Output = Scalar>,
-    Scalar: Mul<Scalar, Output = Scalar>,
+    Scalar: Mul<Scalar, Output = Scalar> + Div<Scalar, Output = Scalar>,
     Self: Add<Self>,
     Self: Sub<Self>,
     Self: Mul<Self>,
@@ -2175,7 +2238,24 @@ where
     }
 
     fn invert(self) -> Option<Self> {
-        unimplemented!()
+        let det = self.determinant();
+        if det.is_zero() {
+            return None;
+        }
+        // In the future it should be pretty easy to remove these smallvecs. For
+        // now, we use them because we want to avoid a heap allocation.
+        match N {
+            0 | 1 => Matrix::<Scalar, {N}, {N}>::from_iter(
+                SmallVec::from_buf([ <Scalar as One>::one() / det ])
+            ),
+            2 => Matrix::<Scalar, {N}, {N}>::from_iter(
+                SmallVec::from_buf([
+                    self[(1, 1)].clone() / det.clone(), -self[(0, 1)].clone() / det.clone(),
+                    -self[(1, 0)].clone() / det.clone(), self[(0, 0)].clone() / det.clone(),
+                ])
+            ),
+            _ => unimplemented!(),
+        }.into()       
     }
 
     fn diagonal(&self) -> Vector<Scalar, {N}> {
@@ -2614,6 +2694,16 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_vec_from_iter() {
+        let v = vec![ 1i32, 2, 3, 4 ];
+        let vec = Vector::<i32, 4>::from_iter(v);
+        assert_eq!(
+            vec,
+            vector![ 1i32, 2, 3, 4 ]
+        )
+    }
+
     /*
     #[test]
     fn test_vec_first() {
@@ -2867,9 +2957,43 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_mat_from_iter() {
+        let v = vec![ 1i32, 2, 3, 4 ];
+        let mat = Matrix::<i32, 2, 2>::from_iter(v);
+        assert_eq!(
+            mat,
+            matrix![ [ 1i32, 2 ], [ 3, 4 ] ].transpose()
+        )
+    }
 
     #[test]
-    fn vector_macro_constructor() {
+    fn test_mat_invert() {
+        assert!(Mat2x2::<f64>::one().invert().unwrap() == Mat2x2::<f64>::one());
+
+        // Example taken from cgmath:
+        
+        let a: Mat2x2<f64> = matrix![
+            [ 1.0f64, 2.0f64 ],
+            [ 3.0f64, 4.0f64 ],
+        ];
+        assert_eq!(
+            a.invert().unwrap(),
+            matrix![
+                [ -2.0f64,  1.5f64 ],
+                [  1.0f64, -0.5f64 ]
+            ]
+        );
+        assert!(
+            matrix![
+                [ 0.0f64, 2.0f64 ],
+                [ 0.0f64, 5.0f64 ]
+            ].invert().is_none()
+        );
+    }
+    
+    #[test]
+    fn test_vec_macro_constructor() {
         let v: Vector<f32, 0> = vector![];
         assert!(v.is_empty());
 
@@ -2883,7 +3007,7 @@ mod tests {
     }
 
     #[test]
-    fn matrix_macro_constructor() {
+    fn test_mat_macro_constructor() {
         let m: Matrix<f32, 0, 0> = matrix![];
         assert!(m.is_empty());
 
@@ -2904,7 +3028,7 @@ mod tests {
     }
 
     #[test]
-    fn test_swizzle() {
+    fn test_vec_swizzle() {
         let v: Vector<f32, 1> = Vector::<f32, 1>::from([1.0]);
         assert_eq!(1.0, v.x());
 
@@ -2930,7 +3054,8 @@ mod tests {
         assert_eq!(4.0, v.w());
     }
 
-    fn test_reflect() {
+    #[test]
+    fn test_vec_reflect() {
         // Incident straight on to the surface.
         let v = vector!(1, 0);
         let n = vector!(-1, 0);

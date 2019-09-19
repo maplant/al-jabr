@@ -218,7 +218,7 @@ assert_eq!(
 Matrices can be indexed by either their native column major storage or by
 the more natural row major method. In order to use row-major indexing, call
 `.index` or `.index_mut` on the matrix with a pair of indices. Calling 
-`.index.` with a single index will produce a Vector representing the
+`.index` with a single index will produce a Vector representing the
 appropriate column of the matrix.
 
 ```rust
@@ -299,7 +299,7 @@ methods defined for them:
 * `.determinant()`: returns the determinant of the matrix.
                     **currently only supported for matrices of `N <= 3`**
 * `.invert()`: returns the inverse of the matrix if one exists. 
-                    **currently unimplemented**
+                    **currently only supported for matrices of `N <= 2`**
 
 ## Limitations
 
