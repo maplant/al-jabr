@@ -295,7 +295,7 @@ a number of convenience methods:
 A `Matrix` that implements `Mul<Self>`. Square matrices have the following 
 methods defined for them:
 
-* `.diagonal()`: returns the diaganol vector of the matrix.
+* `.diagonal()`: returns the diagonal vector of the matrix.
 * `.determinant()`: returns the determinant of the matrix.
                     **currently only supported for matrices of `N <= 3`**
 * `.invert()`: returns the inverse of the matrix if one exists. 
