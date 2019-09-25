@@ -318,6 +318,12 @@ assert_eq!(b[1], 5);
 Truncation must be performed by manually destructuring as well, but this is due
 to a limitation of the current compiler.
 
+## Cargo Features
+
+* The `mint` feature (off by default) adds a dependency to the [mint](https://crates.io/crates/mint) crate and provides support for converting between aljabar types and mint types.
+* The `serde` feature (off by default) adds serialization/deserialization support from the [serde](https://crates.io/crates/serde) crate.
+* The `rand` feature (off by default) allows you to create random points, vectors, and matrices by sampling from a random number source.
+
 ## Contributions
 
 Please feel free to submit pull requests of any nature.
