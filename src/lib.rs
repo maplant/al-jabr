@@ -2791,12 +2791,6 @@ where
 {
     fn eq(&self, other: &Quaternion<B>) -> bool {
         self.s.eq(&other.s) && self.v.eq(&other.v)
-        // for (a, b) in self.0.iter().zip(other.deref().iter()) {
-        //     if !a.eq(b) {
-        //         return false;
-        //     }
-        // }
-        // true
     }
 }
 
