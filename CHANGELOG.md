@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file, following
 the format defined at [keepachangelog.com](http://keepachangelog.com/).
 This project adheres to [Semantic Versioning](http://semver.org/) as of version 0.3.
 
+## Unreleased Changes
+These changes are included in `master` but have not been released in a new crate version yet.
+
+- Add support for the `mint` crate.
+
 ## [v0.4.0] - 2019-09-20
 
 - Add `FromIterator` implementation for `Vector` and `Matrix`.

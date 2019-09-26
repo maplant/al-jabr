@@ -56,6 +56,9 @@ use std::{
 #[cfg(feature = "serde")]
 use std::marker::PhantomData;
 
+#[cfg(feature = "mint")]
+use mint;
+
 #[cfg(feature = "rand")]
 use rand::{
     Rng,
@@ -465,6 +468,61 @@ impl<T, const N: usize> FromIterator<T> for Vector<T, {N}> {
         unsafe { new.assume_init() }
     }
 }       
+
+#[cfg(feature = "mint")]
+impl<T: Copy> Into<mint::Vector2<T>> for Vector<T, {2}> {
+    fn into(self) -> mint::Vector2<T> {
+        mint::Vector2 {
+            x: self.0[0],
+            y: self.0[1]
+        }
+    }
+}
+
+#[cfg(feature = "mint")]
+impl<T> From<mint::Vector2<T>> for Vector<T, {2}> {
+    fn from(mint_vec: mint::Vector2<T>) -> Self {
+        Vector([mint_vec.x, mint_vec.y])
+    }
+}
+
+#[cfg(feature = "mint")]
+impl<T: Copy> Into<mint::Vector3<T>> for Vector<T, {3}> {
+    fn into(self) -> mint::Vector3<T> {
+        mint::Vector3 {
+            x: self.0[0],
+            y: self.0[1],
+            z: self.0[2]
+        }
+    }
+}
+
+#[cfg(feature = "mint")]
+impl<T> From<mint::Vector3<T>> for Vector<T, {3}> {
+    fn from(mint_vec: mint::Vector3<T>) -> Self {
+        Vector([mint_vec.x, mint_vec.y, mint_vec.z])
+    }
+}
+
+#[cfg(feature = "mint")]
+impl<T: Copy> Into<mint::Vector4<T>> for Vector<T, {4}> {
+    fn into(self) -> mint::Vector4<T> {
+        mint::Vector4 {
+            x: self.0[0],
+            y: self.0[1],
+            z: self.0[2],
+            w: self.0[3]
+        }
+    }
+}
+
+
+#[cfg(feature = "mint")]
+impl<T> From<mint::Vector4<T>> for Vector<T, {4}> {
+    fn from(mint_vec: mint::Vector4<T>) -> Self {
+        Vector([mint_vec.x, mint_vec.y, mint_vec.z, mint_vec.w])
+    }
+}
 
 #[cfg(feature = "rand")]
 impl<T, const N: usize> Distribution<Vector<T, {N}>> for Standard
@@ -1198,6 +1256,58 @@ where
     }
 }
 
+impl<A, B, RHS, const N: usize> PartialEq<RHS> for Point<A, {N}>
+where
+    RHS: Deref<Target = [B; {N}]>,
+    A: PartialEq<B>,
+{
+    fn eq(&self, other: &RHS) -> bool {
+        self.0.iter()
+            .zip(other.deref().iter())
+            .all(|(a, b)| a.eq(b))
+    }
+}
+
+impl<T, const N: usize> Eq for Point<T, {N}>
+where
+    T: Eq,
+{}
+
+#[cfg(feature = "mint")]
+impl<T: Copy> Into<mint::Point2<T>> for Point<T, {2}> {
+    fn into(self) -> mint::Point2<T> {
+        mint::Point2 {
+            x: self.0[0],
+            y: self.0[1]
+        }
+    }
+}
+
+#[cfg(feature = "mint")]
+impl<T> From<mint::Point2<T>> for Point<T, {2}> {
+    fn from(mint_point: mint::Point2<T>) -> Self {
+        Point([mint_point.x, mint_point.y])
+    }
+}
+
+#[cfg(feature = "mint")]
+impl<T: Copy> Into<mint::Point3<T>> for Point<T, {3}> {
+    fn into(self) -> mint::Point3<T> {
+        mint::Point3 {
+            x: self.0[0],
+            y: self.0[1],
+            z: self.0[2]
+        }
+    }
+}
+
+#[cfg(feature = "mint")]
+impl<T> From<mint::Point3<T>> for Point<T, {3}> {
+    fn from(mint_point: mint::Point3<T>) -> Self {
+        Point([mint_point.x, mint_point.y, mint_point.z])
+    }
+}
+
 #[cfg(feature = "rand")]
 impl<T, const N: usize> Distribution<Point<T, {N}>> for Standard
 where
@@ -1732,6 +1842,112 @@ impl<T, const N: usize, const M: usize> FromIterator<T> for Matrix<T, {N}, {M}> 
         Matrix::<T, {N}, {M}>(unsafe { new.assume_init() })
     }
 }
+
+macro_rules! into_mint_column_matrix {
+    ($mint_name:ident, $rows:expr, $cols:expr $( , ($col_name:ident, $col_idx:expr ) )+) => {
+        #[cfg(feature = "mint")]
+        impl<T: Copy> Into<mint::$mint_name<T>> for Matrix<T, {$rows}, {$cols}> {
+            fn into(self) -> mint::$mint_name<T> {
+                mint::$mint_name {
+                    $(
+                        $col_name: self.0[$col_idx].into(),
+                    )*
+                }
+            }
+        }
+    }
+}
+
+into_mint_column_matrix!(ColumnMatrix2, 2, 2, (x, 0), (y, 1));
+into_mint_column_matrix!(ColumnMatrix3, 3, 3, (x, 0), (y, 1), (z, 2));
+into_mint_column_matrix!(ColumnMatrix4, 4, 4, (x, 0), (y, 1), (z, 2), (w, 3));
+into_mint_column_matrix!(ColumnMatrix2x3, 2, 3, (x, 0), (y, 1), (z, 2));
+into_mint_column_matrix!(ColumnMatrix2x4, 2, 4, (x, 0), (y, 1), (z, 2), (w, 3));
+into_mint_column_matrix!(ColumnMatrix3x2, 3, 2, (x, 0), (y, 1));
+into_mint_column_matrix!(ColumnMatrix3x4, 3, 4, (x, 0), (y, 1), (z, 2), (w, 3));
+into_mint_column_matrix!(ColumnMatrix4x2, 4, 2, (x, 0), (y, 1));
+into_mint_column_matrix!(ColumnMatrix4x3, 4, 3, (x, 0), (y, 1), (z, 2));
+
+macro_rules! from_mint_column_matrix {
+    ($mint_name:ident, $rows:expr, $cols:expr, $($component:ident),+) => {
+        #[cfg(feature = "mint")]
+        impl<T> From<mint::$mint_name<T>> for Matrix<T, {$rows}, {$cols}> {
+            fn from(m: mint::$mint_name<T>) -> Self {
+                Self([
+                    $(
+                        Vector::<T, {$rows}>::from(m.$component),
+                    )*
+                ])
+            }
+        }
+    }
+}
+
+from_mint_column_matrix!(ColumnMatrix2, 2, 2, x, y);
+from_mint_column_matrix!(ColumnMatrix3, 3, 3, x, y, z);
+from_mint_column_matrix!(ColumnMatrix4, 4, 4, x, y, z, w);
+from_mint_column_matrix!(ColumnMatrix2x3, 2, 3, x, y, z);
+from_mint_column_matrix!(ColumnMatrix2x4, 2, 4, x, y, z, w);
+from_mint_column_matrix!(ColumnMatrix3x2, 3, 2, x, y);
+from_mint_column_matrix!(ColumnMatrix3x4, 3, 4, x, y, z, w);
+from_mint_column_matrix!(ColumnMatrix4x2, 4, 2, x, y);
+from_mint_column_matrix!(ColumnMatrix4x3, 4, 3, x, y, z);
+
+macro_rules! into_mint_row_matrix {
+    ($mint_name:ident, $rows:expr, $cols:expr $( , ($col_name:ident, $col_idx:expr ) )+) => {
+        #[cfg(feature = "mint")]
+        impl<T: Copy> Into<mint::$mint_name<T>> for Matrix<T, {$rows}, {$cols}> {
+            fn into(self) -> mint::$mint_name<T> {
+                let transposed = self.transpose();
+                mint::$mint_name {
+                    $(
+                        $col_name: transposed.0[$col_idx].into(),
+                    )*
+                }
+            }
+        }
+    }
+}
+
+into_mint_row_matrix!(RowMatrix2, 2, 2, (x, 0), (y, 1));
+into_mint_row_matrix!(RowMatrix3, 3, 3, (x, 0), (y, 1), (z, 2));
+into_mint_row_matrix!(RowMatrix4, 4, 4, (x, 0), (y, 1), (z, 2), (w, 3));
+into_mint_row_matrix!(RowMatrix2x3, 2, 3, (x, 0), (y, 1));
+into_mint_row_matrix!(RowMatrix2x4, 2, 4, (x, 0), (y, 1));
+into_mint_row_matrix!(RowMatrix3x2, 3, 2, (x, 0), (y, 1), (z, 2));
+into_mint_row_matrix!(RowMatrix3x4, 3, 4, (x, 0), (y, 1), (z, 2));
+into_mint_row_matrix!(RowMatrix4x2, 4, 2, (x, 0), (y, 1), (z, 2), (w, 3));
+into_mint_row_matrix!(RowMatrix4x3, 4, 3, (x, 0), (y, 1), (z, 2), (w, 3));
+
+// It would be possible to implement this without a runtime transpose() by directly
+// copying the corresponding elements from the mint matrix to the appropriate
+// position in the aljabar matrix, but it would be substantially more code to do so.
+// I'm leaving it as a transpose for now in the expectation that converting between
+// aljabar and mint entities will occur infrequently at program boundaries.
+macro_rules! from_mint_row_matrix {
+    ($mint_name:ident, $rows:expr, $cols:expr, $($component:ident),+) => {
+        #[cfg(feature = "mint")]
+        impl<T> From<mint::$mint_name<T>> for Matrix<T, {$rows}, {$cols}> {
+            fn from(m: mint::$mint_name<T>) -> Self {
+                Matrix::<T, {$cols}, {$rows}>([
+                    $(
+                        Vector::<T, {$cols}>::from(m.$component),
+                    )*
+                ]).transpose()
+            }
+        }
+    }
+}
+
+from_mint_row_matrix!(RowMatrix2, 2, 2, x, y);
+from_mint_row_matrix!(RowMatrix3, 3, 3, x, y, z);
+from_mint_row_matrix!(RowMatrix4, 4, 4, x, y, z, w);
+from_mint_row_matrix!(RowMatrix2x3, 2, 3, x, y);
+from_mint_row_matrix!(RowMatrix2x4, 2, 4, x, y);
+from_mint_row_matrix!(RowMatrix3x2, 3, 2, x, y, z);
+from_mint_row_matrix!(RowMatrix3x4, 3, 4, x, y, z);
+from_mint_row_matrix!(RowMatrix4x2, 4, 2, x, y, z, w);
+from_mint_row_matrix!(RowMatrix4x3, 4, 3, x, y, z, w);
 
 #[cfg(feature = "rand")]
 impl<T, const N: usize, const M: usize> Distribution<Matrix<T, {N}, {M}>> for Standard
@@ -2415,6 +2631,7 @@ where
 
 /// A `Quaternion`, composed of a scalar and a `Vector3`.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Copy, Clone)]
 pub struct Quaternion<T> {
     pub s: T,
     pub v: Vector3<T>,
@@ -2559,6 +2776,49 @@ where
     }
 }
     
+impl<T> fmt::Debug for Quaternion<T>
+where
+    T: fmt::Debug
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Quaternion {{ s: {:?}, x: {:?}, y: {:?}, z: {:?} }}", self.s, self.v.0[0], self.v.0[1], self.v.0[2])
+    }
+}
+
+impl<A, B> PartialEq<Quaternion<B>> for Quaternion<A>
+where
+    A: PartialEq<B>,
+{
+    fn eq(&self, other: &Quaternion<B>) -> bool {
+        self.s.eq(&other.s) && self.v.eq(&other.v)
+    }
+}
+
+impl<T> Eq for Quaternion<T>
+where
+    T: Eq,
+{}
+
+#[cfg(feature = "mint")]
+impl<T: Copy> Into<mint::Quaternion<T>> for Quaternion<T> {
+    fn into(self) -> mint::Quaternion<T> {
+        mint::Quaternion {
+            s: self.s,
+            v: self.v.into()
+        }
+    }
+}
+
+#[cfg(feature = "mint")]
+impl<T> From<mint::Quaternion<T>> for Quaternion<T> {
+    fn from(mint_quat: mint::Quaternion<T>) -> Self {
+        Quaternion {
+            s: mint_quat.s,
+            v: Vector([mint_quat.v.x, mint_quat.v.y, mint_quat.v.z])
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3098,5 +3358,102 @@ mod tests {
             q1.rotate_vector(v).normalize().y(),
             1.0
         );
+    }
+}
+
+#[cfg(all(feature = "mint", test))]
+mod mint_tests {
+    use super::*;
+
+    #[test]
+    fn point2_roundtrip() {
+        let alj1 = point![1, 2];
+        let mint: mint::Point2<u32> = alj1.into();
+        let alj2: Point<u32, 2> = mint.into();
+        assert_eq!(alj1, alj2);
+    }
+
+    #[test]
+    fn point3_roundtrip() {
+        let alj1 = point![1, 2, 3];
+        let mint: mint::Point3<u32> = alj1.into();
+        let alj2: Point<u32, 3> = mint.into();
+        assert_eq!(alj1, alj2);
+    }
+
+    #[test]
+    fn vector2_roundtrip() {
+        let alj1 = vector![1, 2];
+        let mint: mint::Vector2<u32> = alj1.into();
+        let alj2: Vector<u32, 2> = mint.into();
+        assert_eq!(alj1, alj2);
+    }
+
+    #[test]
+    fn vector3_roundtrip() {
+        let alj1 = vector![1, 2, 3];
+        let mint: mint::Vector3<u32> = alj1.into();
+        let alj2: Vector<u32, 3> = mint.into();
+        assert_eq!(alj1, alj2);
+    }
+
+    #[test]
+    fn vector4_roundtrip() {
+        let alj1 = vector![1, 2, 3, 4];
+        let mint: mint::Vector4<u32> = alj1.into();
+        let alj2: Vector<u32, 4> = mint.into();
+        assert_eq!(alj1, alj2);
+    }
+
+    #[test]
+    fn quaternion_roundtrip() {
+        let alj1 = Quaternion::new(1, 2, 3, 4);
+        let mint: mint::Quaternion<u32> = alj1.into();
+        let alj2: Quaternion<u32> = mint.into();
+        assert_eq!(alj1, alj2);
+    }
+
+    #[test]
+    fn matrix2x2_roundtrip() {
+        let alj1 = matrix![
+            [1, 2],
+            [3, 4]
+        ];
+        let mint_col: mint::ColumnMatrix2<u32> = alj1.into();
+        let mint_row: mint::RowMatrix2<u32> = alj1.into();
+        let alj2: Matrix<u32, 2, 2> = mint_col.into();
+        let alj3: Matrix<u32, 2, 2> = mint_row.into();
+        assert_eq!(alj1, alj2);
+        assert_eq!(alj1, alj3);
+    }
+
+    #[test]
+    fn matrix3x2_roundtrip() {
+        let alj1 = matrix![
+            [1, 2],
+            [3, 4],
+            [5, 6]
+        ];
+        let mint_col: mint::ColumnMatrix3x2<u32> = alj1.into();
+        let mint_row: mint::RowMatrix3x2<u32> = alj1.into();
+        let alj2: Matrix<u32, 3, 2> = mint_col.into();
+        let alj3: Matrix<u32, 3, 2> = mint_row.into();
+        assert_eq!(alj1, alj2);
+        assert_eq!(alj1, alj3);
+    }
+
+    #[test]
+    fn matrix3x4_roundtrip() {
+        let alj1 = matrix![
+            [1, 2, 3, 4],
+            [5, 6, 7, 8],
+            [9, 10, 11, 12]
+        ];
+        let mint_col: mint::ColumnMatrix3x4<u32> = alj1.into();
+        let mint_row: mint::RowMatrix3x4<u32> = alj1.into();
+        let alj2: Matrix<u32, 3, 4> = mint_col.into();
+        let alj3: Matrix<u32, 3, 4> = mint_row.into();
+        assert_eq!(alj1, alj2);
+        assert_eq!(alj1, alj3);
     }
 }
