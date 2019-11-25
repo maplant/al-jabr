@@ -740,6 +740,13 @@ impl<T, const N: usize> Vector<T, {N}> {
     where
         F: FnMut(T) -> Out,
     {
+        self.indexed_map(|_, x: T| -> Out { f(x) })
+    }
+
+    pub fn indexed_map<Out, F>(self, mut f: F) -> Vector<Out, {N}>
+    where
+        F: FnMut(usize, T) -> Out,
+    {
         let mut from = MaybeUninit::new(self);
         let mut to = MaybeUninit::<Vector<Out, {N}>>::uninit();
         let fromp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut from) };
@@ -748,6 +755,7 @@ impl<T, const N: usize> Vector<T, {N}> {
             unsafe {
                 top.add(i).write(
                     f(
+                        i,
                         fromp
                             .add(i)
                             .replace(MaybeUninit::uninit())
@@ -3070,6 +3078,15 @@ mod tests {
             vec,
             vec![ 1i32, 2, 3, 4 ]
         )
+
+    #[test]
+    fn test_vec_indexed_map() {
+        let boolean = vector!(true, false, true, true, false, true, true, false, false, false);
+        let indices = vector!(0usize, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        assert_eq!(
+            boolean.indexed_map(|i, _| i),
+            indices
+        );
     }
 
     /*
