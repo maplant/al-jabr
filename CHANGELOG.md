@@ -7,7 +7,16 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 ## Unreleased Changes
 These changes are included in `master` but have not been released in a new crate version yet.
 
+There are no unreleased changes at the current moment.
+
+## [v0.4.2] - 2019-12-07
+
 - Add support for the `mint` crate.
+- Add `IntoIterato` implementations for `Vector`, `Matrix` and `Point`.
+
+## [v0.4.1] - 2019-09-20
+
+- Fix a typo in the documentation.
 
 ## [v0.4.0] - 2019-09-20
 

@@ -1449,6 +1449,19 @@ where
     }
 }
 
+impl<T, const N: usize> IntoIterator for Point<T, {N}> {
+    type Item = T;
+    type IntoIter = ArrayIter<T, {N}>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let Point(array) = self;
+        ArrayIter {
+            array: MaybeUninit::new(array),
+            pos: 0,
+        }
+    }
+}
+
 /// Vectors that can be added together and multiplied by scalars form a
 /// VectorSpace.
 ///
