@@ -181,7 +181,7 @@ impl_one!{ u64 }
 impl_one!{ u128 }
 impl_one!{ usize }
 
-/// Values that are [Real numbers](https://en.wikipedia.org/wiki/Real_number#Axiomatic_approach).
+/// Values that are [real numbers](https://en.wikipedia.org/wiki/Real_number#Axiomatic_approach).
 pub trait Real
 where
     Self: Sized,
@@ -302,7 +302,8 @@ impl Real for f64 {
 /// let v = vector!(1i32, 2, 3).zyx();
 /// ```
 ///
-/// To select the first and third elements into the second and fourth elements, respectively.
+/// To select the first and third elements into the second and fourth elements,
+/// respectively.
 /// ```ignore
 /// # use aljabar::*;
 /// let v = vector!(1i32, 2, 3, 4).xxzz();
@@ -467,7 +468,50 @@ impl<T, const N: usize> FromIterator<T> for Vector<T, {N}> {
 
         unsafe { new.assume_init() }
     }
-}       
+}
+
+/// Iterator over an array type.
+pub struct ArrayIter<T, const N: usize> {
+    array: MaybeUninit<[T; {N}]>,
+    pos: usize,
+}
+
+impl<T, const N: usize> Iterator for ArrayIter<T, {N}> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.pos == N {
+            None
+        } else {
+            let pos = self.pos;
+            self.pos += 1;
+            let arrayp: *mut MaybeUninit<T> = unsafe {
+                mem::transmute(&mut self.array)
+            };
+            Some(unsafe {
+                arrayp
+                    .add(pos)
+                    .replace(
+                        MaybeUninit::uninit()
+                    )
+                    .assume_init()
+            })
+        }
+    }
+}
+
+impl<T, const N: usize> IntoIterator for Vector<T, {N}> {
+    type Item = T;
+    type IntoIter = ArrayIter<T, {N}>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let Vector(array) = self;
+        ArrayIter {
+            array: MaybeUninit::new(array),
+            pos: 0,
+        }
+    }
+}
 
 #[cfg(feature = "mint")]
 impl<T: Copy> Into<mint::Vector2<T>> for Vector<T, {2}> {
@@ -1405,6 +1449,19 @@ where
     }
 }
 
+impl<T, const N: usize> IntoIterator for Point<T, {N}> {
+    type Item = T;
+    type IntoIter = ArrayIter<T, {N}>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let Point(array) = self;
+        ArrayIter {
+            array: MaybeUninit::new(array),
+            pos: 0,
+        }
+    }
+}
+
 /// Vectors that can be added together and multiplied by scalars form a
 /// VectorSpace.
 ///
@@ -1840,6 +1897,43 @@ impl<T, const N: usize, const M: usize> FromIterator<T> for Matrix<T, {N}, {M}> 
         }
 
         Matrix::<T, {N}, {M}>(unsafe { new.assume_init() })
+    }
+}
+
+impl<T, const N: usize, const M: usize> FromIterator<Vector<T, {N}>> for Matrix<T, {N}, {M}> {
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = Vector<T, {N}>>,
+    {
+        let mut iter = iter.into_iter();
+        let mut new = MaybeUninit::<[Vector<T, {N}>; {M}]>::uninit();
+        let newp: *mut Vector<T, {N}> = unsafe { mem::transmute(&mut new) };
+
+        for i in 0..M {
+            if let Some(v) = iter.next() {
+                unsafe {
+                    newp.add(i)
+                        .write(v);
+                }
+            } else {
+                panic!("too few items in iterator to create Matrix<_, {}, {}>", N, M);
+            }
+        }
+        Matrix::<T, {N}, {M}>(unsafe { new.assume_init() })
+
+    }
+}
+
+impl<T, const N: usize, const M: usize> IntoIterator for Matrix<T, {N}, {M}> {
+    type Item = Vector<T, {N}>;
+    type IntoIter = ArrayIter<Vector<T, {N}>, {M}>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let Matrix(array) = self;
+        ArrayIter {
+            array: MaybeUninit::new(array),
+            pos: 0,
+        }
     }
 }
 
@@ -2965,6 +3059,16 @@ mod tests {
         assert_eq!(
             vec,
             vector![ 1i32, 2, 3, 4 ]
+        )
+    }
+
+    #[test]
+    fn test_vec_into_iter() {
+        let v = vector!(1i32, 2, 3, 4);
+        let vec: Vec<_> = v.into_iter().collect();
+        assert_eq!(
+            vec,
+            vec![ 1i32, 2, 3, 4 ]
         )
     }
 
