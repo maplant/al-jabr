@@ -15,7 +15,7 @@
 //! and specialization.
 //!
 //! It is not the specific goal of this project to be useful in any sense, but
-//! hopefully it will end up being roughly compatible with cgmath. 
+//! hopefully it will end up being roughly compatible with cgmath.
 //!
 //! Aljabar has no benchmarks and cannot make any performance guarantees at the
 //! moment.
@@ -76,7 +76,7 @@ use serde::{
         Error,
         SeqAccess,
         Visitor,
-    },        
+    },
 };
 
 use smallvec::SmallVec;
@@ -216,19 +216,19 @@ impl Real for f64 {
 
 /// `N`-element vector.
 ///
-/// Vectors can be constructed from arrays of any type and size. There are 
+/// Vectors can be constructed from arrays of any type and size. There are
 /// convenience constructor functions provided for the most common sizes.
 ///
 /// ```ignore
 /// # use aljabar::*;
 /// let a: Vector::<u32, 4> = vec4( 0u32, 1, 2, 3 );
 /// assert_eq!(
-///     a, 
+///     a,
 ///     Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
 /// );
 /// ```
 ///
-/// # Swizzling 
+/// # Swizzling
 /// [Swizzling](https://en.wikipedia.org/wiki/Swizzling_(computer_graphics))
 /// is supported for up to four elements. Swizzling is a technique for easily
 /// rearranging and accessing elements of a vector, used commonly in graphics
@@ -239,7 +239,7 @@ impl Real for f64 {
 /// return vectors of the appropriate size.
 ///
 /// ## Element names
-/// Only the first four elements of a vector may be swizzled. If you have vectors 
+/// Only the first four elements of a vector may be swizzled. If you have vectors
 /// larger than length four and want to manipulate their elements, you must do so
 /// manually.
 ///
@@ -336,7 +336,7 @@ pub type Vector3<T> = Vector<T, 3>;
 /// 4-element vector.
 pub type Vector4<T> = Vector<T, 4>;
 
-/// 5-element vector. 
+/// 5-element vector.
 pub type Vector5<T> = Vector<T, 5>;
 
 #[deprecated(since = "0.3", note = "use the more powerful vector! macro")]
@@ -607,7 +607,7 @@ where
     T: Deserialize<'de>,
 {
     type Value = [T; N];
-    
+
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         if N == 0 {
             write!(formatter, "an empty array")
@@ -928,7 +928,7 @@ where
     swizzle!{b, r, g, b, a}
     swizzle!{a, r, g, b, a}
 }
-    
+
 /// A `Vector` with one fewer dimension than `N`.
 ///
 /// Not particularly useful other than as the return value of the `trunc`
@@ -1160,7 +1160,7 @@ where
     }
 }
 
-/// Scalar divide assign 
+/// Scalar divide assign
 impl<A, B, const N: usize> DivAssign<B> for Vector<A, {N}>
 where
     A: DivAssign<B>,
@@ -1480,7 +1480,7 @@ where
         Sub<Self::Scalar, Output = Self::Scalar> +
         Mul<Self::Scalar, Output = Self::Scalar> +
         Div<Self::Scalar, Output = Self::Scalar>;
-    
+
     fn lerp(self, other: Self, amount: Self::Scalar) -> Self;
 }
 
@@ -1606,10 +1606,10 @@ where
     T: Sub<T, Output = T>,
     T: Mul<T, Output = T>,
     T: Div<T, Output = T>,
-    // TODO: Remove this add assign bound. This is purely for ease of 
+    // TODO: Remove this add assign bound. This is purely for ease of
     // implementation.
     T: AddAssign<T>,
-    Self: Clone, 
+    Self: Clone,
 {
     fn dot(self, rhs: Self) -> T {
         let mut lhs = MaybeUninit::new(self);
@@ -1628,8 +1628,8 @@ where
 }
 
 /// An `N`-by-`M` Column Major matrix.
-/// 
-/// Matrices can be created from arrays of Vectors of any size and scalar type. 
+///
+/// Matrices can be created from arrays of Vectors of any size and scalar type.
 /// As with Vectors there are convenience constructor functions for square matrices
 /// of the most common sizes.
 ///
@@ -1644,10 +1644,10 @@ where
 ///     [ 2, 3, -2 ]
 /// ];
 /// ```
-/// 
+///
 /// All operations performed on matrices produce fixed-size outputs. For example,
-/// taking the `transpose` of a non-square matrix will produce a matrix with the 
-/// width and height swapped: 
+/// taking the `transpose` of a non-square matrix will produce a matrix with the
+/// width and height swapped:
 ///
 /// ```ignore
 /// # use aljabar::*;
@@ -1662,7 +1662,7 @@ where
 ///
 /// Matrices can be indexed by either their native column major storage or by
 /// the more natural row major method. In order to use row-major indexing, call
-/// `.index` or `.index_mut` on the matrix with a pair of indices. Calling 
+/// `.index` or `.index_mut` on the matrix with a pair of indices. Calling
 /// `.index` with a single index will produce a vector representing the
 /// appropriate column of the matrix.
 ///
@@ -1685,7 +1685,7 @@ where
 /// assert_eq!(m[(0, 1)], 2);
 /// assert_eq!(m[(1, 1)], 3);
 /// ```
- 
+
 #[repr(transparent)]
 pub struct Matrix<T, const N: usize, const M: usize>([Vector<T, {N}>; {M}]);
 
@@ -1761,7 +1761,7 @@ pub fn mat3x3<T>(
 ) -> Mat3x3<T> {
     Matrix::<T, 3, 3>(
         [ Vector::<T, 3>([ x00, x10, x20, ]),
-          Vector::<T, 3>([ x01, x11, x21, ]),  
+          Vector::<T, 3>([ x01, x11, x21, ]),
           Vector::<T, 3>([ x02, x12, x22, ]),  ]
     )
 }
@@ -1776,14 +1776,14 @@ pub fn mat4x4<T>(
 ) -> Mat4x4<T> {
     Matrix::<T, 4, 4>(
         [ Vector::<T, 4>([ x00, x10, x20, x30 ]),
-          Vector::<T, 4>([ x01, x11, x21, x31 ]),  
+          Vector::<T, 4>([ x01, x11, x21, x31 ]),
           Vector::<T, 4>([ x02, x12, x22, x32 ]),
           Vector::<T, 4>([ x03, x13, x23, x33 ]) ]
     )
 }
 
-/// Constructs a new matrix from an array, using the more visually natural row 
-/// major order. Necessary to help the compiler. Prefer calling the macro 
+/// Constructs a new matrix from an array, using the more visually natural row
+/// major order. Necessary to help the compiler. Prefer calling the macro
 /// `matrix!`, which calls `new_matrix` internally.
 #[inline]
 pub fn new_matrix<T: Clone, const N: usize, const M: usize>(rows: [[T; M]; N]) -> Matrix<T, {N}, {M}> {
@@ -2057,7 +2057,7 @@ where
             unsafe { randp.add(i).write(self.sample(rng)); }
         }
 
-        Matrix::<T, {N}, {M}>(unsafe { rand.assume_init() }) 
+        Matrix::<T, {N}, {M}>(unsafe { rand.assume_init() })
     }
 }
 
@@ -2176,13 +2176,13 @@ impl<T, const N: usize, const M: usize> Index<(usize, usize)> for Matrix<T, {N},
     fn index(&self, (row, column): (usize, usize)) -> &Self::Output {
         &self.0[column][row]
     }
-}   
+}
 
 impl<T, const N: usize, const M: usize> IndexMut<(usize, usize)> for Matrix<T, {N}, {M}> {
     fn index_mut(&mut self, (row, column): (usize, usize)) -> &mut Self::Output {
         &mut self.0[column][row]
     }
-}   
+}
 
 impl<A, B, RHS, const N: usize, const M: usize> PartialEq<RHS> for Matrix<A, {N}, {M}>
 where
@@ -2199,7 +2199,7 @@ where
     }
 }
 
-/// I'm not quite sure how to format the debug output for a matrix. 
+/// I'm not quite sure how to format the debug output for a matrix.
 impl<T, const N: usize, const M: usize> fmt::Debug for Matrix<T, {N}, {M}>
 where
     T: fmt::Debug
@@ -2261,7 +2261,7 @@ where
         }
     }
 }
-    
+
 /// Element-wise subtraction of two equal sized matrices.
 impl<A, B, const N: usize, const M: usize> Sub<Matrix<B, {N}, {M}>> for Matrix<A, {N}, {M}>
 where
@@ -2459,7 +2459,7 @@ impl<T, const N: usize, const M: usize> Matrix<T, {N}, {M}> {
         unsafe { to.assume_init() }
     }
 
-    /// Returns the transpose of the matrix. 
+    /// Returns the transpose of the matrix.
     pub fn transpose(self) -> Matrix<T, {M}, {N}> {
         let mut from = MaybeUninit::new(self);
         let mut trans = MaybeUninit::<[Vector<T, {M}>; {N}]>::uninit();
@@ -2627,7 +2627,7 @@ impl Angle for f32 {
 
     fn sin_cos(self) -> (Self, Self) { (self.sin(), self.cos()) }
 }
-    
+
 impl Angle for f64 {
     fn sin(self) -> Self { self.sin() }
 
@@ -2855,7 +2855,6 @@ where
         self.v.clone()
             .cross(self.v.clone().cross(rhs.clone()) + (rhs.clone() * s))
             .map(Real::mul2) + rhs
-            
     }
 }
 
@@ -2869,7 +2868,7 @@ where
         self * v
     }
 }
-    
+
 impl<T> fmt::Debug for Quaternion<T>
 where
     T: fmt::Debug
@@ -2947,7 +2946,7 @@ mod tests {
     /*
     #[test]
     fn test_vec_trunc() {
-        
+
         let (xyz, w): (TruncatedVector<_, 4>, _) = vector!(0u32, 1, 2, 3).trunc();
     }
     */
@@ -3007,7 +3006,7 @@ mod tests {
         let r = vector!(-3isize, 6isize, -3isize);
         assert_eq!(a.cross(b), r);
     }
-        
+
     #[test]
     fn test_vec_distance() {
         let a = Vector1::<f32>::from([ 0.0 ]);
@@ -3170,7 +3169,7 @@ mod tests {
         let a: Matrix::<i32, 3, 3> =
             matrix![
                 [ 0, -3, 5 ],
-                [ 6, 1, -4 ], 
+                [ 6, 1, -4 ],
                 [ 2, 3, -2 ],
             ];
         let b: Matrix::<i32, 3, 3> =
@@ -3242,16 +3241,16 @@ mod tests {
 
     #[test]
     fn test_readme_code() {
-        let a = vector!( 0u32, 1, 2, 3 ); 
+        let a = vector!( 0u32, 1, 2, 3 );
         assert_eq!(
-	          a, 
+	          a,
             Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
         );
 
         let b = Vector::<f32, 7>::from([ 0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, ]);
-        let c = Vector::<f32, 7>::from([ 1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, ]) * 0.5; 
+        let c = Vector::<f32, 7>::from([ 1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, ]) * 0.5;
         assert_eq!(
-            b + c, 
+            b + c,
             Vector::<f32, 7>::from([ 0.5f32, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5 ])
         );
 
@@ -3289,17 +3288,17 @@ mod tests {
                 [ 0, 2, 0 ],
                 [ 0, 0, 3 ],
             ].diagonal(),
-            vector!( 1i32, 2, 3 ) 
+            vector!( 1i32, 2, 3 )
         );
 
         assert_eq!(
             matrix![
-                [ 1i32, 0, 0, 0 ], 
-                [ 0, 2, 0, 0 ], 
-                [ 0, 0, 3, 0 ], 
+                [ 1i32, 0, 0, 0 ],
+                [ 0, 2, 0, 0 ],
+                [ 0, 0, 3, 0 ],
                 [ 0, 0, 0, 4 ]
             ].diagonal(),
-            vector!( 1i32, 2, 3, 4 ) 
+            vector!( 1i32, 2, 3, 4 )
         );
     }
 
