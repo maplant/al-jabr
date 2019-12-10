@@ -734,6 +734,21 @@ macro_rules! swizzle {
 
 
 impl<T, const N: usize> Vector<T, {N}> {
+    /// Constructs a new vector whose elements are equal to the value of the
+    /// given function evaluated at the element's index.
+    pub fn from_fn<Out, F>(mut f: F) -> Vector<Out, {N}>
+    where
+        F: FnMut(usize) -> Out,
+    {
+        let mut to = MaybeUninit::<Vector<Out, {N}>>::uninit();
+        let top: *mut Out = unsafe { mem::transmute(&mut to) };
+        for i in 0..N {
+            unsafe {
+                top.add(i).write(f(i))
+            }
+        }
+        unsafe { to.assume_init() }
+    }
     /// Applies the given function to each element of the vector, constructing a
     /// new vector with the returned outputs.
     pub fn map<Out, F>(self, mut f: F) -> Vector<Out, {N}>
@@ -3039,6 +3054,15 @@ mod tests {
             vector!(4),
         ]);
         assert_eq!(v.transpose(), m);
+    }
+
+    #[test]
+    fn test_from_fn() {
+        let indices : Vector<usize, 10> = vector!(0usize, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        assert_eq!(
+            Vector::<usize, 10>::from_fn(|i| i),
+            indices
+        );
     }
 
     #[test]
