@@ -3078,6 +3078,7 @@ mod tests {
             vec,
             vec![ 1i32, 2, 3, 4 ]
         )
+    }
 
     #[test]
     fn test_vec_indexed_map() {
