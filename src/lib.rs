@@ -2968,8 +2968,6 @@ mod tests {
         assert_eq!(a, &d); // No blanket impl on T for deref... why? infinite loops?
     }
 
-<<<<<<< HEAD
-=======
     // This Does not compile unfortunately:
     /*
     #[test]
@@ -2979,7 +2977,6 @@ mod tests {
     }
     */
 
->>>>>>> 3901511363c9596ac68a99f58f9f8317258eb6bf
     #[test]
     fn test_vec_addition() {
         let a = Vector1::<u32>::from([ 0 ]);
