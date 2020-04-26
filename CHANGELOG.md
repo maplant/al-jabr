@@ -9,6 +9,11 @@ These changes are included in `master` but have not been released in a new crate
 
 There are no unreleased changes at the current moment.
 
+## [v0.5.0] - 2020-04-25
+
+- Add `trunc` method to `Vector`, now that rust supports it. 
+- Remove deprecation from `TruncatedVector`. 
+
 ## [v0.4.2] - 2019-12-07
 
 - Add support for the `mint` crate.

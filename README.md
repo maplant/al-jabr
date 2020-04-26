@@ -102,7 +102,8 @@ let b = a.rgzw(); // Does not compile.
 ```
 
 Swizzling is supported on vectors of length less than 4. Attempting to access
-elements past the length of the vector is a compile error.
+elements past the length of the vector is a runtime error (previously and
+occasionally now a compilation error).
 
 ```rust
 let a = vector!(0.0f32, 1.0, 2.0);

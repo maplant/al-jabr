@@ -25,7 +25,7 @@
 #![feature(trivial_bounds)]
 #![feature(specialization)]
 
-use std::{
+use core::{
     fmt,
     hash::{
         Hash,
@@ -254,13 +254,14 @@ impl Real for f64 {
 /// | 3             | w         | a         |
 ///
 /// ## Restrictions
-/// It is a compilation error to attempt to access an element beyond the bounds of a vector.
-/// For example, `vec2(1i32, 2).z()` would fail because `z()` is only available on vectors of
-/// length 3 or greater.
+/// It is a runtime error to attempt to access an element beyond the bounds of a vector.
+/// For example, `vec2(1i32, 2).z()` will panic because `z()` is only available on vectors
+/// of length 3 or greater. Previously, this was a compilation error. However, for newer
+/// versions of rustc this is no longer always the case.
 ///
-/// ```compile_fail
+/// ```should_panic
 /// # use aljabar::*;
-/// let z = vec2(1i32, 2).z(); // Fails to compile.
+/// let z = vec2(1i32, 2).z(); // Will panic.
 /// ```
 ///
 /// ### Mixing
@@ -792,14 +793,20 @@ impl<T, const N: usize> Vector<T, {N}> {
         unsafe { st.assume_init() }
     }
 
-    /*
     /// Drop the last component and return the vector with one fewer dimension.
+    ///
+    /// ```
+    /// # use aljabar::*;
+    /// let (xyz, w) = vector!(0u32, 1, 2, 3).trunc();
+    /// assert_eq!(xyz, vector!(0u32, 1, 2));
+    /// assert_eq!(w, 3);
+    /// ```
     pub fn trunc(self) -> (TruncatedVector<T, {N}>, T) {
         let mut from = MaybeUninit::new(self);
         let mut head = MaybeUninit::<TruncatedVector<T, {N}>>::uninit();
         let fromp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut from) };
         let headp: *mut T = unsafe { mem::transmute(&mut head) };
-        for i in 0..N {
+        for i in 0..(N - 1) {
             unsafe {
                 headp.add(i).write(
                     fromp
@@ -819,7 +826,6 @@ impl<T, const N: usize> Vector<T, {N}> {
             }
         )
     }
-     */
 }
 
 // @EkardNT: The cool thing about this is that Rust apparently monomorphizes only
@@ -933,9 +939,6 @@ where
 ///
 /// Not particularly useful other than as the return value of the `trunc`
 /// method.
-#[deprecated(since = "0.3.1", note = "as of rustc 1.39 the `trunc` method\
-                                      causes an ICE and therefore had to\
-                                      be removed")]
 pub type TruncatedVector<T, const N: usize> = Vector<T, {N - 1}>;
 
 impl<T, const N: usize> Zero for Vector<T, {N}>
@@ -2943,15 +2946,6 @@ mod tests {
         assert_eq!(a, &d); // No blanket impl on T for deref... why? infinite loops?
     }
 
-    // This Does not compile unfortunately:
-    /*
-    #[test]
-    fn test_vec_trunc() {
-        
-        let (xyz, w): (TruncatedVector<_, 4>, _) = vector!(0u32, 1, 2, 3).trunc();
-    }
-    */
-
     #[test]
     fn test_vec_addition() {
         let a = Vector1::<u32>::from([ 0 ]);
@@ -3072,12 +3066,14 @@ mod tests {
         )
     }
 
+    // Does not compile.
     /*
     #[test]
     fn test_vec_first() {
         let a = Vector2::<i32>::from([ 1, 2 ]);
         let b = Vector3::<i32>::from([ 1, 2, 3 ]);
-        let c = first::<i32, 2, 3>(&b);
+        let c = b.first::<2_usize>();
+        assert_eq!(a, c);
     }
     */
 
