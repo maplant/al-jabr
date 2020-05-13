@@ -2487,8 +2487,6 @@ where
     Self: Mul<Self>,
     Self: Mul<Vector<Scalar, { N }>, Output = Vector<Scalar, { N }>>,
 {
-    N}>, Output = Vector<Scalar, {N}>>,
-{
     /// Returns the [determinant](https://en.wikipedia.org/wiki/Determinant) of
     /// the Matrix.
     fn determinant(&self) -> Scalar;
