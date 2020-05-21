@@ -3251,10 +3251,14 @@ mod tests {
         // Example taken from cgmath:
 
         let a: Mat2x2<f64> = matrix![[1.0f64, 2.0f64], [3.0f64, 4.0f64],];
+        let identity: Mat2x2<f64> = Mat2x2::<f64>::one();
         assert_eq!(
             a.invert().unwrap(),
             matrix![[-2.0f64, 1.5f64], [1.0f64, -0.5f64]]
         );
+
+        assert_eq!(a.invert().unwrap() * a, identity);
+        assert_eq!(a * a.invert().unwrap(), identity);
         assert!(matrix![[0.0f64, 2.0f64], [0.0f64, 5.0f64]]
             .invert()
             .is_none());
