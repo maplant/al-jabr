@@ -2544,8 +2544,8 @@ where
             ])),
             2 => Matrix::<Scalar, { N }, { N }>::from_iter(SmallVec::from_buf([
                 self[(1, 1)].clone() / det.clone(),
-                -self[(0, 1)].clone() / det.clone(),
                 -self[(1, 0)].clone() / det.clone(),
+                -self[(0, 1)].clone() / det.clone(),
                 self[(0, 0)].clone() / det.clone(),
             ])),
             _ => unimplemented!(),
@@ -3254,7 +3254,7 @@ mod tests {
         let identity: Mat2x2<f64> = Mat2x2::<f64>::one();
         assert_eq!(
             a.invert().unwrap(),
-            matrix![[-2.0f64, 1.5f64], [1.0f64, -0.5f64]]
+            matrix![[-2.0f64, 1.0f64], [1.5f64, -0.5f64]]
         );
 
         assert_eq!(a.invert().unwrap() * a, identity);
