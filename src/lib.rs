@@ -473,33 +473,38 @@ impl<T, const N: usize> FromIterator<T> for Vector<T, { N }> {
 
 /// Iterator over an array type.
 pub struct ArrayIter<T, const N: usize> {
-    array: MaybeUninit<[T; { N }]>,
+    array: [T; { N }],
     pos: usize,
 }
 
-impl<T, const N: usize> Iterator for ArrayIter<T, { N }> {
+impl<T, const N: usize> Iterator for ArrayIter<T, { N }>
+where
+    T: Clone,
+{
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.pos == N {
             None
         } else {
-            let pos = self.pos;
+            let old_pos = self.pos;
             self.pos += 1;
-            let arrayp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut self.array) };
-            Some(unsafe { arrayp.add(pos).replace(MaybeUninit::uninit()).assume_init() })
+            Some(self.array[old_pos].clone())
         }
     }
 }
 
-impl<T, const N: usize> IntoIterator for Vector<T, { N }> {
+impl<T, const N: usize> IntoIterator for Vector<T, { N }>
+where
+    T: Clone,
+{
     type Item = T;
     type IntoIter = ArrayIter<T, { N }>;
 
     fn into_iter(self) -> Self::IntoIter {
         let Vector(array) = self;
         ArrayIter {
-            array: MaybeUninit::new(array),
+            array: array,
             pos: 0,
         }
     }
@@ -1435,14 +1440,17 @@ where
     }
 }
 
-impl<T, const N: usize> IntoIterator for Point<T, { N }> {
+impl<T, const N: usize> IntoIterator for Point<T, { N }>
+where
+    T: Clone,
+{
     type Item = T;
     type IntoIter = ArrayIter<T, { N }>;
 
     fn into_iter(self) -> Self::IntoIter {
         let Point(array) = self;
         ArrayIter {
-            array: MaybeUninit::new(array),
+            array: array,
             pos: 0,
         }
     }
@@ -1919,14 +1927,17 @@ impl<T, const N: usize, const M: usize> FromIterator<Vector<T, { N }>> for Matri
     }
 }
 
-impl<T, const N: usize, const M: usize> IntoIterator for Matrix<T, { N }, { M }> {
+impl<T, const N: usize, const M: usize> IntoIterator for Matrix<T, { N }, { M }>
+where
+    T: Clone,
+{
     type Item = Vector<T, { N }>;
     type IntoIter = ArrayIter<Vector<T, { N }>, { M }>;
 
     fn into_iter(self) -> Self::IntoIter {
         let Matrix(array) = self;
         ArrayIter {
-            array: MaybeUninit::new(array),
+            array: array,
             pos: 0,
         }
     }
