@@ -9,8 +9,5 @@ fn can_use_vector_macro_outside_aljabar() {
 
 #[test]
 fn can_use_matrix_macro_outside_aljabar() {
-    let _ = matrix![
-        [1, 2, 3],
-        [4, 5, 6],
-    ];
+    let _ = matrix![[1, 2, 3], [4, 5, 6],];
 }

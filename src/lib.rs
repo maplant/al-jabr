@@ -473,33 +473,38 @@ impl<T, const N: usize> FromIterator<T> for Vector<T, { N }> {
 
 /// Iterator over an array type.
 pub struct ArrayIter<T, const N: usize> {
-    array: MaybeUninit<[T; { N }]>,
+    array: [T; { N }],
     pos: usize,
 }
 
-impl<T, const N: usize> Iterator for ArrayIter<T, { N }> {
+impl<T, const N: usize> Iterator for ArrayIter<T, { N }>
+where
+    T: Clone,
+{
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.pos == N {
             None
         } else {
-            let pos = self.pos;
+            let old_pos = self.pos;
             self.pos += 1;
-            let arrayp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut self.array) };
-            Some(unsafe { arrayp.add(pos).replace(MaybeUninit::uninit()).assume_init() })
+            Some(self.array[old_pos].clone())
         }
     }
 }
 
-impl<T, const N: usize> IntoIterator for Vector<T, { N }> {
+impl<T, const N: usize> IntoIterator for Vector<T, { N }>
+where
+    T: Clone,
+{
     type Item = T;
     type IntoIter = ArrayIter<T, { N }>;
 
     fn into_iter(self) -> Self::IntoIter {
         let Vector(array) = self;
         ArrayIter {
-            array: MaybeUninit::new(array),
+            array: array,
             pos: 0,
         }
     }
@@ -1435,14 +1440,17 @@ where
     }
 }
 
-impl<T, const N: usize> IntoIterator for Point<T, { N }> {
+impl<T, const N: usize> IntoIterator for Point<T, { N }>
+where
+    T: Clone,
+{
     type Item = T;
     type IntoIter = ArrayIter<T, { N }>;
 
     fn into_iter(self) -> Self::IntoIter {
         let Point(array) = self;
         ArrayIter {
-            array: MaybeUninit::new(array),
+            array: array,
             pos: 0,
         }
     }
@@ -1919,14 +1927,17 @@ impl<T, const N: usize, const M: usize> FromIterator<Vector<T, { N }>> for Matri
     }
 }
 
-impl<T, const N: usize, const M: usize> IntoIterator for Matrix<T, { N }, { M }> {
+impl<T, const N: usize, const M: usize> IntoIterator for Matrix<T, { N }, { M }>
+where
+    T: Clone,
+{
     type Item = Vector<T, { N }>;
     type IntoIter = ArrayIter<Vector<T, { N }>, { M }>;
 
     fn into_iter(self) -> Self::IntoIter {
         let Matrix(array) = self;
         ArrayIter {
-            array: MaybeUninit::new(array),
+            array: array,
             pos: 0,
         }
     }
@@ -2479,45 +2490,30 @@ impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }> {
 ///
 /// I believe that SquareMatrix should not have parameters, but associated types
 /// and constants do not play well with const generics.
-pub trait SquareMatrix<Scalar, const N: usize>: Sized
+pub trait SquareMatrix<T, const N: usize>: Sized {}
+
+impl<T, const N: usize> SquareMatrix<T, { N }> for Matrix<T, { N }, { N }> {}
+
+impl<T, const N: usize> Matrix<T, { N }, { N }>
 where
-    Scalar: Clone,
+    T: Clone + One + Zero,
+    T: Neg<Output = T>,
+    T: Add<T, Output = T> + Sub<T, Output = T>,
+    T: Mul<T, Output = T> + Div<T, Output = T>,
     Self: Add<Self>,
     Self: Sub<Self>,
     Self: Mul<Self>,
-    Self: Mul<Vector<Scalar, { N }>, Output = Vector<Scalar, { N }>>,
-{
-    N}>, Output = Vector<Scalar, {N}>>,
+    Self: Mul<Vector<T, { N }>, Output = Vector<T, { N }>>,
 {
     /// Returns the [determinant](https://en.wikipedia.org/wiki/Determinant) of
     /// the Matrix.
-    fn determinant(&self) -> Scalar;
-
-    /// Attempt to invert the matrix.
-    fn invert(self) -> Option<Self>;
-
-    /// Return the diagonal of the matrix.
-    fn diagonal(&self) -> Vector<Scalar, { N }>;
-}
-
-impl<Scalar, const N: usize> SquareMatrix<Scalar, { N }> for Matrix<Scalar, { N }, { N }>
-where
-    Scalar: Clone + One + Zero,
-    Scalar: Neg<Output = Scalar>,
-    Scalar: Add<Scalar, Output = Scalar> + Sub<Scalar, Output = Scalar>,
-    Scalar: Mul<Scalar, Output = Scalar> + Div<Scalar, Output = Scalar>,
-    Self: Add<Self>,
-    Self: Sub<Self>,
-    Self: Mul<Self>,
-    Self: Mul<Vector<Scalar, { N }>, Output = Vector<Scalar, { N }>>,
-{
-    fn determinant(&self) -> Scalar {
+    pub fn determinant(&self) -> T {
         match N {
-            0 => <Scalar as One>::one(),
+            0 => T::one(),
             1 => self[0][0].clone(),
             2 => {
-                (self[(0, 0)].clone() * self[(1, 1)].clone()
-                    - self[(1, 0)].clone() * self[(0, 1)].clone())
+                self[(0, 0)].clone() * self[(1, 1)].clone()
+                    - self[(1, 0)].clone() * self[(0, 1)].clone()
             }
             3 => {
                 let minor1 = self[(1, 1)].clone() * self[(2, 2)].clone()
@@ -2533,7 +2529,8 @@ where
         }
     }
 
-    fn invert(self) -> Option<Self> {
+    /// Attempt to invert the matrix.
+    pub fn invert(self) -> Option<Self> {
         let det = self.determinant();
         if det.is_zero() {
             return None;
@@ -2541,13 +2538,11 @@ where
         // In the future it should be pretty easy to remove these smallvecs. For
         // now, we use them because we want to avoid a heap allocation.
         match N {
-            0 | 1 => Matrix::<Scalar, { N }, { N }>::from_iter(SmallVec::from_buf([
-                <Scalar as One>::one() / det,
-            ])),
-            2 => Matrix::<Scalar, { N }, { N }>::from_iter(SmallVec::from_buf([
+            0 | 1 => Matrix::<T, { N }, { N }>::from_iter(SmallVec::from_buf([T::one() / det])),
+            2 => Matrix::<T, { N }, { N }>::from_iter(SmallVec::from_buf([
                 self[(1, 1)].clone() / det.clone(),
-                -self[(0, 1)].clone() / det.clone(),
                 -self[(1, 0)].clone() / det.clone(),
+                -self[(0, 1)].clone() / det.clone(),
                 self[(0, 0)].clone() / det.clone(),
             ])),
             _ => unimplemented!(),
@@ -2555,15 +2550,16 @@ where
         .into()
     }
 
-    fn diagonal(&self) -> Vector<Scalar, { N }> {
-        let mut diag = MaybeUninit::<[Scalar; { N }]>::uninit();
-        let diagp: *mut Scalar = unsafe { mem::transmute(&mut diag) };
+    /// Return the diagonal of the matrix.
+    pub fn diagonal(&self) -> Vector<T, { N }> {
+        let mut diag = MaybeUninit::<[T; { N }]>::uninit();
+        let diagp: *mut T = unsafe { mem::transmute(&mut diag) };
         for i in 0..N {
             unsafe {
                 diagp.add(i).write(self.0[i].0[i].clone());
             }
         }
-        Vector::<Scalar, { N }>(unsafe { diag.assume_init() })
+        Vector::<T, { N }>(unsafe { diag.assume_init() })
     }
 }
 
@@ -3253,10 +3249,14 @@ mod tests {
         // Example taken from cgmath:
 
         let a: Mat2x2<f64> = matrix![[1.0f64, 2.0f64], [3.0f64, 4.0f64],];
+        let identity: Mat2x2<f64> = Mat2x2::<f64>::one();
         assert_eq!(
             a.invert().unwrap(),
-            matrix![[-2.0f64, 1.5f64], [1.0f64, -0.5f64]]
+            matrix![[-2.0f64, 1.0f64], [1.5f64, -0.5f64]]
         );
+
+        assert_eq!(a.invert().unwrap() * a, identity);
+        assert_eq!(a * a.invert().unwrap(), identity);
         assert!(matrix![[0.0f64, 2.0f64], [0.0f64, 5.0f64]]
             .invert()
             .is_none());
