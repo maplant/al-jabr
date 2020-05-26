@@ -3138,7 +3138,7 @@ mod tests {
     #[test]
     fn test_vec_into_iter() {
         let v = vector!(1i32, 2, 3, 4);
-        let vec: Vec<_> = v.into_iter().collect();
+        let vec: Vec<i32> = v.into_iter().collect();
         assert_eq!(vec, vec![1i32, 2, 3, 4])
     }
 
