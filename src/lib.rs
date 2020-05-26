@@ -26,9 +26,10 @@
 #![feature(maybe_uninit_ref)]
 
 use core::{
+    cmp::{Ordering, PartialOrd},
     fmt,
     hash::{Hash, Hasher},
-    iter::FromIterator,
+    iter::{FromIterator, Product},
     mem::{self, MaybeUninit},
     ops::{
         Add, AddAssign, Deref, DerefMut, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub,
@@ -55,8 +56,6 @@ use serde::{
     ser::SerializeTuple,
     Deserialize, Deserializer, Serialize, Serializer,
 };
-
-use smallvec::SmallVec;
 
 /// Defines the additive identity for `Self`.
 pub trait Zero {
@@ -1752,6 +1751,57 @@ where
     }
 }
 
+#[derive(Copy, Clone, Debug)]
+pub struct Decomposition<T, const N: usize>(Permutation<{ N }>, Matrix<T, { N }, { N }>);
+
+impl<T, const N: usize> Index<(usize, usize)> for Decomposition<T, { N }> {
+    type Output = T;
+
+    fn index(&self, (row, column): (usize, usize)) -> &Self::Output {
+        &self.1[(self.0[row], column)]
+    }
+}
+
+impl<T, const N: usize> Decomposition<T, { N }>
+where
+    T: Copy
+        + PartialEq
+        + One
+        + Zero
+        + Product
+        + Sub<T, Output = T>
+        + Mul<T, Output = T>
+        + Div<T, Output = T>,
+{
+    pub fn solve(self, b: Vector<T, { N }>) -> Vector<T, { N }> {
+        let mut x = self.0 * b;
+        for i in 0..N {
+            for k in 0..i {
+                x[i] = x[i] - self[(i, k)] * x[k];
+            }
+        }
+
+        for i in (0..N).rev() {
+            for k in i + 1..N {
+                x[i] = x[i] - self[(i, k)] * x[k];
+            }
+
+            x[i] = x[i] / self[(i, i)];
+        }
+        x
+    }
+
+    fn determinant(&self) -> T {
+        self.1.diagonal().into_iter().product()
+    }
+    fn invert(&self) -> Matrix<T, { N }, { N }> {
+        Matrix::<T, { N }, { N }>::one()
+            .column_iter()
+            .map(|col| self.solve(*col))
+            .collect()
+    }
+}
+
 #[repr(transparent)]
 pub struct Matrix<T, const N: usize, const M: usize>([Vector<T, { N }>; { M }]);
 
@@ -2646,7 +2696,7 @@ impl<T, const N: usize> SquareMatrix<T, { N }> for Matrix<T, { N }, { N }> {}
 
 impl<T, const N: usize> Matrix<T, { N }, { N }>
 where
-    T: Clone + One + Zero,
+    T: Copy + PartialOrd + Product + Real + One + Zero,
     T: Neg<Output = T>,
     T: Add<T, Output = T> + Sub<T, Output = T>,
     T: Mul<T, Output = T> + Div<T, Output = T>,
@@ -2655,51 +2705,57 @@ where
     Self: Mul<Self>,
     Self: Mul<Vector<T, { N }>, Output = Vector<T, { N }>>,
 {
+    /// Returns the [LU decomposition](https://en.wikipedia.org/wiki/LU_decomposition) of
+    /// the Matrix.
+    pub fn decompose(self) -> Option<Decomposition<T, { N }>> {
+        let mut p = Permutation::<{ N }>::unit();
+        let mut a = self.clone();
+
+        for (i, row) in self.row_iter().enumerate() {
+            if let Some((imax, &value)) = row
+                .into_iter()
+                .enumerate()
+                .max_by(|(_, &x), (_, &y)| (x * x).partial_cmp(&(y * y)).unwrap_or(Ordering::Less))
+            {
+                /* Check if matrix is degenerate */
+                if value.is_zero() {
+                    return None;
+                }
+
+                /* Pivot rows */
+                if imax != p[i] {
+                    p = p.swap(i, imax);
+                }
+            }
+
+            if a[(p[i], i)].is_zero() {
+                return None;
+            }
+            for j in i + 1..N {
+                a[(p[j], i)] = a[(p[j], i)] / a[(p[i], i)];
+                for k in i + 1..N {
+                    a[(p[j], k)] = a[(p[j], k)] - a[(p[j], i)] * a[(p[i], k)];
+                }
+            }
+        }
+        Some(Decomposition(p, a))
+    }
     /// Returns the [determinant](https://en.wikipedia.org/wiki/Determinant) of
     /// the Matrix.
     pub fn determinant(&self) -> T {
-        match N {
-            0 => T::one(),
-            1 => self[0][0].clone(),
-            2 => {
-                self[(0, 0)].clone() * self[(1, 1)].clone()
-                    - self[(1, 0)].clone() * self[(0, 1)].clone()
-            }
-            3 => {
-                let minor1 = self[(1, 1)].clone() * self[(2, 2)].clone()
-                    - self[(2, 1)].clone() * self[(1, 2)].clone();
-                let minor2 = self[(1, 0)].clone() * self[(2, 2)].clone()
-                    - self[(2, 0)].clone() * self[(1, 2)].clone();
-                let minor3 = self[(1, 0)].clone() * self[(2, 1)].clone()
-                    - self[(2, 0)].clone() * self[(1, 1)].clone();
-                self[(0, 0)].clone() * minor1 - self[(0, 1)].clone() * minor2
-                    + self[(0, 2)].clone() * minor3
-            }
-            _ => unimplemented!(),
-        }
+        self.decompose().map_or(T::zero(), |x| x.determinant())
     }
 
     /// Attempt to invert the matrix.
     pub fn invert(self) -> Option<Self> {
-        let det = self.determinant();
-        if det.is_zero() {
-            return None;
-        }
-        // In the future it should be pretty easy to remove these smallvecs. For
-        // now, we use them because we want to avoid a heap allocation.
-        match N {
-            0 | 1 => Matrix::<T, { N }, { N }>::from_iter(SmallVec::from_buf([T::one() / det])),
-            2 => Matrix::<T, { N }, { N }>::from_iter(SmallVec::from_buf([
-                self[(1, 1)].clone() / det.clone(),
-                -self[(1, 0)].clone() / det.clone(),
-                -self[(0, 1)].clone() / det.clone(),
-                self[(0, 0)].clone() / det.clone(),
-            ])),
-            _ => unimplemented!(),
-        }
-        .into()
+        self.decompose().map(|x| x.invert())
     }
+}
 
+impl<T, const N: usize> Matrix<T, { N }, { N }>
+where
+    T: Clone,
+{
     /// Return the diagonal of the matrix.
     pub fn diagonal(&self) -> Vector<T, { N }> {
         let mut diag = MaybeUninit::<[T; { N }]>::uninit();
@@ -3199,6 +3255,15 @@ mod tests {
     fn test_from_fn() {
         let indices: Vector<usize, 10> = vector!(0usize, 1, 2, 3, 4, 5, 6, 7, 8, 9);
         assert_eq!(Vector::<usize, 10>::from_fn(|i| i), indices);
+    }
+
+    #[test]
+    fn test_decompose() {
+        let a = matrix![[2.0, 1.0], [-1.0f64, 1.0]];
+        let b = vector!(2.0f64, 5.0);
+        let lu = a.decompose().unwrap();
+
+        assert_eq!(a * lu.solve(b), b);
     }
 
     #[test]
