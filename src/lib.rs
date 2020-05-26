@@ -3129,6 +3129,41 @@ impl<T> From<mint::Quaternion<T>> for Quaternion<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use approx::{abs_diff_eq, AbsDiffEq};
+
+    impl<T: AbsDiffEq, const N: usize> AbsDiffEq for Vector<T, { N }>
+    where
+        T::Epsilon: Copy,
+    {
+        type Epsilon = T::Epsilon;
+
+        fn default_epsilon() -> T::Epsilon {
+            T::default_epsilon()
+        }
+
+        fn abs_diff_eq(&self, other: &Self, epsilon: T::Epsilon) -> bool {
+            self.iter()
+                .zip(other.iter())
+                .all(|(x, y)| T::abs_diff_eq(x, y, epsilon))
+        }
+    }
+
+    impl<T: AbsDiffEq, const N: usize, const M: usize> AbsDiffEq for Matrix<T, { N }, { M }>
+    where
+        T::Epsilon: Copy,
+    {
+        type Epsilon = T::Epsilon;
+
+        fn default_epsilon() -> T::Epsilon {
+            T::default_epsilon()
+        }
+
+        fn abs_diff_eq(&self, other: &Self, epsilon: T::Epsilon) -> bool {
+            self.column_iter()
+                .zip(other.column_iter())
+                .all(|(x, y)| Vector::<T, { N }>::abs_diff_eq(x, y, epsilon))
+        }
+    }
 
     #[test]
     fn test_permutation() {
@@ -3475,13 +3510,13 @@ mod tests {
 
         let a: Mat2x2<f64> = matrix![[1.0f64, 2.0f64], [3.0f64, 4.0f64],];
         let identity: Mat2x2<f64> = Mat2x2::<f64>::one();
-        assert_eq!(
+        abs_diff_eq!(
             a.invert().unwrap(),
             matrix![[-2.0f64, 1.0f64], [1.5f64, -0.5f64]]
         );
 
-        assert_eq!(a.invert().unwrap() * a, identity);
-        assert_eq!(a * a.invert().unwrap(), identity);
+        abs_diff_eq!(a.invert().unwrap() * a, identity);
+        abs_diff_eq!(a * a.invert().unwrap(), identity);
         assert!(matrix![[0.0f64, 2.0f64], [0.0f64, 5.0f64]]
             .invert()
             .is_none());

@@ -30,3 +30,4 @@ required-features = ["serde"]
 
 [dev-dependencies]
 serde_json = "1.0"
+approx = "0.3.2"
