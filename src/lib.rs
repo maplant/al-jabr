@@ -23,7 +23,6 @@
 
 #![feature(const_generics)]
 #![feature(trivial_bounds)]
-#![feature(specialization)]
 
 use core::{
     fmt,
