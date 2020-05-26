@@ -34,6 +34,7 @@ use core::{
         Add, AddAssign, Deref, DerefMut, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub,
         SubAssign,
     },
+    slice::Iter,
 };
 
 #[cfg(feature = "serde")]
@@ -1719,6 +1720,86 @@ impl<T, const N: usize, const M: usize> From<[[T; { N }]; { M }]> for Matrix<T, 
             }
         }
         Matrix::<T, { N }, { M }>(unsafe { vec_array.assume_init() })
+    }
+}
+
+pub struct RowView<'a, T, const N: usize, const M: usize> {
+    row: usize,
+    matrix: &'a Matrix<T, { N }, { M }>,
+}
+
+impl<'a, T, const N: usize, const M: usize> Index<usize> for RowView<'a, T, { N }, { M }> {
+    type Output = T;
+
+    fn index(&self, column: usize) -> &Self::Output {
+        &self.matrix[column][self.row]
+    }
+}
+
+impl<'a, T, const N: usize, const M: usize> IntoIterator for RowView<'a, T, { N }, { M }> {
+    type Item = &'a T;
+    type IntoIter = ColIter<'a, T, { N }, { M }>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        ColIter {
+            col: 0,
+            row: self.row,
+            matrix: self.matrix,
+        }
+    }
+}
+
+pub struct RowIter<'a, T, const N: usize, const M: usize> {
+    row: usize,
+    matrix: &'a Matrix<T, { N }, { M }>,
+}
+
+impl<'a, T, const N: usize, const M: usize> Iterator for RowIter<'a, T, { N }, { M }> {
+    type Item = RowView<'a, T, { N }, { M }>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let row = if self.row < N {
+            Some(RowView {
+                row: self.row,
+                matrix: self.matrix,
+            })
+        } else {
+            None
+        };
+        self.row += 1;
+        row
+    }
+}
+
+pub struct ColIter<'a, T, const N: usize, const M: usize> {
+    col: usize,
+    row: usize,
+    matrix: &'a Matrix<T, { N }, { M }>,
+}
+
+impl<'a, T, const N: usize, const M: usize> Iterator for ColIter<'a, T, { N }, { M }> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let element = if self.col < M {
+            Some(&self.matrix[self.col][self.row])
+        } else {
+            None
+        };
+        self.col += 1;
+        element
+    }
+}
+
+impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }> {
+    fn column_iter<'a>(&'a self) -> Iter<'a, Vector<T, { N }>> {
+        self.0.iter()
+    }
+    fn row_iter<'a>(&'a self) -> RowIter<'a, T, { N }, { M }> {
+        RowIter {
+            row: 0,
+            matrix: self,
+        }
     }
 }
 
