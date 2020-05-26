@@ -3341,14 +3341,14 @@ mod tests {
         let rot = Orthonormal::<f32, 3>::from(Euler {
             x: 0.0,
             y: 0.0,
-            z: std::f32::consts::FRAC_PI_2,
+            z: core::f32::consts::FRAC_PI_2,
         });
         assert_eq!(rot.rotate_vector(vector![1.0f32, 0.0, 0.0]).y(), 1.0);
         let v = vector![1.0f32, 0.0, 0.0];
         let q1 = Quaternion::from(Euler {
             x: 0.0,
             y: 0.0,
-            z: std::f32::consts::FRAC_PI_2,
+            z: core::f32::consts::FRAC_PI_2,
         });
         assert_eq!(q1.rotate_vector(v).normalize().y(), 1.0);
     }
