@@ -21,6 +21,7 @@
 //! moment.
 //!
 
+#![allow(incomplete_features)]
 #![feature(const_generics)]
 #![feature(trivial_bounds)]
 #![feature(maybe_uninit_ref)]
