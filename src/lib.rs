@@ -23,6 +23,7 @@
 
 #![feature(const_generics)]
 #![feature(trivial_bounds)]
+#![feature(maybe_uninit_ref)]
 
 use core::{
     fmt,
@@ -1683,6 +1684,75 @@ where
 /// ```
 
 #[repr(transparent)]
+#[derive(Copy, Clone)]
+pub struct Permutation<const N: usize>([usize; { N }]);
+
+impl<const N: usize> fmt::Debug for Permutation<{ N }> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[ ")?;
+        for i in 0..N {
+            write!(f, "{:?} ", self.0[i])?;
+        }
+        write!(f, "] ")
+    }
+}
+
+impl<RHS, const N: usize> PartialEq<RHS> for Permutation<{ N }>
+where
+    RHS: Deref<Target = [usize; { N }]>,
+{
+    fn eq(&self, other: &RHS) -> bool {
+        for (a, b) in self.0.iter().zip(other.deref().iter()) {
+            if !a.eq(b) {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+impl<const N: usize> Deref for Permutation<{ N }> {
+    type Target = [usize; { N }];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<const N: usize> Permutation<{ N }> {
+    pub fn unit() -> Permutation<{ N }> {
+        let mut arr = MaybeUninit::<[usize; N]>::uninit();
+        let arr = unsafe {
+            for i in 0..N {
+                *arr.get_mut().index_mut(i) = i;
+            }
+            arr.assume_init()
+        };
+        Permutation(arr)
+    }
+    pub fn swap(self, i: usize, j: usize) -> Self {
+        let Permutation(mut arr) = self;
+        arr.swap(i, j);
+        Permutation(arr)
+    }
+}
+
+impl<T, const N: usize> Mul<Vector<T, { N }>> for Permutation<{ N }>
+where
+    T: Copy,
+{
+    type Output = Vector<T, { N }>;
+
+    fn mul(self, rhs: Vector<T, { N }>) -> Self::Output {
+        let mut x = rhs.clone();
+        for i in 0..N {
+            x[i] = rhs[self[i]];
+        }
+        x
+    }
+}
+
+#[repr(transparent)]
 pub struct Matrix<T, const N: usize, const M: usize>([Vector<T, { N }>; { M }]);
 
 /// A 1-by-1 square matrix.
@@ -3003,6 +3073,16 @@ impl<T> From<mint::Quaternion<T>> for Quaternion<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_permutation() {
+        let p1 = Permutation::unit();
+        let p2 = Permutation([0usize, 1, 2]);
+        let p3 = Permutation([1usize, 2, 0]);
+        let v = vector!(1.0f64, 2.0, 3.0);
+        assert_eq!(p1, p2);
+        assert_eq!(v, p3 * (p3 * (p3 * v)));
+    }
 
     #[test]
     fn test_vec_zero() {
