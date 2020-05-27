@@ -21,19 +21,22 @@
 //! moment.
 //!
 
+#![allow(incomplete_features)]
 #![feature(const_generics)]
 #![feature(trivial_bounds)]
-#![feature(specialization)]
+#![feature(maybe_uninit_ref)]
 
 use core::{
+    cmp::{Ordering, PartialOrd},
     fmt,
     hash::{Hash, Hasher},
-    iter::FromIterator,
+    iter::{FromIterator, Product},
     mem::{self, MaybeUninit},
     ops::{
         Add, AddAssign, Deref, DerefMut, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub,
         SubAssign,
     },
+    slice::Iter,
 };
 
 #[cfg(feature = "serde")]
@@ -54,8 +57,6 @@ use serde::{
     ser::SerializeTuple,
     Deserialize, Deserializer, Serialize, Serializer,
 };
-
-use smallvec::SmallVec;
 
 /// Defines the additive identity for `Self`.
 pub trait Zero {
@@ -1683,6 +1684,152 @@ where
 /// ```
 
 #[repr(transparent)]
+#[derive(Copy, Clone)]
+pub struct Permutation<const N: usize>([usize; { N }]);
+
+impl<const N: usize> fmt::Debug for Permutation<{ N }> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[ ")?;
+        for i in 0..N {
+            write!(f, "{:?} ", self.0[i])?;
+        }
+        write!(f, "] ")
+    }
+}
+
+impl<RHS, const N: usize> PartialEq<RHS> for Permutation<{ N }>
+where
+    RHS: Deref<Target = [usize; { N }]>,
+{
+    fn eq(&self, other: &RHS) -> bool {
+        for (a, b) in self.0.iter().zip(other.deref().iter()) {
+            if !a.eq(b) {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+impl<const N: usize> Deref for Permutation<{ N }> {
+    type Target = [usize; { N }];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<const N: usize> Permutation<{ N }> {
+    pub fn unit() -> Permutation<{ N }> {
+        let mut arr = MaybeUninit::<[usize; N]>::uninit();
+        let arr = unsafe {
+            for i in 0..N {
+                *arr.get_mut().index_mut(i) = i;
+            }
+            arr.assume_init()
+        };
+        Permutation(arr)
+    }
+    pub fn swap(self, i: usize, j: usize) -> Self {
+        let Permutation(mut arr) = self;
+        arr.swap(i, j);
+        Permutation(arr)
+    }
+    pub fn odd_parity(&self) -> bool {
+        let mut visited = [false; { N }];
+        let mut odd_parity = false;
+        for i in 0..N {
+            if !visited[i] {
+                odd_parity = odd_parity ^ self.cycle_odd_parity(i, &mut visited);
+            }
+        }
+        odd_parity
+    }
+    fn cycle_odd_parity(self, i: usize, visited: &mut [bool; { N }]) -> bool {
+        let mut odd_parity = false;
+        let mut j = self[i];
+        while j != i {
+            visited[j] = true;
+            odd_parity = !odd_parity;
+            j = self[j];
+        }
+        odd_parity
+    }
+}
+
+impl<T, const N: usize> Mul<Vector<T, { N }>> for Permutation<{ N }>
+where
+    T: Copy,
+{
+    type Output = Vector<T, { N }>;
+
+    fn mul(self, rhs: Vector<T, { N }>) -> Self::Output {
+        let mut x = rhs.clone();
+        for i in 0..N {
+            x[i] = rhs[self[i]];
+        }
+        x
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct Decomposition<T, const N: usize>(Permutation<{ N }>, Matrix<T, { N }, { N }>);
+
+impl<T, const N: usize> Index<(usize, usize)> for Decomposition<T, { N }> {
+    type Output = T;
+
+    fn index(&self, (row, column): (usize, usize)) -> &Self::Output {
+        &self.1[(self.0[row], column)]
+    }
+}
+
+impl<T, const N: usize> Decomposition<T, { N }>
+where
+    T: Copy
+        + PartialEq
+        + One
+        + Zero
+        + Product
+        + Neg<Output = T>
+        + Sub<T, Output = T>
+        + Mul<T, Output = T>
+        + Div<T, Output = T>,
+{
+    pub fn solve(self, b: Vector<T, { N }>) -> Vector<T, { N }> {
+        let mut x = self.0 * b;
+        for i in 0..N {
+            for k in 0..i {
+                x[i] = x[i] - self[(i, k)] * x[k];
+            }
+        }
+
+        for i in (0..N).rev() {
+            for k in i + 1..N {
+                x[i] = x[i] - self[(i, k)] * x[k];
+            }
+
+            x[i] = x[i] / self[(i, i)];
+        }
+        x
+    }
+
+    fn determinant(&self) -> T {
+        let det: T = self.1.diagonal().into_iter().product();
+        if self.0.odd_parity() {
+            -det
+        } else {
+            det
+        }
+    }
+    fn invert(&self) -> Matrix<T, { N }, { N }> {
+        Matrix::<T, { N }, { N }>::one()
+            .column_iter()
+            .map(|col| self.solve(*col))
+            .collect()
+    }
+}
+
+#[repr(transparent)]
 pub struct Matrix<T, const N: usize, const M: usize>([Vector<T, { N }>; { M }]);
 
 /// A 1-by-1 square matrix.
@@ -1719,6 +1866,86 @@ impl<T, const N: usize, const M: usize> From<[[T; { N }]; { M }]> for Matrix<T, 
             }
         }
         Matrix::<T, { N }, { M }>(unsafe { vec_array.assume_init() })
+    }
+}
+
+pub struct RowView<'a, T, const N: usize, const M: usize> {
+    row: usize,
+    matrix: &'a Matrix<T, { N }, { M }>,
+}
+
+impl<'a, T, const N: usize, const M: usize> Index<usize> for RowView<'a, T, { N }, { M }> {
+    type Output = T;
+
+    fn index(&self, column: usize) -> &Self::Output {
+        &self.matrix[column][self.row]
+    }
+}
+
+impl<'a, T, const N: usize, const M: usize> IntoIterator for RowView<'a, T, { N }, { M }> {
+    type Item = &'a T;
+    type IntoIter = ColIter<'a, T, { N }, { M }>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        ColIter {
+            col: 0,
+            row: self.row,
+            matrix: self.matrix,
+        }
+    }
+}
+
+pub struct RowIter<'a, T, const N: usize, const M: usize> {
+    row: usize,
+    matrix: &'a Matrix<T, { N }, { M }>,
+}
+
+impl<'a, T, const N: usize, const M: usize> Iterator for RowIter<'a, T, { N }, { M }> {
+    type Item = RowView<'a, T, { N }, { M }>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let row = if self.row < N {
+            Some(RowView {
+                row: self.row,
+                matrix: self.matrix,
+            })
+        } else {
+            None
+        };
+        self.row += 1;
+        row
+    }
+}
+
+pub struct ColIter<'a, T, const N: usize, const M: usize> {
+    col: usize,
+    row: usize,
+    matrix: &'a Matrix<T, { N }, { M }>,
+}
+
+impl<'a, T, const N: usize, const M: usize> Iterator for ColIter<'a, T, { N }, { M }> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let element = if self.col < M {
+            Some(&self.matrix[self.col][self.row])
+        } else {
+            None
+        };
+        self.col += 1;
+        element
+    }
+}
+
+impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }> {
+    fn column_iter<'a>(&'a self) -> Iter<'a, Vector<T, { N }>> {
+        self.0.iter()
+    }
+    fn row_iter<'a>(&'a self) -> RowIter<'a, T, { N }, { M }> {
+        RowIter {
+            row: 0,
+            matrix: self,
+        }
     }
 }
 
@@ -2496,7 +2723,7 @@ impl<T, const N: usize> SquareMatrix<T, { N }> for Matrix<T, { N }, { N }> {}
 
 impl<T, const N: usize> Matrix<T, { N }, { N }>
 where
-    T: Clone + One + Zero,
+    T: Copy + PartialOrd + Product + Real + One + Zero,
     T: Neg<Output = T>,
     T: Add<T, Output = T> + Sub<T, Output = T>,
     T: Mul<T, Output = T> + Div<T, Output = T>,
@@ -2505,51 +2732,57 @@ where
     Self: Mul<Self>,
     Self: Mul<Vector<T, { N }>, Output = Vector<T, { N }>>,
 {
+    /// Returns the [LU decomposition](https://en.wikipedia.org/wiki/LU_decomposition) of
+    /// the Matrix.
+    pub fn decompose(self) -> Option<Decomposition<T, { N }>> {
+        let mut p = Permutation::<{ N }>::unit();
+        let mut a = self.clone();
+
+        for (i, row) in self.row_iter().enumerate() {
+            if let Some((imax, &value)) = row
+                .into_iter()
+                .enumerate()
+                .max_by(|(_, &x), (_, &y)| (x * x).partial_cmp(&(y * y)).unwrap_or(Ordering::Less))
+            {
+                /* Check if matrix is degenerate */
+                if value.is_zero() {
+                    return None;
+                }
+
+                /* Pivot rows */
+                if imax != p[i] {
+                    p = p.swap(i, imax);
+                }
+            }
+
+            if a[(p[i], i)].is_zero() {
+                return None;
+            }
+            for j in i + 1..N {
+                a[(p[j], i)] = a[(p[j], i)] / a[(p[i], i)];
+                for k in i + 1..N {
+                    a[(p[j], k)] = a[(p[j], k)] - a[(p[j], i)] * a[(p[i], k)];
+                }
+            }
+        }
+        Some(Decomposition(p, a))
+    }
     /// Returns the [determinant](https://en.wikipedia.org/wiki/Determinant) of
     /// the Matrix.
     pub fn determinant(&self) -> T {
-        match N {
-            0 => T::one(),
-            1 => self[0][0].clone(),
-            2 => {
-                self[(0, 0)].clone() * self[(1, 1)].clone()
-                    - self[(1, 0)].clone() * self[(0, 1)].clone()
-            }
-            3 => {
-                let minor1 = self[(1, 1)].clone() * self[(2, 2)].clone()
-                    - self[(2, 1)].clone() * self[(1, 2)].clone();
-                let minor2 = self[(1, 0)].clone() * self[(2, 2)].clone()
-                    - self[(2, 0)].clone() * self[(1, 2)].clone();
-                let minor3 = self[(1, 0)].clone() * self[(2, 1)].clone()
-                    - self[(2, 0)].clone() * self[(1, 1)].clone();
-                self[(0, 0)].clone() * minor1 - self[(0, 1)].clone() * minor2
-                    + self[(0, 2)].clone() * minor3
-            }
-            _ => unimplemented!(),
-        }
+        self.decompose().map_or(T::zero(), |x| x.determinant())
     }
 
     /// Attempt to invert the matrix.
     pub fn invert(self) -> Option<Self> {
-        let det = self.determinant();
-        if det.is_zero() {
-            return None;
-        }
-        // In the future it should be pretty easy to remove these smallvecs. For
-        // now, we use them because we want to avoid a heap allocation.
-        match N {
-            0 | 1 => Matrix::<T, { N }, { N }>::from_iter(SmallVec::from_buf([T::one() / det])),
-            2 => Matrix::<T, { N }, { N }>::from_iter(SmallVec::from_buf([
-                self[(1, 1)].clone() / det.clone(),
-                -self[(1, 0)].clone() / det.clone(),
-                -self[(0, 1)].clone() / det.clone(),
-                self[(0, 0)].clone() / det.clone(),
-            ])),
-            _ => unimplemented!(),
-        }
-        .into()
+        self.decompose().map(|x| x.invert())
     }
+}
 
+impl<T, const N: usize> Matrix<T, { N }, { N }>
+where
+    T: Clone,
+{
     /// Return the diagonal of the matrix.
     pub fn diagonal(&self) -> Vector<T, { N }> {
         let mut diag = MaybeUninit::<[T; { N }]>::uninit();
@@ -2923,6 +3156,61 @@ impl<T> From<mint::Quaternion<T>> for Quaternion<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use approx::{abs_diff_eq, AbsDiffEq};
+
+    impl<T: AbsDiffEq, const N: usize> AbsDiffEq for Vector<T, { N }>
+    where
+        T::Epsilon: Copy,
+    {
+        type Epsilon = T::Epsilon;
+
+        fn default_epsilon() -> T::Epsilon {
+            T::default_epsilon()
+        }
+
+        fn abs_diff_eq(&self, other: &Self, epsilon: T::Epsilon) -> bool {
+            self.iter()
+                .zip(other.iter())
+                .all(|(x, y)| T::abs_diff_eq(x, y, epsilon))
+        }
+    }
+
+    impl<T: AbsDiffEq, const N: usize, const M: usize> AbsDiffEq for Matrix<T, { N }, { M }>
+    where
+        T::Epsilon: Copy,
+    {
+        type Epsilon = T::Epsilon;
+
+        fn default_epsilon() -> T::Epsilon {
+            T::default_epsilon()
+        }
+
+        fn abs_diff_eq(&self, other: &Self, epsilon: T::Epsilon) -> bool {
+            self.column_iter()
+                .zip(other.column_iter())
+                .all(|(x, y)| Vector::<T, { N }>::abs_diff_eq(x, y, epsilon))
+        }
+    }
+
+    #[test]
+    fn test_permutation() {
+        let p1 = Permutation::unit();
+        let p2 = Permutation([0usize, 1, 2]);
+        let p3 = Permutation([1usize, 2, 0]);
+        let v = vector!(1.0f64, 2.0, 3.0);
+        assert_eq!(p1, p2);
+        assert_eq!(v, p3 * (p3 * (p3 * v)));
+    }
+
+    #[test]
+    fn test_permutation_parity() {
+        let p1 = Permutation::<4>::unit();
+        let p2 = Permutation([3usize, 1, 2, 0]);
+        let p3 = Permutation([2usize, 3, 1, 0]);
+        assert!(!p1.odd_parity());
+        assert!(p2.odd_parity());
+        assert!(p3.odd_parity());
+    }
 
     #[test]
     fn test_vec_zero() {
@@ -3042,6 +3330,15 @@ mod tests {
     }
 
     #[test]
+    fn test_decompose() {
+        let a = matrix![[2.0, 1.0], [-1.0f64, 1.0]];
+        let b = vector!(2.0f64, 5.0);
+        let lu = a.decompose().unwrap();
+
+        assert_eq!(a * lu.solve(b), b);
+    }
+
+    #[test]
     fn test_vec_map() {
         let int = vector!(1i32, 0, 1, 1, 0, 1, 1, 0, 0, 0);
         let boolean = vector!(true, false, true, true, false, true, true, false, false, false);
@@ -3058,7 +3355,7 @@ mod tests {
     #[test]
     fn test_vec_into_iter() {
         let v = vector!(1i32, 2, 3, 4);
-        let vec: Vec<_> = v.into_iter().collect();
+        let vec: Vec<i32> = v.into_iter().collect();
         assert_eq!(vec, vec![1i32, 2, 3, 4])
     }
 
@@ -3250,16 +3547,25 @@ mod tests {
 
         let a: Mat2x2<f64> = matrix![[1.0f64, 2.0f64], [3.0f64, 4.0f64],];
         let identity: Mat2x2<f64> = Mat2x2::<f64>::one();
-        assert_eq!(
+        abs_diff_eq!(
             a.invert().unwrap(),
             matrix![[-2.0f64, 1.0f64], [1.5f64, -0.5f64]]
         );
 
-        assert_eq!(a.invert().unwrap() * a, identity);
-        assert_eq!(a * a.invert().unwrap(), identity);
+        abs_diff_eq!(a.invert().unwrap() * a, identity);
+        abs_diff_eq!(a * a.invert().unwrap(), identity);
         assert!(matrix![[0.0f64, 2.0f64], [0.0f64, 5.0f64]]
             .invert()
             .is_none());
+    }
+
+    #[test]
+    fn test_mat_determinant() {
+        assert_eq!(Mat2x2::<f64>::one().determinant(), f64::one());
+        assert_eq!(
+            matrix![[-2.0f64, 1.0f64], [1.5f64, -0.5f64]].determinant(),
+            -0.5f64
+        );
     }
 
     #[test]
@@ -3341,14 +3647,14 @@ mod tests {
         let rot = Orthonormal::<f32, 3>::from(Euler {
             x: 0.0,
             y: 0.0,
-            z: std::f32::consts::FRAC_PI_2,
+            z: core::f32::consts::FRAC_PI_2,
         });
         assert_eq!(rot.rotate_vector(vector![1.0f32, 0.0, 0.0]).y(), 1.0);
         let v = vector![1.0f32, 0.0, 0.0];
         let q1 = Quaternion::from(Euler {
             x: 0.0,
             y: 0.0,
-            z: std::f32::consts::FRAC_PI_2,
+            z: core::f32::consts::FRAC_PI_2,
         });
         assert_eq!(q1.rotate_vector(v).normalize().y(), 1.0);
     }
