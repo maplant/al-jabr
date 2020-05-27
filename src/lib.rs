@@ -1837,8 +1837,7 @@ where
         + Neg<Output = T>
         + Sub<T, Output = T>
         + Mul<T, Output = T>
-    + Div<T, Output = T>
-    + std::fmt::Debug,
+        + Div<T, Output = T>,
 {
     pub fn solve(self, b: Vector<T, { N }>) -> Vector<T, { N }> {
         let mut x = self.0 * b;
@@ -2709,18 +2708,16 @@ where
     T: Neg<Output = T>,
     T: Add<T, Output = T> + Sub<T, Output = T>,
     T: Mul<T, Output = T> + Div<T, Output = T>,
-T: std::fmt::Debug,
     Self: Add<Self>,
     Self: Sub<Self>,
     Self: Mul<Self>,
     Self: Mul<Vector<T, { N }>, Output = Vector<T, { N }>>,
 {
-
     /// Returns the [LU decomposition](https://en.wikipedia.org/wiki/LU_decomposition) of
     /// the Matrix.
     pub fn decompose(self) -> Option<Decomposition<T, { N }>> {
         let mut p = Permutation::<{ N }>::unit();
-        let mut a = dbg!(dbg!(self).clone());
+        let mut a = self.clone());
 
         for i in 0..N {
             let mut max_a = T::zero();
@@ -2756,7 +2753,7 @@ T: std::fmt::Debug,
     /// Returns the [determinant](https://en.wikipedia.org/wiki/Determinant) of
     /// the Matrix.
     pub fn determinant(&self) -> T {
-        dbg!(self.decompose()).map_or(T::zero(), |x| x.determinant())
+        self.decompose().map_or(T::zero(), |x| x.determinant())
     }
 
     /// Attempt to invert the matrix.
