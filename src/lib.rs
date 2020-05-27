@@ -173,6 +173,8 @@ where
     fn mul2(self) -> Self;
 
     fn div2(self) -> Self;
+
+    fn abs(self) -> Self;
 }
 
 impl Real for f32 {
@@ -187,6 +189,10 @@ impl Real for f32 {
     fn div2(self) -> Self {
         self / 2.0
     }
+
+    fn abs(self) -> Self {
+        self.abs()
+    }
 }
 
 impl Real for f64 {
@@ -200,6 +206,10 @@ impl Real for f64 {
 
     fn div2(self) -> Self {
         self / 2.0
+    }
+
+    fn abs(self) -> Self {
+        self.abs()
     }
 }
 
@@ -329,26 +339,6 @@ pub type Vector4<T> = Vector<T, 4>;
 /// 5-element vector.
 pub type Vector5<T> = Vector<T, 5>;
 
-#[deprecated(since = "0.3", note = "use the more powerful vector! macro")]
-pub fn vec1<T>(x: T) -> Vector1<T> {
-    Vector1::<T>::from([x])
-}
-
-#[deprecated(since = "0.3", note = "use the more powerful vector! macro")]
-pub fn vec2<T>(x: T, y: T) -> Vector2<T> {
-    Vector2::<T>::from([x, y])
-}
-
-#[deprecated(since = "0.3", note = "use the more powerful vector! macro")]
-pub fn vec3<T>(x: T, y: T, z: T) -> Vector3<T> {
-    Vector3::<T>::from([x, y, z])
-}
-
-#[deprecated(since = "0.3", note = "use the more powerful vector! macro")]
-pub fn vec4<T>(x: T, y: T, z: T, w: T) -> Vector4<T> {
-    Vector4::<T>::from([x, y, z, w])
-}
-
 /// Constructs a new vector from an array. Necessary to help the compiler. Prefer
 /// calling the macro `vector!`, which calls `new_vector` internally.
 #[inline]
@@ -474,6 +464,41 @@ impl<T, const N: usize> FromIterator<T> for Vector<T, { N }> {
 
 /// Iterator over an array type.
 pub struct ArrayIter<T, const N: usize> {
+    array: MaybeUninit<[T; { N }]>,
+    pos: usize,
+}
+
+impl<T, const N: usize> Iterator for ArrayIter<T, { N }> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.pos == N {
+            None
+        } else {
+            let pos = self.pos;
+            self.pos += 1;
+            let arrayp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut self.array) };
+            Some(unsafe { arrayp.add(pos).replace(MaybeUninit::uninit()).assume_init() })
+        }
+    }
+}
+
+impl<T, const N: usize> IntoIterator for Vector<T, { N }> {
+    type Item = T;
+    type IntoIter = ArrayIter<T, { N }>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let Vector(array) = self;
+        ArrayIter {
+            array: MaybeUninit::new(array),
+            pos: 0,
+        }
+    }
+}
+
+/*
+/// Iterator over an array type.
+pub struct ArrayIter<T, const N: usize> {
     array: [T; { N }],
     pos: usize,
 }
@@ -510,6 +535,7 @@ where
         }
     }
 }
+*/
 
 #[cfg(feature = "mint")]
 impl<T: Copy> Into<mint::Vector2<T>> for Vector<T, { 2 }> {
@@ -1441,6 +1467,20 @@ where
     }
 }
 
+impl<T, const N: usize> IntoIterator for Point<T, { N }> {
+    type Item = T;
+    type IntoIter = ArrayIter<T, { N }>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let Point(array) = self;
+        ArrayIter {
+            array: MaybeUninit::new(array),
+            pos: 0,
+        }
+    }
+}
+
+/*
 impl<T, const N: usize> IntoIterator for Point<T, { N }>
 where
     T: Clone,
@@ -1456,6 +1496,7 @@ where
         }
     }
 }
+*/
 
 /// Vectors that can be added together and multiplied by scalars form a
 /// VectorSpace.
@@ -1730,11 +1771,13 @@ impl<const N: usize> Permutation<{ N }> {
         };
         Permutation(arr)
     }
+
     pub fn swap(self, i: usize, j: usize) -> Self {
         let Permutation(mut arr) = self;
         arr.swap(i, j);
         Permutation(arr)
     }
+
     pub fn odd_parity(&self) -> bool {
         let mut visited = [false; { N }];
         let mut odd_parity = false;
@@ -1745,6 +1788,7 @@ impl<const N: usize> Permutation<{ N }> {
         }
         odd_parity
     }
+
     fn cycle_odd_parity(self, i: usize, visited: &mut [bool; { N }]) -> bool {
         let mut odd_parity = false;
         let mut j = self[i];
@@ -1793,7 +1837,8 @@ where
         + Neg<Output = T>
         + Sub<T, Output = T>
         + Mul<T, Output = T>
-        + Div<T, Output = T>,
+    + Div<T, Output = T>
+    + std::fmt::Debug,
 {
     pub fn solve(self, b: Vector<T, { N }>) -> Vector<T, { N }> {
         let mut x = self.0 * b;
@@ -1821,6 +1866,7 @@ where
             det
         }
     }
+
     fn invert(&self) -> Matrix<T, { N }, { N }> {
         Matrix::<T, { N }, { N }>::one()
             .column_iter()
@@ -1881,6 +1927,7 @@ impl<'a, T, const N: usize, const M: usize> Index<usize> for RowView<'a, T, { N 
         &self.matrix[column][self.row]
     }
 }
+
 
 impl<'a, T, const N: usize, const M: usize> IntoIterator for RowView<'a, T, { N }, { M }> {
     type Item = &'a T;
@@ -1947,68 +1994,6 @@ impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }> {
             matrix: self,
         }
     }
-}
-
-/// Returns a 1-by-1 square matrix.
-#[deprecated(since = "0.3", note = "use the more powerful matrix! macro")]
-pub fn mat1x1<T>(x00: T) -> Mat1x1<T> {
-    Matrix::<T, 1, 1>([Vector::<T, 1>([x00])])
-}
-
-/// Returns a 2-by-2 square matrix. Although matrices are stored column wise,
-/// the order of arguments is row by row, as a matrix would be typically
-/// displayed.
-#[deprecated(since = "0.3", note = "use the more powerful matrix! macro")]
-pub fn mat2x2<T>(x00: T, x01: T, x10: T, x11: T) -> Mat2x2<T> {
-    Matrix::<T, 2, 2>([Vector::<T, 2>([x00, x10]), Vector::<T, 2>([x01, x11])])
-}
-
-/// Returns a 3-by-3 square matrix.
-#[deprecated(since = "0.3", note = "use the more powerful matrix! macro")]
-pub fn mat3x3<T>(
-    x00: T,
-    x01: T,
-    x02: T,
-    x10: T,
-    x11: T,
-    x12: T,
-    x20: T,
-    x21: T,
-    x22: T,
-) -> Mat3x3<T> {
-    Matrix::<T, 3, 3>([
-        Vector::<T, 3>([x00, x10, x20]),
-        Vector::<T, 3>([x01, x11, x21]),
-        Vector::<T, 3>([x02, x12, x22]),
-    ])
-}
-
-/// Returns a 4-by-4 square matrix.
-#[deprecated(since = "0.3", note = "use the more powerful matrix! macro")]
-pub fn mat4x4<T>(
-    x00: T,
-    x01: T,
-    x02: T,
-    x03: T,
-    x10: T,
-    x11: T,
-    x12: T,
-    x13: T,
-    x20: T,
-    x21: T,
-    x22: T,
-    x23: T,
-    x30: T,
-    x31: T,
-    x32: T,
-    x33: T,
-) -> Mat4x4<T> {
-    Matrix::<T, 4, 4>([
-        Vector::<T, 4>([x00, x10, x20, x30]),
-        Vector::<T, 4>([x01, x11, x21, x31]),
-        Vector::<T, 4>([x02, x12, x22, x32]),
-        Vector::<T, 4>([x03, x13, x23, x33]),
-    ])
 }
 
 /// Constructs a new matrix from an array, using the more visually natural row
@@ -2154,17 +2139,14 @@ impl<T, const N: usize, const M: usize> FromIterator<Vector<T, { N }>> for Matri
     }
 }
 
-impl<T, const N: usize, const M: usize> IntoIterator for Matrix<T, { N }, { M }>
-where
-    T: Clone,
-{
+impl<T, const N: usize, const M: usize> IntoIterator for Matrix<T, { N }, { M }> {
     type Item = Vector<T, { N }>;
     type IntoIter = ArrayIter<Vector<T, { N }>, { M }>;
 
     fn into_iter(self) -> Self::IntoIter {
         let Matrix(array) = self;
         ArrayIter {
-            array: array,
+            array: MaybeUninit::new(array),
             pos: 0,
         }
     }
@@ -2708,69 +2690,73 @@ impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }> {
         Matrix::<T, { M }, { N }>(unsafe { trans.assume_init() })
     }
 }
-
-/// Defines a matrix with an equal number of elements in either dimension.
-///
-/// Square matrices can be added, subtracted, and multiplied indiscriminately
-/// together. This is a type constraint; only Matrices that are square are able
-/// to be multiplied by matrices of the same size.
-///
-/// I believe that SquareMatrix should not have parameters, but associated types
-/// and constants do not play well with const generics.
-pub trait SquareMatrix<T, const N: usize>: Sized {}
-
-impl<T, const N: usize> SquareMatrix<T, { N }> for Matrix<T, { N }, { N }> {}
-
+impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }>
+where
+    T: Clone,
+{
+    pub fn swap_rows(&mut self, a: usize, b: usize) {
+        for i in 0..N {
+            let x = self.0[i][a].clone();
+            self.0[i][a] = self.0[i][b].clone();
+            self.0[i][b] = x;
+        }
+    }
+}
+    
 impl<T, const N: usize> Matrix<T, { N }, { N }>
 where
     T: Copy + PartialOrd + Product + Real + One + Zero,
     T: Neg<Output = T>,
     T: Add<T, Output = T> + Sub<T, Output = T>,
     T: Mul<T, Output = T> + Div<T, Output = T>,
+T: std::fmt::Debug,
     Self: Add<Self>,
     Self: Sub<Self>,
     Self: Mul<Self>,
     Self: Mul<Vector<T, { N }>, Output = Vector<T, { N }>>,
 {
+
     /// Returns the [LU decomposition](https://en.wikipedia.org/wiki/LU_decomposition) of
     /// the Matrix.
     pub fn decompose(self) -> Option<Decomposition<T, { N }>> {
         let mut p = Permutation::<{ N }>::unit();
-        let mut a = self.clone();
+        let mut a = dbg!(dbg!(self).clone());
 
-        for (i, row) in self.row_iter().enumerate() {
-            if let Some((imax, &value)) = row
-                .into_iter()
-                .enumerate()
-                .max_by(|(_, &x), (_, &y)| (x * x).partial_cmp(&(y * y)).unwrap_or(Ordering::Less))
-            {
-                /* Check if matrix is degenerate */
-                if value.is_zero() {
-                    return None;
-                }
-
-                /* Pivot rows */
-                if imax != p[i] {
-                    p = p.swap(i, imax);
+        for i in 0..N {
+            let mut max_a = T::zero();
+            let mut imax = i;
+            for k in i..N {
+                if a[i][k].abs() > max_a {
+                    max_a = a[i][k].abs();
+                    imax = k;
                 }
             }
 
-            if a[(p[i], i)].is_zero() {
+            /* Check if matrix is degenerate */
+            if max_a.is_zero() {
                 return None;
             }
+            
+            /* Pivot rows */
+            if imax != i {
+                p = p.swap(i, imax);
+                a.swap_rows(i, imax);
+            }
+            
             for j in i + 1..N {
-                a[(p[j], i)] = a[(p[j], i)] / a[(p[i], i)];
+                a[(j, i)] = a[(j, i)] / a[(i, i)];
                 for k in i + 1..N {
-                    a[(p[j], k)] = a[(p[j], k)] - a[(p[j], i)] * a[(p[i], k)];
+                    a[(j, k)] = a[(j, k)] - a[(j, i)] * a[(i, k)];
                 }
             }
         }
         Some(Decomposition(p, a))
     }
+
     /// Returns the [determinant](https://en.wikipedia.org/wiki/Determinant) of
     /// the Matrix.
     pub fn determinant(&self) -> T {
-        self.decompose().map_or(T::zero(), |x| x.determinant())
+        dbg!(self.decompose()).map_or(T::zero(), |x| x.determinant())
     }
 
     /// Attempt to invert the matrix.
@@ -3562,6 +3548,16 @@ mod tests {
     #[test]
     fn test_mat_determinant() {
         assert_eq!(Mat2x2::<f64>::one().determinant(), f64::one());
+        /*
+        assert_eq!(
+            matrix![[3.0f64, 8.0f64], [4.0f64, 6.0f64]].invert().unwrap(),
+            matrix![[3.0f64, 8.0f64], [4.0f64, 6.0f64]]
+        );
+        */
+        assert_eq!(
+            matrix![[3.0f64, 8.0f64], [4.0f64, 6.0f64]].determinant(),
+            -14.0f64
+        );
         assert_eq!(
             matrix![[-2.0f64, 1.0f64], [1.5f64, -0.5f64]].determinant(),
             -0.5f64
