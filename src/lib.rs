@@ -1735,6 +1735,26 @@ impl<const N: usize> Permutation<{ N }> {
         arr.swap(i, j);
         Permutation(arr)
     }
+    pub fn odd_parity(&self) -> bool {
+        let mut visited = [false; { N }];
+        let mut odd_parity = false;
+        for i in 0..N {
+            if !visited[i] {
+                odd_parity = odd_parity ^ self.cycle_odd_parity(i, &mut visited);
+            }
+        }
+        odd_parity
+    }
+    fn cycle_odd_parity(self, i: usize, visited: &mut [bool; { N }]) -> bool {
+        let mut odd_parity = false;
+        let mut j = self[i];
+        while j != i {
+            visited[j] = true;
+            odd_parity = !odd_parity;
+            j = self[j];
+        }
+        odd_parity
+    }
 }
 
 impl<T, const N: usize> Mul<Vector<T, { N }>> for Permutation<{ N }>
@@ -1770,6 +1790,7 @@ where
         + One
         + Zero
         + Product
+        + Neg<Output = T>
         + Sub<T, Output = T>
         + Mul<T, Output = T>
         + Div<T, Output = T>,
@@ -1793,7 +1814,12 @@ where
     }
 
     fn determinant(&self) -> T {
-        self.1.diagonal().into_iter().product()
+        let det: T = self.1.diagonal().into_iter().product();
+        if self.0.odd_parity() {
+            -det
+        } else {
+            det
+        }
     }
     fn invert(&self) -> Matrix<T, { N }, { N }> {
         Matrix::<T, { N }, { N }>::one()
@@ -3177,6 +3203,16 @@ mod tests {
     }
 
     #[test]
+    fn test_permutation_parity() {
+        let p1 = Permutation::<4>::unit();
+        let p2 = Permutation([3usize, 1, 2, 0]);
+        let p3 = Permutation([2usize, 3, 1, 0]);
+        assert!(!p1.odd_parity());
+        assert!(p2.odd_parity());
+        assert!(p3.odd_parity());
+    }
+
+    #[test]
     fn test_vec_zero() {
         let a = Vector3::<u32>::zero();
         assert_eq!(a, Vector3::<u32>::from([0, 0, 0]));
@@ -3521,6 +3557,15 @@ mod tests {
         assert!(matrix![[0.0f64, 2.0f64], [0.0f64, 5.0f64]]
             .invert()
             .is_none());
+    }
+
+    #[test]
+    fn test_mat_determinant() {
+        assert_eq!(Mat2x2::<f64>::one().determinant(), f64::one());
+        assert_eq!(
+            matrix![[-2.0f64, 1.0f64], [1.5f64, -0.5f64]].determinant(),
+            -0.5f64
+        );
     }
 
     #[test]
