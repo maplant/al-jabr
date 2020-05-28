@@ -531,6 +531,7 @@ macro_rules! swizzle {
     // third level, specifying the third letter.
     ($a:ident, $b:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
         paste::item! {
+            #[doc(hidden)]
             pub fn [< $a $b >](&self) -> Vector<T, 2> {
                 Vector::<T, 2>::from([
                     self.$a(),
@@ -549,6 +550,7 @@ macro_rules! swizzle {
     // fourth level, specifying the fourth letter.
     ($a:ident, $b:ident, $c:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
         paste::item! {
+            #[doc(hidden)]
             pub fn [< $a $b $c >](&self) -> Vector<T, 3> {
                 Vector::<T, 3>::from([
                     self.$a(),
@@ -570,6 +572,7 @@ macro_rules! swizzle {
     // because it already has all the names assigned.
     ($a:ident, $b:ident, $c:ident, $d:ident) => {
         paste::item! {
+            #[doc(hidden)]
             pub fn [< $a $b $c $d >](&self) -> Vector<T, 4> {
                 Vector::<T, 4>::from([
                     self.$a(),
@@ -596,28 +599,32 @@ where
 {
     /// Alias for `.get(0).clone()`.
     ///
-    /// Calling `x` on a Vector with `N = 0` is a compile error.
+    /// # Panics
+    /// When `N` = 0.
     pub fn x(&self) -> T {
         self.0[0].clone()
     }
 
     /// Alias for `.get(1).clone()`.
     ///
-    /// Calling `y` on a Vector with `N < 2` is a compile error.
+    /// # Panics
+    /// When `N` < 2. 
     pub fn y(&self) -> T {
         self.0[1].clone()
     }
 
     /// Alias for `.get(2).clone()`.
     ///
-    /// Calling `z` on a Vector with `N < 3` is a compile error.
+    /// # Panics
+    /// When `N` < 3.
     pub fn z(&self) -> T {
         self.0[2].clone()
     }
 
     /// Alias for `.get(3).clone()`.
     ///
-    /// Calling `w` on a Vector with `N < 4` is a compile error.
+    /// # Panics
+    /// When `N` < 4.
     pub fn w(&self) -> T {
         self.0[3].clone()
     }

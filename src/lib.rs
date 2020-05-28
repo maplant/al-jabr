@@ -186,6 +186,21 @@ where
     fn div2(self) -> Self;
 
     fn abs(self) -> Self;
+
+    /// Returns the sine of the angle.
+    fn sin(self) -> Self;
+
+    /// Returns the cosine of the angle.
+    fn cos(self) -> Self;
+
+    /// Returns the tangent of the angle.
+    fn tan(self) -> Self;
+
+    /// Returns the four quadrant arctangent of `self` and `x` in radians.
+    fn atan2(self, x: Self) -> Self;
+
+    /// Returns the sine and the cosine of the angle.
+    fn sin_cos(self) -> (Self, Self);
 }
 
 impl Real for f32 {
@@ -204,6 +219,26 @@ impl Real for f32 {
     fn abs(self) -> Self {
         self.abs()
     }
+
+    fn sin(self) -> Self {
+        self.sin()
+    }
+
+    fn cos(self) -> Self {
+        self.cos()
+    }
+
+    fn tan(self) -> Self {
+        self.tan()
+    }
+
+    fn atan2(self, x: Self) -> Self {
+        self.atan2(x)
+    }
+
+    fn sin_cos(self) -> (Self, Self) {
+        (self.sin(), self.cos())
+    }
 }
 
 impl Real for f64 {
@@ -221,6 +256,26 @@ impl Real for f64 {
 
     fn abs(self) -> Self {
         self.abs()
+    }
+
+    fn sin(self) -> Self {
+        self.sin()
+    }
+
+    fn cos(self) -> Self {
+        self.cos()
+    }
+
+    fn tan(self) -> Self {
+        self.tan()
+    }
+
+    fn atan2(self, x: Self) -> Self {
+        self.atan2(x)
+    }
+
+    fn sin_cos(self) -> (Self, Self) {
+        (self.sin(), self.cos())
     }
 }
 

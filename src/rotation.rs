@@ -16,68 +16,6 @@ where
     }
 }
 
-/// A value for which the usual set of trigonometric functions are defined.
-pub trait Angle: Real {
-    /// Returns the sine of the angle.
-    fn sin(self) -> Self;
-
-    /// Returns the cosine of the angle.
-    fn cos(self) -> Self;
-
-    /// Returns the tangent of the angle.
-    fn tan(self) -> Self;
-
-    /// Returns the four quadrant arctangent of `self` and `x` in radians.
-    fn atan2(self, x: Self) -> Self;
-
-    /// Returns the sine and the cosine of the angle.
-    fn sin_cos(self) -> (Self, Self);
-}
-
-impl Angle for f32 {
-    fn sin(self) -> Self {
-        self.sin()
-    }
-
-    fn cos(self) -> Self {
-        self.cos()
-    }
-
-    fn tan(self) -> Self {
-        self.tan()
-    }
-
-    fn atan2(self, x: Self) -> Self {
-        self.atan2(x)
-    }
-
-    fn sin_cos(self) -> (Self, Self) {
-        (self.sin(), self.cos())
-    }
-}
-
-impl Angle for f64 {
-    fn sin(self) -> Self {
-        self.sin()
-    }
-
-    fn cos(self) -> Self {
-        self.cos()
-    }
-
-    fn tan(self) -> Self {
-        self.tan()
-    }
-
-    fn atan2(self, x: Self) -> Self {
-        self.atan2(x)
-    }
-
-    fn sin_cos(self) -> (Self, Self) {
-        (self.sin(), self.cos())
-    }
-}
-
 /// A representation of a rotation in three dimensional space. Each component is
 /// the rotation around its respective axis in radians.
 #[repr(C)]
@@ -94,7 +32,7 @@ pub struct Orthonormal<T, const DIMS: usize>(Matrix<T, { DIMS }, { DIMS }>);
 
 impl<T> From<T> for Orthonormal<T, 2>
 where
-    T: Angle + Clone,
+    T: Real + Clone,
 {
     fn from(angle: T) -> Self {
         let (s, c) = angle.sin_cos();
@@ -104,7 +42,7 @@ where
 
 impl<T> From<Euler<T>> for Orthonormal<T, 3>
 where
-    T: Angle + Copy + Clone,
+    T: Real + Copy + Clone,
 {
     fn from(Euler { x, y, z }: Euler<T>) -> Self {
         let ((xs, xc), (ys, yc), (zs, zc)) = (x.sin_cos(), y.sin_cos(), z.sin_cos());
@@ -179,7 +117,7 @@ pub struct Quaternion<T> {
 
 impl<T> From<Euler<T>> for Quaternion<T>
 where
-    T: Angle + Clone,
+    T: Real + Clone,
 {
     fn from(euler: Euler<T>) -> Quaternion<T> {
         let Euler { x, y, z } = euler;
