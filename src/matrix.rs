@@ -355,11 +355,17 @@ pub fn new_matrix<T: Clone, const N: usize, const M: usize>(
 /// ```
 #[macro_export]
 macro_rules! matrix {
+    ( $item:expr ) => {
+     $crate::new_matrix([
+            [ $item ]
+        ])
+    };
+   
     ( $($rows:expr),* $(,)? ) => {
         $crate::new_matrix([
             $($rows),*
         ])
-    }
+    };
 }
 
 impl<T, const N: usize, const M: usize> Clone for Matrix<T, { N }, { M }>
