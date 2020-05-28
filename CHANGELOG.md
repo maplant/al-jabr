@@ -7,7 +7,13 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 ## Unreleased Changes
 These changes are included in `master` but have not been released in a new crate version yet.
 
-There are no unreleased changes at the current moment.
+### 1.0 changes (so far):
+
+- Rename `trunc` method `truncate`.
+- Add `extend`, `max`, `argmax`, `min`, and `argmin` to `Vector`.
+- Add `column_iter`, `column_iter_mut`, `row_iter`, `row_iter_mut` to `Matrix`.
+
+- Remove `SquareMatrix`
 
 ## [v0.5.0] - 2020-04-25
 
