@@ -7,7 +7,7 @@ env:
   -
 
 script:
-    - rustc --version
-    - cargo --version
-    - cargo build --all-features
-    - cargo test --all-features
+  - rustc --version
+  - cargo --version
+  - cargo build --all-features
+  - cargo test --all-features
