@@ -27,20 +27,17 @@
 #![feature(maybe_uninit_ref)]
 
 use core::{
-    cmp::{Ordering, PartialOrd},
+    cmp::PartialOrd,
     fmt,
     hash::{Hash, Hasher},
     iter::{FromIterator, Product},
+    marker::PhantomData,
     mem::{self, MaybeUninit},
     ops::{
         Add, AddAssign, Deref, DerefMut, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub,
         SubAssign,
     },
-    slice::Iter,
 };
-
-#[cfg(feature = "serde")]
-use std::marker::PhantomData;
 
 #[cfg(feature = "mint")]
 use mint;
@@ -218,9 +215,9 @@ impl Real for f64 {
 /// Vectors can be constructed from arrays of any type and size. There are
 /// convenience constructor functions provided for the most common sizes.
 ///
-/// ```ignore
+/// ```
 /// # use aljabar::*;
-/// let a: Vector::<u32, 4> = vec4( 0u32, 1, 2, 3 );
+/// let a: Vector::<u32, 4> = vector!( 0u32, 1, 2, 3 );
 /// assert_eq!(
 ///     a,
 ///     Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
@@ -260,20 +257,20 @@ impl Real for f64 {
 ///
 /// ```should_panic
 /// # use aljabar::*;
-/// let z = vec2(1i32, 2).z(); // Will panic.
+/// let z = vector!(1i32, 2).z(); // Will panic.
 /// ```
 ///
 /// ### Mixing
 ///
 /// Swizzle methods are not implemented for mixed xyzw/rgba methods.
 ///
-/// ```ignore
+/// ```
 /// # use aljabar::*;
 /// let v = vector!(1i32, 2, 3, 4);
 /// let xy = v.xy(); // OK, only uses xyzw names.
 /// let ba = v.ba(); // OK, only uses rgba names.
-/// assert_eq!(xy, vec2(1i32, 2));
-/// assert_eq!(ba, vec2(3i32, 4));
+/// assert_eq!(xy, vector!(1i32, 2));
+/// assert_eq!(ba, vector!(3i32, 4));
 /// ```
 ///
 /// ```compile_fail
@@ -285,26 +282,26 @@ impl Real for f64 {
 /// ## Examples
 ///
 /// To get the first two elements of a 4-vector.
-/// ```ignore
+/// ```
 /// # use aljabar::*;
 /// let v = vector!(1i32, 2, 3, 4).xy();
 /// ```
 ///
 /// To get the first and last element of a 4-vector.
-/// ```ignore
+/// ```
 /// # use aljabar::*;
 /// let v = vector!(1i32, 2, 3, 4).xw();
 /// ```
 ///
 /// To reverse the order of a 3-vector.
-/// ```ignore
+/// ```
 /// # use aljabar::*;
 /// let v = vector!(1i32, 2, 3).zyx();
 /// ```
 ///
 /// To select the first and third elements into the second and fourth elements,
 /// respectively.
-/// ```ignore
+/// ```
 /// # use aljabar::*;
 /// let v = vector!(1i32, 2, 3, 4).xxzz();
 /// ```
@@ -798,7 +795,7 @@ impl<T, const N: usize> Vector<T, { N }> {
 
     /// Converts the Vector into a Matrix with `N` columns each of size `1`.
     ///
-    /// ```ignore
+    /// ```
     /// # use aljabar::*;
     /// let v = vector!(1i32, 2, 3, 4);
     /// let m = Matrix::<i32, 1, 4>::from([
@@ -807,7 +804,7 @@ impl<T, const N: usize> Vector<T, { N }> {
     ///     vector!(3),
     ///     vector!(4),
     /// ]);
-    /// assert_eq!(v.tranpose(), m);
+    /// assert_eq!(v.transpose(), m);
     /// ```
     pub fn transpose(self) -> Matrix<T, 1, { N }> {
         let mut from = MaybeUninit::new(self);
@@ -1480,24 +1477,6 @@ impl<T, const N: usize> IntoIterator for Point<T, { N }> {
     }
 }
 
-/*
-impl<T, const N: usize> IntoIterator for Point<T, { N }>
-where
-    T: Clone,
-{
-    type Item = T;
-    type IntoIter = ArrayIter<T, { N }>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        let Point(array) = self;
-        ArrayIter {
-            array: array,
-            pos: 0,
-        }
-    }
-}
-*/
-
 /// Vectors that can be added together and multiplied by scalars form a
 /// VectorSpace.
 ///
@@ -1671,11 +1650,11 @@ where
 /// As with Vectors there are convenience constructor functions for square matrices
 /// of the most common sizes.
 ///
-/// ```ignore
+/// ```
 /// # use aljabar::*;
-/// let a = Matrix::<f32, 3, 3>::from( [ vec3( 1.0, 0.0, 0.0 ),
-///                                      vec3( 0.0, 1.0, 0.0 ),
-///                                      vec3( 0.0, 0.0, 1.0 ), ] );
+/// let a = Matrix::<f32, 3, 3>::from( [ vector!( 1.0, 0.0, 0.0 ),
+///                                      vector!( 0.0, 1.0, 0.0 ),
+///                                      vector!( 0.0, 0.0, 1.0 ), ] );
 /// let b: Matrix::<i32, 3, 3> = matrix![
 ///     [ 0, -3, 5 ],
 ///     [ 6, 1, -4 ],
@@ -1687,7 +1666,7 @@ where
 /// taking the `transpose` of a non-square matrix will produce a matrix with the
 /// width and height swapped:
 ///
-/// ```ignore
+/// ```
 /// # use aljabar::*;
 /// assert_eq!(
 ///     Matrix::<i32, 1, 2>::from( [ vector!( 1 ), vector!( 2 ) ] )
@@ -1704,7 +1683,7 @@ where
 /// `.index` with a single index will produce a vector representing the
 /// appropriate column of the matrix.
 ///
-/// ```ignore
+/// ```
 /// # use aljabar::*;
 /// let m: Matrix::<i32, 2, 2> = matrix![
 ///     [ 0, 2 ],
@@ -1723,171 +1702,139 @@ where
 /// assert_eq!(m[(0, 1)], 2);
 /// assert_eq!(m[(1, 1)], 3);
 /// ```
-
-#[repr(transparent)]
-#[derive(Copy, Clone)]
-pub struct Permutation<const N: usize>([usize; { N }]);
-
-impl<const N: usize> fmt::Debug for Permutation<{ N }> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[ ")?;
-        for i in 0..N {
-            write!(f, "{:?} ", self.0[i])?;
-        }
-        write!(f, "] ")
-    }
-}
-
-impl<RHS, const N: usize> PartialEq<RHS> for Permutation<{ N }>
-where
-    RHS: Deref<Target = [usize; { N }]>,
-{
-    fn eq(&self, other: &RHS) -> bool {
-        for (a, b) in self.0.iter().zip(other.deref().iter()) {
-            if !a.eq(b) {
-                return false;
-            }
-        }
-        true
-    }
-}
-
-impl<const N: usize> Deref for Permutation<{ N }> {
-    type Target = [usize; { N }];
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<const N: usize> Permutation<{ N }> {
-    pub fn unit() -> Permutation<{ N }> {
-        let mut arr = MaybeUninit::<[usize; N]>::uninit();
-        let arr = unsafe {
-            for i in 0..N {
-                *arr.get_mut().index_mut(i) = i;
-            }
-            arr.assume_init()
-        };
-        Permutation(arr)
-    }
-
-    pub fn swap(self, i: usize, j: usize) -> Self {
-        let Permutation(mut arr) = self;
-        arr.swap(i, j);
-        Permutation(arr)
-    }
-
-    pub fn odd_parity(&self) -> bool {
-        let mut visited = [false; { N }];
-        let mut odd_parity = false;
-        for i in 0..N {
-            if !visited[i] {
-                odd_parity = odd_parity ^ self.cycle_odd_parity(i, &mut visited);
-            }
-        }
-        odd_parity
-    }
-
-    fn cycle_odd_parity(self, i: usize, visited: &mut [bool; { N }]) -> bool {
-        let mut odd_parity = false;
-        let mut j = self[i];
-        while j != i {
-            visited[j] = true;
-            odd_parity = !odd_parity;
-            j = self[j];
-        }
-        odd_parity
-    }
-}
-
-impl<T, const N: usize> Mul<Vector<T, { N }>> for Permutation<{ N }>
-where
-    T: Copy,
-{
-    type Output = Vector<T, { N }>;
-
-    fn mul(self, rhs: Vector<T, { N }>) -> Self::Output {
-        let mut x = rhs.clone();
-        for i in 0..N {
-            x[i] = rhs[self[i]];
-        }
-        x
-    }
-}
-
-#[derive(Copy, Clone, Debug)]
-pub struct Decomposition<T, const N: usize>(Permutation<{ N }>, Matrix<T, { N }, { N }>);
-
-impl<T, const N: usize> Index<(usize, usize)> for Decomposition<T, { N }> {
-    type Output = T;
-
-    fn index(&self, (row, column): (usize, usize)) -> &Self::Output {
-        &self.1[(self.0[row], column)]
-    }
-}
-
-impl<T, const N: usize> Decomposition<T, { N }>
-where
-    T: Copy
-        + PartialEq
-        + One
-        + Zero
-        + Product
-        + Neg<Output = T>
-        + Sub<T, Output = T>
-        + Mul<T, Output = T>
-        + Div<T, Output = T>,
-{
-    pub fn solve(self, b: Vector<T, { N }>) -> Vector<T, { N }> {
-        let mut x = self.0 * b;
-        for i in 0..N {
-            for k in 0..i {
-                x[i] = x[i] - self[(i, k)] * x[k];
-            }
-        }
-
-        for i in (0..N).rev() {
-            for k in i + 1..N {
-                x[i] = x[i] - self[(i, k)] * x[k];
-            }
-
-            x[i] = x[i] / self[(i, i)];
-        }
-        x
-    }
-
-    fn determinant(&self) -> T {
-        let det: T = self.1.diagonal().into_iter().product();
-        if self.0.odd_parity() {
-            -det
-        } else {
-            det
-        }
-    }
-
-    fn invert(&self) -> Matrix<T, { N }, { N }> {
-        Matrix::<T, { N }, { N }>::one()
-            .column_iter()
-            .map(|col| self.solve(*col))
-            .collect()
-    }
-}
-
+///
+/// # Iterating
+///
+/// Matrices are iterated most naturally over their columns, for which the
+/// following three functions are provided:
+///
+/// * [column_iter](Matrix::column_iter), for immutably iterating over columns.
+/// * [column_iter_mut](Matrix::column_iter_mut), for mutably iterating over columns.
+/// * [into_iter](IntoIterator::into_iter), for taking ownership of the columns.
+///
+/// Matrices can also be iterated over by their rows, however they can only
+/// be iterated over by [RowViews](RowView), as they are not the natural
+/// storage for Matrices. The following functions are provided:
+///
+/// * [row_iter](Matrix::row_iter), for immutably iterating over row views.
+/// * [row_iter_mut](Matrix::row_iter_mut), for mutably iterating over row views
+///   ([RowViewMut]).
+/// * In order to take ownership of the rows of the matrix, `into_iter`
+///   should called on the result of a [transpose](Matrix::transpose).
 #[repr(transparent)]
 pub struct Matrix<T, const N: usize, const M: usize>([Vector<T, { N }>; { M }]);
 
-/// A 1-by-1 square matrix.
-pub type Mat1x1<T> = Matrix<T, 1, 1>;
+impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }> {
+    /// Swap the two given columns in-place.
+    pub fn swap_columns(&mut self, a: usize, b: usize) {
+        let a: *mut MaybeUninit<Vector<T, { N }>> = unsafe { mem::transmute(&mut self.0[a]) };
+        let b: *mut MaybeUninit<Vector<T, { N }>> = unsafe { mem::transmute(&mut self.0[b]) };
+        // The following should return a MaybeUninit<T>, which will not be dropped.
+        unsafe { a.replace(b.replace(a.replace(MaybeUninit::uninit()))) };
+    }
 
-/// A 2-by-2 square matrix.
-pub type Mat2x2<T> = Matrix<T, 2, 2>;
+    /// Swap the two given rows in-place.
+    pub fn swap_rows(&mut self, a: usize, b: usize) {
+        for i in 0..N {
+            let a: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut self.0[i][a]) };
+            let b: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut self.0[i][b]) };
+            // The following should return a MaybeUninit<T>, which will not be dropped.
+            unsafe { a.replace(b.replace(a.replace(MaybeUninit::uninit()))) };
+        }
+    }
 
-/// A 3-by-3 square matrix.
-pub type Mat3x3<T> = Matrix<T, 3, 3>;
+    /// Returns an immutable iterator over the columns of the matrix.
+    pub fn column_iter<'a>(&'a self) -> impl Iterator<Item = &'a Vector<T, { N }>> {
+        self.0.iter()
+    }
 
-/// A 4-by-4 square matrix.
-pub type Mat4x4<T> = Matrix<T, 4, 4>;
+    /// Returns a mutable iterator over the columns of the matrix.
+    pub fn column_iter_mut<'a>(&'a mut self) -> impl Iterator<Item = &'a mut Vector<T, { N }>> {
+        self.0.iter_mut()
+    }
+
+    /// Returns an immutable iterator over the rows of the matrix.
+    pub fn row_iter<'a>(&'a self) -> impl Iterator<Item = RowView<'a, T, { N }, { M }>> {
+        RowIter {
+            row: 0,
+            matrix: self,
+        }
+    }
+
+    /// Returns a mutable iterator over the rows of the matrix
+    pub fn row_iter_mut<'a>(&'a mut self) -> impl Iterator<Item = RowViewMut<'a, T, { N }, { M }>> {
+        RowIterMut {
+            row: 0,
+            matrix: self,
+            phantom: PhantomData,
+        }
+    }
+
+    /// Applies the given function to each element of the matrix, constructing a
+    /// new matrix with the returned outputs.
+    pub fn map<Out, F>(self, mut f: F) -> Matrix<Out, { N }, { M }>
+    where
+        F: FnMut(T) -> Out,
+    {
+        let mut from = MaybeUninit::new(self);
+        let mut to = MaybeUninit::<Matrix<Out, { N }, { M }>>::uninit();
+        let fromp: *mut MaybeUninit<Vector<T, { N }>> = unsafe { mem::transmute(&mut from) };
+        let top: *mut Vector<Out, { N }> = unsafe { mem::transmute(&mut to) };
+        for i in 0..M {
+            unsafe {
+                let fromp: *mut MaybeUninit<T> = mem::transmute(fromp.add(i));
+                let top: *mut Out = mem::transmute(top.add(i));
+                for j in 0..N {
+                    top.add(j)
+                        .write(f(fromp.add(j).replace(MaybeUninit::uninit()).assume_init()));
+                }
+            }
+        }
+        unsafe { to.assume_init() }
+    }
+
+    /// Returns the transpose of the matrix.
+    pub fn transpose(self) -> Matrix<T, { M }, { N }> {
+        let mut from = MaybeUninit::new(self);
+        let mut trans = MaybeUninit::<[Vector<T, { M }>; { N }]>::uninit();
+        let fromp: *mut Vector<MaybeUninit<T>, { N }> = unsafe { mem::transmute(&mut from) };
+        let transp: *mut Vector<T, { M }> = unsafe { mem::transmute(&mut trans) };
+        for j in 0..N {
+            // Fetch the current row
+            let mut row = MaybeUninit::<[T; { M }]>::uninit();
+            let rowp: *mut T = unsafe { mem::transmute(&mut row) };
+            for k in 0..M {
+                unsafe {
+                    let fromp: *mut MaybeUninit<T> = mem::transmute(fromp.add(k));
+                    rowp.add(k)
+                        .write(fromp.add(j).replace(MaybeUninit::uninit()).assume_init());
+                }
+            }
+            let row = Vector::<T, { M }>::from(unsafe { row.assume_init() });
+            unsafe {
+                transp.add(j).write(row);
+            }
+        }
+        Matrix::<T, { M }, { N }>(unsafe { trans.assume_init() })
+    }
+}
+
+impl<T, const N: usize> Matrix<T, { N }, { N }>
+where
+    T: Clone,
+{
+    /// Return the diagonal of the matrix. Only available for square matrices.
+    pub fn diagonal(&self) -> Vector<T, { N }> {
+        let mut diag = MaybeUninit::<[T; { N }]>::uninit();
+        let diagp: *mut T = unsafe { mem::transmute(&mut diag) };
+        for i in 0..N {
+            unsafe {
+                diagp.add(i).write(self.0[i].0[i].clone());
+            }
+        }
+        Vector::<T, { N }>(unsafe { diag.assume_init() })
+    }
+}
 
 impl<T, const N: usize, const M: usize> From<[Vector<T, { N }>; { M }]>
     for Matrix<T, { N }, { M }>
@@ -1914,87 +1861,6 @@ impl<T, const N: usize, const M: usize> From<[[T; { N }]; { M }]> for Matrix<T, 
     }
 }
 
-pub struct RowView<'a, T, const N: usize, const M: usize> {
-    row: usize,
-    matrix: &'a Matrix<T, { N }, { M }>,
-}
-
-impl<'a, T, const N: usize, const M: usize> Index<usize> for RowView<'a, T, { N }, { M }> {
-    type Output = T;
-
-    fn index(&self, column: usize) -> &Self::Output {
-        &self.matrix[column][self.row]
-    }
-}
-
-
-impl<'a, T, const N: usize, const M: usize> IntoIterator for RowView<'a, T, { N }, { M }> {
-    type Item = &'a T;
-    type IntoIter = ColIter<'a, T, { N }, { M }>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        ColIter {
-            col: 0,
-            row: self.row,
-            matrix: self.matrix,
-        }
-    }
-}
-
-pub struct RowIter<'a, T, const N: usize, const M: usize> {
-    row: usize,
-    matrix: &'a Matrix<T, { N }, { M }>,
-}
-
-impl<'a, T, const N: usize, const M: usize> Iterator for RowIter<'a, T, { N }, { M }> {
-    type Item = RowView<'a, T, { N }, { M }>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let row = if self.row < N {
-            Some(RowView {
-                row: self.row,
-                matrix: self.matrix,
-            })
-        } else {
-            None
-        };
-        self.row += 1;
-        row
-    }
-}
-
-pub struct ColIter<'a, T, const N: usize, const M: usize> {
-    col: usize,
-    row: usize,
-    matrix: &'a Matrix<T, { N }, { M }>,
-}
-
-impl<'a, T, const N: usize, const M: usize> Iterator for ColIter<'a, T, { N }, { M }> {
-    type Item = &'a T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let element = if self.col < M {
-            Some(&self.matrix[self.col][self.row])
-        } else {
-            None
-        };
-        self.col += 1;
-        element
-    }
-}
-
-impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }> {
-    fn column_iter<'a>(&'a self) -> Iter<'a, Vector<T, { N }>> {
-        self.0.iter()
-    }
-    fn row_iter<'a>(&'a self) -> RowIter<'a, T, { N }, { M }> {
-        RowIter {
-            row: 0,
-            matrix: self,
-        }
-    }
-}
-
 /// Constructs a new matrix from an array, using the more visually natural row
 /// major order. Necessary to help the compiler. Prefer calling the macro
 /// `matrix!`, which calls `new_matrix` internally.
@@ -2008,7 +1874,7 @@ pub fn new_matrix<T: Clone, const N: usize, const M: usize>(
 /// Construct a matrix of any size. The matrix is specified in row-major order,
 /// but this function converts it to aljabar's native column-major order.
 ///
-/// ```ignore
+/// ```
 /// # use aljabar::*;
 /// // `matrix` allows you to create a matrix using natural writing order (row-major).
 /// let m1: Matrix<u32, 4, 3> = matrix![
@@ -2640,68 +2506,6 @@ where
     }
 }
 
-impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }> {
-    /// Applies the given function to each element of the matrix, constructing a
-    /// new matrix with the returned outputs.
-    pub fn map<Out, F>(self, mut f: F) -> Matrix<Out, { N }, { M }>
-    where
-        F: FnMut(T) -> Out,
-    {
-        let mut from = MaybeUninit::new(self);
-        let mut to = MaybeUninit::<Matrix<Out, { N }, { M }>>::uninit();
-        let fromp: *mut MaybeUninit<Vector<T, { N }>> = unsafe { mem::transmute(&mut from) };
-        let top: *mut Vector<Out, { N }> = unsafe { mem::transmute(&mut to) };
-        for i in 0..M {
-            unsafe {
-                let fromp: *mut MaybeUninit<T> = mem::transmute(fromp.add(i));
-                let top: *mut Out = mem::transmute(top.add(i));
-                for j in 0..N {
-                    top.add(j)
-                        .write(f(fromp.add(j).replace(MaybeUninit::uninit()).assume_init()));
-                }
-            }
-        }
-        unsafe { to.assume_init() }
-    }
-
-    /// Returns the transpose of the matrix.
-    pub fn transpose(self) -> Matrix<T, { M }, { N }> {
-        let mut from = MaybeUninit::new(self);
-        let mut trans = MaybeUninit::<[Vector<T, { M }>; { N }]>::uninit();
-        let fromp: *mut Vector<MaybeUninit<T>, { N }> = unsafe { mem::transmute(&mut from) };
-        let transp: *mut Vector<T, { M }> = unsafe { mem::transmute(&mut trans) };
-        for j in 0..N {
-            // Fetch the current row
-            let mut row = MaybeUninit::<[T; { M }]>::uninit();
-            let rowp: *mut T = unsafe { mem::transmute(&mut row) };
-            for k in 0..M {
-                unsafe {
-                    let fromp: *mut MaybeUninit<T> = mem::transmute(fromp.add(k));
-                    rowp.add(k)
-                        .write(fromp.add(j).replace(MaybeUninit::uninit()).assume_init());
-                }
-            }
-            let row = Vector::<T, { M }>::from(unsafe { row.assume_init() });
-            unsafe {
-                transp.add(j).write(row);
-            }
-        }
-        Matrix::<T, { M }, { N }>(unsafe { trans.assume_init() })
-    }
-}
-impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }>
-where
-    T: Clone,
-{
-    pub fn swap_rows(&mut self, a: usize, b: usize) {
-        for i in 0..N {
-            let x = self.0[i][a].clone();
-            self.0[i][a] = self.0[i][b].clone();
-            self.0[i][b] = x;
-        }
-    }
-}
-    
 impl<T, const N: usize> Matrix<T, { N }, { N }>
 where
     T: Copy + PartialOrd + Product + Real + One + Zero,
@@ -2717,7 +2521,7 @@ where
     /// the Matrix.
     pub fn decompose(self) -> Option<Decomposition<T, { N }>> {
         let mut p = Permutation::<{ N }>::unit();
-        let mut a = self.clone());
+        let mut a = self.clone();
 
         for i in 0..N {
             let mut max_a = T::zero();
@@ -2733,13 +2537,13 @@ where
             if max_a.is_zero() {
                 return None;
             }
-            
+
             /* Pivot rows */
             if imax != i {
-                p = p.swap(i, imax);
+                p.swap(i, imax);
                 a.swap_rows(i, imax);
             }
-            
+
             for j in i + 1..N {
                 a[(j, i)] = a[(j, i)] / a[(i, i)];
                 for k in i + 1..N {
@@ -2762,20 +2566,221 @@ where
     }
 }
 
-impl<T, const N: usize> Matrix<T, { N }, { N }>
-where
-    T: Clone,
-{
-    /// Return the diagonal of the matrix.
-    pub fn diagonal(&self) -> Vector<T, { N }> {
-        let mut diag = MaybeUninit::<[T; { N }]>::uninit();
-        let diagp: *mut T = unsafe { mem::transmute(&mut diag) };
+/// Permutation matrix created for LU decomposition.
+#[derive(Copy, Clone)]
+pub struct Permutation<const N: usize> {
+    arr: [usize; { N }],
+    num_swaps: usize,
+}
+
+impl<const N: usize> fmt::Debug for Permutation<{ N }> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[ ")?;
         for i in 0..N {
-            unsafe {
-                diagp.add(i).write(self.0[i].0[i].clone());
+            write!(f, "{:?} ", self.arr[i])?;
+        }
+        write!(f, "] ")
+    }
+}
+
+impl<RHS, const N: usize> PartialEq<RHS> for Permutation<{ N }>
+where
+    RHS: Deref<Target = [usize; { N }]>,
+{
+    fn eq(&self, other: &RHS) -> bool {
+        for (a, b) in self.arr.iter().zip(other.deref().iter()) {
+            if !a.eq(b) {
+                return false;
             }
         }
-        Vector::<T, { N }>(unsafe { diag.assume_init() })
+        true
+    }
+}
+
+impl<const N: usize> Deref for Permutation<{ N }> {
+    type Target = [usize; { N }];
+
+    fn deref(&self) -> &Self::Target {
+        &self.arr
+    }
+}
+
+impl<const N: usize> DerefMut for Permutation<{ N }> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.arr
+    }
+}
+
+impl<const N: usize> Permutation<{ N }> {
+    pub fn unit() -> Permutation<{ N }> {
+        let mut arr = MaybeUninit::<[usize; N]>::uninit();
+        let arr = unsafe {
+            for i in 0..N {
+                *arr.get_mut().index_mut(i) = i;
+            }
+            arr.assume_init()
+        };
+        Permutation { arr, num_swaps: 0 }
+    }
+
+    pub fn swap(&mut self, a: usize, b: usize) {
+        self.num_swaps += 1;
+        self.arr.swap(a, b);
+    }
+}
+
+impl<T, const N: usize> Mul<Vector<T, { N }>> for Permutation<{ N }>
+where
+    T: Copy,
+{
+    type Output = Vector<T, { N }>;
+
+    fn mul(self, rhs: Vector<T, { N }>) -> Self::Output {
+        let mut x = rhs.clone();
+        for i in 0..N {
+            x[i] = rhs[self[i]];
+        }
+        x
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct Decomposition<T, const N: usize>(Permutation<{ N }>, Matrix<T, { N }, { N }>);
+
+impl<T, const N: usize> Index<(usize, usize)> for Decomposition<T, { N }> {
+    type Output = T;
+
+    fn index(&self, (row, column): (usize, usize)) -> &Self::Output {
+        &self.1[(self.0[row], column)]
+    }
+}
+
+impl<T, const N: usize> Decomposition<T, { N }>
+where
+    T: Copy
+        + PartialEq
+        + One
+        + Zero
+        + Product
+        + Neg<Output = T>
+        + Sub<T, Output = T>
+        + Mul<T, Output = T>
+        + Div<T, Output = T>,
+{
+    pub fn solve(self, b: Vector<T, { N }>) -> Vector<T, { N }> {
+        let mut x = self.0 * b;
+        for i in 0..N {
+            for k in 0..i {
+                x[i] = x[i] - self[(i, k)] * x[k];
+            }
+        }
+
+        for i in (0..N).rev() {
+            for k in i + 1..N {
+                x[i] = x[i] - self[(i, k)] * x[k];
+            }
+
+            x[i] = x[i] / self[(i, i)];
+        }
+        x
+    }
+
+    fn determinant(&self) -> T {
+        let det: T = self.1.diagonal().into_iter().product();
+        if self.0.num_swaps % 2 == 1 {
+            -det
+        } else {
+            det
+        }
+    }
+
+    fn invert(&self) -> Matrix<T, { N }, { N }> {
+        Matrix::<T, { N }, { N }>::one()
+            .column_iter()
+            .map(|col| self.solve(*col))
+            .collect()
+    }
+}
+
+/// A view into a given row of a matrix. It's possible to index just like a normal
+/// Vector, but doesn't support the usual operators. It can only be converted to a
+/// a Vector if the scalar value supports Clone.
+pub struct RowView<'a, T, const N: usize, const M: usize> {
+    row: usize,
+    matrix: &'a Matrix<T, { N }, { M }>,
+}
+
+impl<'a, T, const N: usize, const M: usize> Index<usize> for RowView<'a, T, { N }, { M }> {
+    type Output = T;
+
+    fn index(&self, column: usize) -> &Self::Output {
+        &self.matrix[column][self.row]
+    }
+}
+
+struct RowIter<'a, T, const N: usize, const M: usize> {
+    row: usize,
+    matrix: &'a Matrix<T, { N }, { M }>,
+}
+
+impl<'a, T, const N: usize, const M: usize> Iterator for RowIter<'a, T, { N }, { M }> {
+    type Item = RowView<'a, T, { N }, { M }>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let row = if self.row < N {
+            Some(RowView {
+                row: self.row,
+                matrix: self.matrix,
+            })
+        } else {
+            None
+        };
+        self.row += 1;
+        row
+    }
+}
+
+/// A mutable view into a given row of a matrix. It's possible to index just like a
+/// normal Vector, but doesn't support the usual operators. It can only be converted
+/// to a Vector if the scalar value supports Clone.
+pub struct RowViewMut<'a, T, const N: usize, const M: usize> {
+    row: usize,
+    matrix: &'a mut Matrix<T, { N }, { M }>,
+}
+
+impl<'a, T, const N: usize, const M: usize> Index<usize> for RowViewMut<'a, T, { N }, { M }> {
+    type Output = T;
+
+    fn index(&self, column: usize) -> &Self::Output {
+        &self.matrix[column][self.row]
+    }
+}
+
+impl<'a, T, const N: usize, const M: usize> IndexMut<usize> for RowViewMut<'a, T, { N }, { M }> {
+    fn index_mut(&mut self, column: usize) -> &mut Self::Output {
+        &mut self.matrix[column][self.row]
+    }
+}
+
+struct RowIterMut<'a, T, const N: usize, const M: usize> {
+    row: usize,
+    matrix: *mut Matrix<T, { N }, { M }>,
+    phantom: PhantomData<&'a mut Matrix<T, { N }, { M }>>,
+}
+
+impl<'a, T, const N: usize, const M: usize> Iterator for RowIterMut<'a, T, { N }, { M }> {
+    type Item = RowViewMut<'a, T, { N }, { M }>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.row < N {
+            self.row += 1;
+            Some(RowViewMut {
+                row: self.row - 1,
+                matrix: unsafe { &mut *self.matrix },
+            })
+        } else {
+            None
+        }
     }
 }
 
@@ -3136,6 +3141,18 @@ impl<T> From<mint::Quaternion<T>> for Quaternion<T> {
     }
 }
 
+/// A 1-by-1 square matrix.
+pub type Mat1x1<T> = Matrix<T, 1, 1>;
+
+/// A 2-by-2 square matrix.
+pub type Mat2x2<T> = Matrix<T, 2, 2>;
+
+/// A 3-by-3 square matrix.
+pub type Mat3x3<T> = Matrix<T, 3, 3>;
+
+/// A 4-by-4 square matrix.
+pub type Mat4x4<T> = Matrix<T, 4, 4>;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3175,6 +3192,7 @@ mod tests {
         }
     }
 
+    /*
     #[test]
     fn test_permutation() {
         let p1 = Permutation::unit();
@@ -3194,6 +3212,7 @@ mod tests {
         assert!(p2.odd_parity());
         assert!(p3.odd_parity());
     }
+    */
 
     #[test]
     fn test_vec_zero() {
@@ -3558,6 +3577,10 @@ mod tests {
         assert_eq!(
             matrix![[-2.0f64, 1.0f64], [1.5f64, -0.5f64]].determinant(),
             -0.5f64
+        );
+        assert_eq!(
+            matrix![[6.0f64, 1.0, 1.0], [4.0, -2.0, 5.0], [2.0, 8.0, 7.0]].determinant(),
+            -306.0f64
         );
     }
 
