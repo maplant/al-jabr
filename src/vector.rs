@@ -143,7 +143,7 @@ impl<T, const N: usize> Vector<T, { N }> {
 
     /// Converts the Vector into a Matrix with `N` columns each of size `1`.
     ///
-    /// ```
+    /// ```ignore
     /// # use aljabar::*;
     /// let v = vector!(1i32, 2, 3, 4);
     /// let m = Matrix::<i32, 1, 4>::from([

@@ -8,7 +8,7 @@ use super::*;
 /// As with Vectors there are convenience constructor functions for square matrices
 /// of the most common sizes.
 ///
-/// ```
+/// ```ignore
 /// # use aljabar::*;
 /// let a = Matrix::<f32, 3, 3>::from( [ vector!( 1.0, 0.0, 0.0 ),
 ///                                      vector!( 0.0, 1.0, 0.0 ),
@@ -24,7 +24,7 @@ use super::*;
 /// taking the `transpose` of a non-square matrix will produce a matrix with the
 /// width and height swapped:
 ///
-/// ```
+/// ```ignore
 /// # use aljabar::*;
 /// assert_eq!(
 ///     Matrix::<i32, 1, 2>::from( [ vector!( 1 ), vector!( 2 ) ] )
@@ -327,7 +327,7 @@ pub fn new_matrix<T: Clone, const N: usize, const M: usize>(
 /// Construct a [Matrix] of any size. The matrix is specified in row-major order,
 /// but this function converts it to aljabar's native column-major order.
 ///
-/// ```
+/// ```ignore
 /// # use aljabar::*;
 /// // `matrix` allows you to create a matrix using natural writing order (row-major).
 /// let m1: Matrix<u32, 4, 3> = matrix![
