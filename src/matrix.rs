@@ -1,5 +1,4 @@
 /// An `N`-by-`M` Column Major matrix.
-
 use super::*;
 
 /// An `N`-by-`M` Column Major matrix.
@@ -99,6 +98,14 @@ impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }> {
             // The following should return a MaybeUninit<T>, which will not be dropped.
             unsafe { a.replace(b.replace(a.replace(MaybeUninit::uninit()))) };
         }
+    }
+
+    /// Swap the two given elements at index `a` and index `b`.
+    ///
+    /// The indices are expressed in the form `(column, row)`, which may be
+    /// confusing given the indexing strategy for matrices.
+    pub fn swap_elements(&mut self, (acol, arow): (usize, usize), (bcol, brow): (usize, usize)) {
+        unsafe { core::ptr::swap(&mut self[acol][arow], &mut self[bcol][brow]) };
     }
 
     /// Returns an immutable iterator over the columns of the matrix.
@@ -246,9 +253,7 @@ where
     /// Returns the [determinant](https://en.wikipedia.org/wiki/Determinant) of
     /// the matrix.
     pub fn determinant(&self) -> T {
-        self.clone()
-            .lu()
-            .map_or(T::zero(), |x| x.determinant())
+        self.clone().lu().map_or(T::zero(), |x| x.determinant())
     }
 
     /// Attempt to invert the matrix.
@@ -284,8 +289,8 @@ impl<T, const N: usize, const M: usize> From<[[T; { N }]; { M }]> for Matrix<T, 
 
 impl<T> From<Quaternion<T>> for Matrix3<T>
 where
-// This is really annoying to implement with 
-    T: Add + Mul + Sub + Real + One + Copy + Clone, 
+    // This is really annoying to implement with
+    T: Add + Mul + Sub + Real + One + Copy + Clone,
 {
     fn from(quat: Quaternion<T>) -> Self {
         // Taken from cgmath
@@ -306,9 +311,9 @@ where
         let sx2 = x2 * quat.s;
 
         matrix![
-            [ T::one() - yy2 - zz2, xy2 + sz2, xz2 - sy2 ],
-            [ xy2 - sz2, T::one() - xx2 - zz2, yz2 + sx2 ],
-            [ xz2 + sy2, yz2 - sx2, T::one() - xx2 - yy2 ],
+            [T::one() - yy2 - zz2, xy2 + sz2, xz2 - sy2],
+            [xy2 - sz2, T::one() - xx2 - zz2, yz2 + sx2],
+            [xz2 + sy2, yz2 - sx2, T::one() - xx2 - yy2],
         ]
     }
 }
@@ -807,7 +812,7 @@ impl<const N: usize, const M: usize> Mul<Matrix<f32, { N }, { M }>> for f32 {
 
     fn mul(self, mat: Matrix<f32, { N }, { M }>) -> Self::Output {
         mat.map(|x| x * self)
-   }
+    }
 }
 
 impl<const N: usize, const M: usize> Mul<Matrix<f64, { N }, { M }>> for f64 {
@@ -815,7 +820,7 @@ impl<const N: usize, const M: usize> Mul<Matrix<f64, { N }, { M }>> for f64 {
 
     fn mul(self, mat: Matrix<f64, { N }, { M }>) -> Self::Output {
         mat.map(|x| x * self)
-   }
+    }
 }
 
 /// Permutation matrix created for LU decomposition.
@@ -925,7 +930,7 @@ where
         &self.0
     }
 
-    /// Solves the linear equation self * x = b to find x. 
+    /// Solves the linear equation self * x = b to find x.
     pub fn solve(&self, b: Vector<T, { N }>) -> Vector<T, { N }> {
         let mut x = self.0.clone() * b;
         for i in 0..N {
@@ -964,7 +969,6 @@ where
             .collect()
     }
 }
-
 
 #[cfg(feature = "rand")]
 impl<T, const N: usize, const M: usize> Distribution<Matrix<T, { N }, { M }>> for Standard
