@@ -301,7 +301,7 @@ pub type Point5<T> = Point<T, 5>;
 /// `Div`, then that vector is part of a `VectorSpace`.
 pub trait VectorSpace
 where
-    Self: Sized + Zero,
+    Self: Sized + Clone + Zero,
     Self: Add<Self, Output = Self>,
     Self: Sub<Self, Output = Self>,
     Self: Mul<<Self as VectorSpace>::Scalar, Output = Self>,
@@ -312,19 +312,6 @@ where
         + Sub<Self::Scalar, Output = Self::Scalar>
         + Mul<Self::Scalar, Output = Self::Scalar>
         + Div<Self::Scalar, Output = Self::Scalar>;
-
-    fn lerp(self, other: Self, amount: Self::Scalar) -> Self;
-}
-
-impl<T, const N: usize> VectorSpace for Vector<T, { N }>
-where
-    T: Clone + Zero,
-    T: Add<T, Output = T>,
-    T: Sub<T, Output = T>,
-    T: Mul<T, Output = T>,
-    T: Div<T, Output = T>,
-{
-    type Scalar = T;
 
     fn lerp(self, other: Self, amount: Self::Scalar) -> Self {
         self.clone() + ((other - self) * amount)
@@ -355,17 +342,6 @@ where
     T: MetricSpace,
     <T as MetricSpace>::Metric: Real,
 {
-}
-
-impl<T, const N: usize> MetricSpace for Vector<T, { N }>
-where
-    Self: InnerSpace,
-{
-    type Metric = <Self as VectorSpace>::Scalar;
-
-    fn distance2(self, other: Self) -> Self::Metric {
-        (other - self).magnitude2()
-    }
 }
 
 /// Vector spaces that have an inner (also known as "dot") product.
@@ -433,33 +409,7 @@ where
 {
 }
 
-impl<T, const N: usize> InnerSpace for Vector<T, { N }>
-where
-    T: Clone + Zero,
-    T: Add<T, Output = T>,
-    T: Sub<T, Output = T>,
-    T: Mul<T, Output = T>,
-    T: Div<T, Output = T>,
-    // TODO: Remove this add assign bound. This is purely for ease of
-    // implementation.
-    T: AddAssign<T>,
-    Self: Clone,
-{
-    fn dot(self, rhs: Self) -> T {
-        let mut lhs = MaybeUninit::new(self);
-        let mut rhs = MaybeUninit::new(rhs);
-        let mut sum = <T as Zero>::zero();
-        let lhsp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut lhs) };
-        let rhsp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut rhs) };
-        for i in 0..N {
-            sum += unsafe {
-                lhsp.add(i).replace(MaybeUninit::uninit()).assume_init()
-                    * rhsp.add(i).replace(MaybeUninit::uninit()).assume_init()
-            };
-        }
-        sum
-    }
-}
+pub type Matrix3<T> = Matrix<T, 3, 3>;
 
 /// A 1-by-1 square matrix.
 pub type Mat1x1<T> = Matrix<T, 1, 1>;

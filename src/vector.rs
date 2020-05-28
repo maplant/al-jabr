@@ -830,6 +830,22 @@ where
     }
 }
 
+impl<const N: usize> Mul<Vector<f32, { N }>> for f32 {
+    type Output = Vector<f32, { N }>;
+
+    fn mul(self, vec: Vector<f32, { N }>) -> Self::Output {
+        vec * self
+    }
+}
+
+impl<const N: usize> Mul<Vector<f64, { N }>> for f64 {
+    type Output = Vector<f64, { N }>;
+
+    fn mul(self, vec: Vector<f64, { N }>) -> Self::Output {
+        vec * self
+    }
+}
+
 /// Scalar multiply assign
 impl<A, B, const N: usize> MulAssign<B> for Vector<A, { N }>
 where
@@ -880,6 +896,56 @@ where
     }
 }
 
+
+impl<T, const N: usize> VectorSpace for Vector<T, { N }>
+where
+    T: Clone + Zero,
+    T: Add<T, Output = T>,
+    T: Sub<T, Output = T>,
+    T: Mul<T, Output = T>,
+    T: Div<T, Output = T>,
+{
+    type Scalar = T;
+}
+
+impl<T, const N: usize> MetricSpace for Vector<T, { N }>
+where
+    Self: InnerSpace,
+{
+    type Metric = <Self as VectorSpace>::Scalar;
+
+    fn distance2(self, other: Self) -> Self::Metric {
+        (other - self).magnitude2()
+    }
+}
+
+impl<T, const N: usize> InnerSpace for Vector<T, { N }>
+where
+    T: Clone + Zero,
+    T: Add<T, Output = T>,
+    T: Sub<T, Output = T>,
+    T: Mul<T, Output = T>,
+    T: Div<T, Output = T>,
+    // TODO: Remove this add assign bound. This is purely for ease of
+    // implementation.
+    T: AddAssign<T>,
+    Self: Clone,
+{
+    fn dot(self, rhs: Self) -> T {
+        let mut lhs = MaybeUninit::new(self);
+        let mut rhs = MaybeUninit::new(rhs);
+        let mut sum = <T as Zero>::zero();
+        let lhsp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut lhs) };
+        let rhsp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut rhs) };
+        for i in 0..N {
+            sum += unsafe {
+                lhsp.add(i).replace(MaybeUninit::uninit()).assume_init()
+                    * rhsp.add(i).replace(MaybeUninit::uninit()).assume_init()
+            };
+        }
+        sum
+    }
+}
 
 #[cfg(feature = "rand")]
 impl<T, const N: usize> Distribution<Vector<T, { N }>> for Standard

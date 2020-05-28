@@ -282,6 +282,37 @@ impl<T, const N: usize, const M: usize> From<[[T; { N }]; { M }]> for Matrix<T, 
     }
 }
 
+impl<T> From<Quaternion<T>> for Matrix3<T>
+where
+// This is really annoying to implement with 
+    T: Add + Mul + Sub + Real + One + Copy + Clone, 
+{
+    fn from(quat: Quaternion<T>) -> Self {
+        // Taken from cgmath
+        let x2 = quat.v.x() + quat.v.x();
+        let y2 = quat.v.y() + quat.v.y();
+        let z2 = quat.v.z() + quat.v.z();
+
+        let xx2 = x2 * quat.v.x();
+        let xy2 = x2 * quat.v.y();
+        let xz2 = x2 * quat.v.z();
+
+        let yy2 = y2 * quat.v.y();
+        let yz2 = y2 * quat.v.z();
+        let zz2 = z2 * quat.v.z();
+
+        let sy2 = y2 * quat.s;
+        let sz2 = z2 * quat.s;
+        let sx2 = x2 * quat.s;
+
+        matrix![
+            [ T::one() - yy2 - zz2, xy2 + sz2, xz2 - sy2 ],
+            [ xy2 - sz2, T::one() - xx2 - zz2, yz2 + sx2 ],
+            [ xz2 + sy2, yz2 - sx2, T::one() - xx2 - yy2 ],
+        ]
+    }
+}
+
 /// Constructs a new matrix from an array, using the more visually natural row
 /// major order. Necessary to help the compiler. Prefer calling the macro
 /// `matrix!`, which calls `new_matrix` internally.
@@ -769,6 +800,22 @@ where
         }
         Matrix::<T, { N }, { M }>(unsafe { mat.assume_init() })
     }
+}
+
+impl<const N: usize, const M: usize> Mul<Matrix<f32, { N }, { M }>> for f32 {
+    type Output = Matrix<f32, { N }, { M }>;
+
+    fn mul(self, mat: Matrix<f32, { N }, { M }>) -> Self::Output {
+        mat.map(|x| x * self)
+   }
+}
+
+impl<const N: usize, const M: usize> Mul<Matrix<f64, { N }, { M }>> for f64 {
+    type Output = Matrix<f64, { N }, { M }>;
+
+    fn mul(self, mat: Matrix<f64, { N }, { M }>) -> Self::Output {
+        mat.map(|x| x * self)
+   }
 }
 
 /// Permutation matrix created for LU decomposition.

@@ -9,9 +9,11 @@ where
 {
     type Scalar;
 
-    fn rotate_vector(self, v: Vector<Self::Scalar, { DIMS }>) -> Vector<Self::Scalar, { DIMS }>;
+    fn invert(&self) -> Self;
 
-    fn rotate_point(self, p: Point<Self::Scalar, { DIMS }>) -> Point<Self::Scalar, { DIMS }> {
+    fn rotate_vector(&self, v: Vector<Self::Scalar, { DIMS }>) -> Vector<Self::Scalar, { DIMS }>;
+
+    fn rotate_point(&self, p: Point<Self::Scalar, { DIMS }>) -> Point<Self::Scalar, { DIMS }> {
         Point(self.rotate_vector(Vector(p.0)).0)
     }
 }
@@ -98,12 +100,21 @@ where
 
 impl<T, const DIMS: usize> Rotation<{ DIMS }> for Orthonormal<T, { DIMS }>
 where
+    T: Clone + PartialOrd + Product + Real + One + Zero,
+    T: Neg<Output = T>,
+    T: Add<T, Output = T> + Sub<T, Output = T>,
+    T: Mul<T, Output = T> + Div<T, Output = T>,
+    Matrix<T, { DIMS }, { DIMS }>: Mul,
     Matrix<T, { DIMS }, { DIMS }>: Mul<Vector<T, { DIMS }>, Output = Vector<T, { DIMS }>>,
 {
     type Scalar = T;
 
-    fn rotate_vector(self, v: Vector<Self::Scalar, { DIMS }>) -> Vector<Self::Scalar, { DIMS }> {
-        self.0 * v
+    fn invert(&self) -> Self {
+        Orthonormal(self.0.clone().invert().unwrap())
+    }
+
+    fn rotate_vector(&self, v: Vector<Self::Scalar, { DIMS }>) -> Vector<Self::Scalar, { DIMS }> {
+        self.0.clone() * v
     }
 }
 
@@ -113,6 +124,68 @@ where
 pub struct Quaternion<T> {
     pub s: T,
     pub v: Vector3<T>,
+}
+
+impl<T> Quaternion<T> {
+    /// Constructs a quaternion from one scalar and three imaginary
+    /// components.
+    pub const fn new(w: T, xi: T, yj: T, zk: T) -> Quaternion<T> {
+        Quaternion {
+            s: w,
+            v: Vector([xi, yj, zk]),
+        }
+    }
+
+    /// Constructs a quaternion from a scalar and a vector.
+    pub fn from_sv(s: T, v: Vector3<T>) -> Quaternion<T> {
+        Quaternion { s, v }
+    }
+}
+
+impl<T> Quaternion<T>
+where
+    T: Clone,
+{
+    /// Alias for `.s.clone()`
+    pub fn s(&self) -> T {
+        self.s.clone()
+    }
+}
+
+impl<T> Quaternion<T>
+where
+    T: Neg<Output = T>,
+{
+    /// Returns the conjugate of the quaternion.
+    pub fn conjugate(self) -> Self {
+        Quaternion::from_sv(self.s, -self.v)
+    }
+}
+
+impl<T> Zero for Quaternion<T>
+where
+    T: Zero,
+{
+    fn zero() -> Self {
+        Quaternion::new(T::zero(), T::zero(), T::zero(), T::zero())
+    }
+
+    fn is_zero(&self) -> bool {
+        self.s.is_zero() && self.v[0].is_zero() && self.v[1].is_zero() && self.v[2].is_zero()
+    }
+}
+
+impl<T> One for Quaternion<T>
+where
+    T: One,
+{
+    fn one() -> Self {
+        Quaternion::new(T::one(), T::one(), T::one(), T::one())
+    }
+
+    fn is_one(&self) -> bool {
+        self.s.is_one() && self.v[0].is_one() && self.v[1].is_one() && self.v[2].is_one()
+    }
 }
 
 impl<T> From<Euler<T>> for Quaternion<T>
@@ -131,25 +204,6 @@ where
             -xs.clone() * zs.clone() * yc.clone() + ys.clone() * xc.clone() * zc.clone(),
             xs.clone() * ys.clone() * zc.clone() + zs.clone() * xc.clone() * yc.clone(),
         )
-    }
-}
-
-impl<T> Quaternion<T> {
-    pub const fn new(w: T, xi: T, yj: T, zk: T) -> Quaternion<T> {
-        Quaternion {
-            s: w,
-            v: Vector([xi, yj, zk]),
-        }
-    }
-}
-
-impl<T> Quaternion<T>
-where
-    T: Clone,
-{
-    /// Alias for `.s.clone()`
-    pub fn s(&self) -> T {
-        self.s.clone()
     }
 }
 
@@ -217,6 +271,22 @@ where
     }
 }
 
+impl Mul<Quaternion<f32>> for f32 {
+    type Output = Quaternion<f32>;
+
+    fn mul(self, quat: Quaternion<f32>) -> Self::Output {
+        quat * self
+    }
+}
+
+impl Mul<Quaternion<f64>> for f64 {
+    type Output = Quaternion<f64>;
+
+    fn mul(self, quat: Quaternion<f64>) -> Self::Output {
+        quat * self
+    }
+}
+
 impl<T> Mul<Quaternion<T>> for Quaternion<T>
 where
     T: Real + Clone,
@@ -256,14 +326,68 @@ where
     }
 }
 
+impl<T> Add<Quaternion<T>> for Quaternion<T>
+where
+    T: Add<T, Output = T>,
+{
+    type Output = Quaternion<T>;
+
+    fn add(self, rhs: Quaternion<T>) -> Self {
+        Quaternion::from_sv(self.s + rhs.s, self.v + rhs.v)
+    }
+}
+
+impl<T> Sub<Quaternion<T>> for Quaternion<T>
+where
+    T: Sub<T, Output = T>,
+{
+    type Output = Quaternion<T>;
+
+    fn sub(self, rhs: Quaternion<T>) -> Self {
+        Quaternion::from_sv(self.s - rhs.s, self.v - rhs.v)
+    }
+}
+
+impl<T> VectorSpace for Quaternion<T>
+where
+    // These bounds can likely be reduced.
+    T: Clone + Real + Zero,
+{
+    type Scalar = T;
+}
+
+impl<T> MetricSpace for Quaternion<T>
+where
+    T: Clone + AddAssign + Sub<T, Output = T> + Real + Zero,
+{
+    type Metric = T;
+
+    fn distance2(self, other: Self) -> T {
+        (other - self).magnitude2()
+    }
+}
+
+impl<T> InnerSpace for Quaternion<T>
+where
+    T: Clone + Real + Zero + AddAssign,
+{
+    fn dot(self, other: Self) -> Self::Scalar {
+        self.s * other.s + self.v.dot(other.v)
+    }
+}
+
 impl<T> Rotation<3> for Quaternion<T>
 where
-    T: Real + Clone,
+    T: Real + Clone + Zero + AddAssign,
 {
     type Scalar = T;
 
-    fn rotate_vector(self, v: Vector<Self::Scalar, 3>) -> Vector<Self::Scalar, 3> {
-        self * v
+    fn invert(&self) -> Self {
+        self.clone().conjugate() / self.clone().magnitude2()
+    }
+
+    fn rotate_vector(&self, v: Vector<Self::Scalar, 3>) -> Vector<Self::Scalar, 3> {
+        self.clone() * v
     }
 }
 

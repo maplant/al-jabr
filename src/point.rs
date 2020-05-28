@@ -17,10 +17,53 @@ use super::*;
 #[repr(transparent)]
 pub struct Point<T, const N: usize>(pub(crate) [T; N]);
 
-impl<T, const N: usize> Point<T, { N }> {
-    /// Constructs a point from an appropriately sized vector.
-    pub fn from_vec(vec: Vector<T, { N }>) -> Self {
-        Point(vec.0)
+impl<T, const N: usize> Point<T, { N }>
+{
+    /// Convenience method for converting from vector.
+    pub fn from_vec(v: Vector<T, { N }>) -> Self {
+        Self(v.0)
+    }
+
+    /// Convenience method for converting from vector.
+    pub fn to_vec(self) -> Vector<T, { N }> {
+        Vector(self.0)
+    }
+}
+
+impl<T, const N: usize> Point<T, { N }>
+where
+    T: Clone,
+{
+    /// Alias for `.get(0).clone()`.
+    ///
+    /// # Panics
+    /// When `N` = 0.
+    pub fn x(&self) -> T {
+        self.0[0].clone()
+    }
+
+    /// Alias for `.get(1).clone()`.
+    ///
+    /// # Panics
+    /// When `N` < 2. 
+    pub fn y(&self) -> T {
+        self.0[1].clone()
+    }
+
+    /// Alias for `.get(2).clone()`.
+    ///
+    /// # Panics
+    /// When `N` < 3.
+    pub fn z(&self) -> T {
+        self.0[2].clone()
+    }
+
+    /// Alias for `.get(3).clone()`.
+    ///
+    /// # Panics
+    /// When `N` < 4.
+    pub fn w(&self) -> T {
+        self.0[3].clone()
     }
 }
 
