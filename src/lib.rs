@@ -56,7 +56,7 @@
 //! );
 //! ```
 //!
-//! If the scalar type implements `Mul` as well, then the Vector will be an
+//! If the scalar type implements [Mul] as well, then the Vector will be an
 //! [InnerSpace] and have the [dot](InnerSpace::dot) product defined for it,
 //! as well as the ability to find the squared distance between two vectors
 //! (implements [MetricSpace]) and  the squared magnitude of a vector. If the
@@ -91,7 +91,7 @@
 //! raw array reflects that. The [matrix!] macro can be used to construct a
 //! matrix in row-major order:
 //!
-//! ```
+//! ```ignore
 //! # use aljabar::*;
 //! let a = Matrix::<f32, 3, 3>::from([
 //!     vector!(1.0, 0.0, 0.0),
@@ -110,7 +110,7 @@
 //! example, taking the [transpose](Matrix::transpose) of a non-square matrix
 //! will produce a matrix with the width and height swapped:
 //!
-//! ```
+//! ```ignore
 //! # use aljabar::*;
 //! assert_eq!(
 //!     Matrix::<i32, 1, 2>::from([ vector!( 1 ), vector!(2) ])
@@ -428,10 +428,10 @@ impl Real for f64 {
 }
 
 /// Vectors that can be added together and multiplied by scalars form a
-/// VectorSpace.
+/// `VectorSpace`.
 ///
-/// If a `Vector` implements `Add` and `Sub` and its scalar implements `Mul` and
-/// `Div`, then that vector is part of a `VectorSpace`.
+/// If a [Vector] implements [Add] and [Sub] and its scalar implements [Mul] and
+/// [Div], then that vector is part of a `VectorSpace`.
 pub trait VectorSpace
 where
     Self: Sized + Clone + Zero,
@@ -446,8 +446,9 @@ where
         + Mul<Self::Scalar, Output = Self::Scalar>
         + Div<Self::Scalar, Output = Self::Scalar>;
 
-    fn lerp(self, other: Self, amount: Self::Scalar) -> Self {
-        self.clone() + ((other - self) * amount)
+    /// Linear interpolate between the two vectors with a weight of `t`.
+    fn lerp(self, other: Self, t: Self::Scalar) -> Self {
+        self.clone() + ((other - self) * t)
     }
 }
 

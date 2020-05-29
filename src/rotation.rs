@@ -2,17 +2,21 @@
 
 use super::*;
 
-/// A type that can rotate a `Vector` of a given dimension.
+/// A type that can rotate a [Vector] (or [Point]) of a given dimension.
 pub trait Rotation<const DIMS: usize>
 where
     Self: Sized,
 {
     type Scalar;
 
+    /// Returns the multiplicative inverse of the rotation. Effectively
+    /// does the opposite of the given rotation.
     fn invert(&self) -> Self;
 
+    /// Rotates a vector.
     fn rotate_vector(&self, v: Vector<Self::Scalar, { DIMS }>) -> Vector<Self::Scalar, { DIMS }>;
 
+    /// Rotates a point around the origin.
     fn rotate_point(&self, p: Point<Self::Scalar, { DIMS }>) -> Point<Self::Scalar, { DIMS }> {
         Point(self.rotate_vector(Vector(p.0)).0)
     }

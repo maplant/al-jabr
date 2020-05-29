@@ -257,7 +257,8 @@ where
         self.clone().lu().map_or(T::zero(), |x| x.determinant())
     }
 
-    /// Attempt to invert the matrix.
+    /// Attempt to invert the matrix. For square matrices greater in size than
+    /// three, [LU] decomposition is guaranteed to be used.
     pub fn invert(self) -> Option<Self> {
         self.lu().map(|x| x.invert())
     }
@@ -840,7 +841,6 @@ impl<const N: usize, const M: usize> Mul<Matrix<f64, { N }, { M }>> for f64 {
 }
 
 /// Permutation matrix created for LU decomposition.
-#[doc(hidden)]
 #[derive(Copy, Clone)]
 pub struct Permutation<const N: usize> {
     arr:       [usize; { N }],
@@ -886,6 +886,7 @@ impl<const N: usize> DerefMut for Permutation<{ N }> {
 }
 
 impl<const N: usize> Permutation<{ N }> {
+    /// Returns the unit permutation.
     pub fn unit() -> Permutation<{ N }> {
         let mut arr = MaybeUninit::<[usize; N]>::uninit();
         let arr = unsafe {
@@ -897,9 +898,15 @@ impl<const N: usize> Permutation<{ N }> {
         Permutation { arr, num_swaps: 0 }
     }
 
+    /// Swaps two rows and increments the number of swaps.
     pub fn swap(&mut self, a: usize, b: usize) {
         self.num_swaps += 1;
         self.arr.swap(a, b);
+    }
+
+    /// Returns the number of swaps that have occurred.
+    pub fn num_swaps(&self) -> usize {
+        self.num_swaps
     }
 }
 
@@ -919,7 +926,6 @@ where
 }
 
 /// The result of LU factorizing a square matrix with partial-pivoting.
-#[doc(hidden)]
 #[derive(Copy, Clone, Debug)]
 pub struct LU<T, const N: usize>(Permutation<{ N }>, Matrix<T, { N }, { N }>);
 
@@ -948,7 +954,7 @@ where
         &self.0
     }
 
-    /// Solves the linear equation self * x = b to find x.
+    /// Solves the linear equation `self * x = b` and returns `x`.
     pub fn solve(&self, b: Vector<T, { N }>) -> Vector<T, { N }> {
         let mut x = self.0.clone() * b;
         for i in 0..N {
