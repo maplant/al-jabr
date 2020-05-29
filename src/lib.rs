@@ -98,7 +98,7 @@
 //!     vector!(0.0, 1.0, 0.0),
 //!     vector!(0.0, 0.0, 1.0),
 //! ]);
-//! 
+//!
 //! let b: Matrix::<i32, 3, 3> = matrix![
 //!     [ 0, -3, 5 ],
 //!     [ 6, 1, -4 ],
@@ -460,7 +460,7 @@ pub trait MetricSpace: Sized {
     fn distance2(self, other: Self) -> Self::Metric;
 }
 
-/// A metric spaced where the metric is a real number.
+/// A [MetricSpace] where the metric is a real number.
 pub trait RealMetricSpace: MetricSpace
 where
     Self::Metric: Real,
@@ -502,7 +502,7 @@ where
     }
 }
 
-/// Defines an InnerSpace where the Scalar is a real number. Automatically
+/// Defines an [InnerSpace] where the Scalar is a real number. Automatically
 /// implemented.
 pub trait RealInnerSpace: InnerSpace
 where

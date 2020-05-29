@@ -1,4 +1,4 @@
-//! Owned array iteration and (de)serialization. 
+//! Owned array iteration and (de)serialization.
 
 use super::*;
 
@@ -6,7 +6,7 @@ use super::*;
 #[doc(hidden)]
 pub struct ArrayIter<T, const N: usize> {
     pub(crate) array: MaybeUninit<[T; { N }]>,
-    pub(crate) pos: usize,
+    pub(crate) pos:   usize,
 }
 
 impl<T, const N: usize> Iterator for ArrayIter<T, { N }> {
@@ -23,7 +23,6 @@ impl<T, const N: usize> Iterator for ArrayIter<T, { N }> {
         }
     }
 }
-
 
 #[cfg(feature = "serde")]
 #[doc(hidden)]

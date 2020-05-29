@@ -17,8 +17,7 @@ use super::*;
 #[repr(transparent)]
 pub struct Point<T, const N: usize>(pub(crate) [T; N]);
 
-impl<T, const N: usize> Point<T, { N }>
-{
+impl<T, const N: usize> Point<T, { N }> {
     /// Convenience method for converting from vector.
     pub fn from_vec(v: Vector<T, { N }>) -> Self {
         Self(v.0)
@@ -45,7 +44,7 @@ where
     /// Alias for `.get(1).clone()`.
     ///
     /// # Panics
-    /// When `N` < 2. 
+    /// When `N` < 2.
     pub fn y(&self) -> T {
         self.0[1].clone()
     }
@@ -249,11 +248,10 @@ impl<T, const N: usize> IntoIterator for Point<T, { N }> {
         let Point(array) = self;
         ArrayIter {
             array: MaybeUninit::new(array),
-            pos: 0,
+            pos:   0,
         }
     }
 }
-
 
 #[cfg(feature = "rand")]
 impl<T, const N: usize> Distribution<Point<T, { N }>> for Standard
@@ -333,7 +331,7 @@ impl<T: Copy> Into<mint::Point3<T>> for Point<T, 3> {
 }
 
 #[cfg(feature = "mint")]
-impl<T> From<mint::Point3<T>> for Point<T, 3>{
+impl<T> From<mint::Point3<T>> for Point<T, 3> {
     fn from(mint_point: mint::Point3<T>) -> Self {
         Point([mint_point.x, mint_point.y, mint_point.z])
     }

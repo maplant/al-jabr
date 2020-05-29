@@ -121,7 +121,7 @@ impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }> {
     /// Returns an immutable iterator over the rows of the matrix.
     pub fn row_iter<'a>(&'a self) -> impl Iterator<Item = RowView<'a, T, { N }, { M }>> {
         RowIter {
-            row: 0,
+            row:    0,
             matrix: self,
         }
     }
@@ -129,8 +129,8 @@ impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }> {
     /// Returns a mutable iterator over the rows of the matrix
     pub fn row_iter_mut<'a>(&'a mut self) -> impl Iterator<Item = RowViewMut<'a, T, { N }, { M }>> {
         RowIterMut {
-            row: 0,
-            matrix: self,
+            row:     0,
+            matrix:  self,
             phantom: PhantomData,
         }
     }
@@ -369,7 +369,7 @@ macro_rules! matrix {
             [ $item ]
         ])
     };
-   
+
     ( $($rows:expr),* $(,)? ) => {
         $crate::new_matrix([
             $($rows),*
@@ -485,7 +485,7 @@ impl<T, const N: usize, const M: usize> IntoIterator for Matrix<T, { N }, { M }>
         let Matrix(array) = self;
         ArrayIter {
             array: MaybeUninit::new(array),
-            pos: 0,
+            pos:   0,
         }
     }
 }
@@ -842,7 +842,7 @@ impl<const N: usize, const M: usize> Mul<Matrix<f64, { N }, { M }>> for f64 {
 #[doc(hidden)]
 #[derive(Copy, Clone)]
 pub struct Permutation<const N: usize> {
-    arr: [usize; { N }],
+    arr:       [usize; { N }],
     num_swaps: usize,
 }
 

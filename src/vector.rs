@@ -14,7 +14,9 @@ use super::*;
 ///     Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
 /// );
 /// ```
-#[cfg_attr(feature = "swizzle", doc = r##"
+#[cfg_attr(
+    feature = "swizzle",
+    doc = r##"
 # Swizzling
 [Swizzling](https://en.wikipedia.org/wiki/Swizzling_(computer_graphics))
 is supported for up to four elements. Swizzling is a technique for easily
@@ -83,7 +85,8 @@ respectively.
 # use aljabar::*;
 let v = vector!(1i32, 2, 3, 4).xxzz();
 ```
-"##)]
+"##
+)]
 #[repr(transparent)]
 pub struct Vector<T, const N: usize>(pub(crate) [T; N]);
 
@@ -486,7 +489,6 @@ impl<T, const N: usize> FromIterator<T> for Vector<T, { N }> {
     }
 }
 
-
 impl<T, const N: usize> IntoIterator for Vector<T, { N }> {
     type Item = T;
     type IntoIter = ArrayIter<T, { N }>;
@@ -495,12 +497,10 @@ impl<T, const N: usize> IntoIterator for Vector<T, { N }> {
         let Vector(array) = self;
         ArrayIter {
             array: MaybeUninit::new(array),
-            pos: 0,
+            pos:   0,
         }
     }
 }
-
-
 
 // @EkardNT: The cool thing about this is that Rust apparently monomorphizes only
 // those functions which are actually used. This means that this impl for vectors
@@ -525,7 +525,7 @@ where
     /// Alias for `.get(1).clone()`.
     ///
     /// # Panics
-    /// When `N` < 2. 
+    /// When `N` < 2.
     pub fn y(&self) -> T {
         self.0[1].clone()
     }
@@ -566,7 +566,6 @@ where
         self.w()
     }
 }
-
 
 // Generates all the 2, 3, and 4-level swizzle functions.
 #[cfg(feature = "swizzle")]
@@ -679,7 +678,6 @@ where
         true
     }
 }
-
 
 impl<A, B, RHS, const N: usize> PartialEq<RHS> for Vector<A, { N }>
 where
@@ -889,7 +887,6 @@ where
         }
     }
 }
-
 
 impl<T, const N: usize> VectorSpace for Vector<T, { N }>
 where
