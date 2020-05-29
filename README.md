@@ -20,7 +20,8 @@ The library provides:
 `aljabar` supports Vectors and Matrices of any size and will provide 
 implementations for any mathematic operations that are supported by their
 scalars. Additionally, aljabar can leverage Rust's type system to ensure that
-operations are only applied to values that are the correct size.
+operations are only applied to values that are the correct size. `aljabar` can
+do while remaining no-std compatible. 
 
 `aljabar` relies heavily on unstable Rust features such as const generics and thus
 requires nightly to build. 
