@@ -28,7 +28,7 @@ pub struct Euler<T> {
     pub z: T,
 }
 
-/// A `Matrix` that forms an orthonormal basis. Commonly known as a rotation
+/// A [Matrix] that forms an orthonormal basis. Commonly known as a rotation
 /// matrix.
 pub struct Orthonormal<T, const DIMS: usize>(Matrix<T, { DIMS }, { DIMS }>);
 
@@ -118,7 +118,8 @@ where
     }
 }
 
-/// A `Quaternion`, composed of a scalar and a `Vector3`.
+/// A [quaternion](https://en.wikipedia.org/wiki/Quaternion), composed
+/// of a scalar and a `Vector3`.
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Copy, Clone)]
 pub struct Quaternion<T> {

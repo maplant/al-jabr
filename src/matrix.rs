@@ -318,6 +318,15 @@ where
     }
 }
 
+/// A 2-by-2 square matrix.
+pub type Matrix2<T> = Matrix<T, 2, 2>;
+
+/// A 3-by-3 square matrix.
+pub type Matrix3<T> = Matrix<T, 3, 3>;
+
+/// A 4-by-4 square matrix.
+pub type Matrix4<T> = Matrix<T, 4, 4>;
+
 /// Constructs a new matrix from an array, using the more visually natural row
 /// major order. Necessary to help the compiler. Prefer calling the macro
 /// `matrix!`, which calls `new_matrix` internally.

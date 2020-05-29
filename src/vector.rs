@@ -14,88 +14,76 @@ use super::*;
 ///     Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
 /// );
 /// ```
-///
-/// # Swizzling
-/// [Swizzling](https://en.wikipedia.org/wiki/Swizzling_(computer_graphics))
-/// is supported for up to four elements. Swizzling is a technique for easily
-/// rearranging and accessing elements of a vector, used commonly in graphics
-/// shader programming. Swizzling is available on vectors whose element type
-/// implements `Clone`.
-///
-/// Single-element accessors return the element itself. Multi-element accessors
-/// return vectors of the appropriate size.
-///
-/// ## Element names
-/// Only the first four elements of a vector may be swizzled. If you have vectors
-/// larger than length four and want to manipulate their elements, you must do so
-/// manually.
-///
-/// Because swizzling is often used in compute graphics contexts when dealing with
-/// colors, both 'xyzw' and 'rgba' element names are available.
-///
-/// | Element Index | xyzw Name | rgba Name |
-/// |---------------|-----------|-----------|
-/// | 0             | x         | r         |
-/// | 1             | y         | g         |
-/// | 2             | z         | b         |
-/// | 3             | w         | a         |
-///
-/// ## Restrictions
-/// It is a runtime error to attempt to access an element beyond the bounds of a vector.
-/// For example, `vec2(1i32, 2).z()` will panic because `z()` is only available on vectors
-/// of length 3 or greater. Previously, this was a compilation error. However, for newer
-/// versions of rustc this is no longer always the case.
-///
-/// ```should_panic
-/// # use aljabar::*;
-/// let z = vector!(1i32, 2).z(); // Will panic.
-/// ```
-///
-/// ### Mixing
-///
-/// Swizzle methods are not implemented for mixed xyzw/rgba methods.
-///
-/// ```
-/// # use aljabar::*;
-/// let v = vector!(1i32, 2, 3, 4);
-/// let xy = v.xy(); // OK, only uses xyzw names.
-/// let ba = v.ba(); // OK, only uses rgba names.
-/// assert_eq!(xy, vector!(1i32, 2));
-/// assert_eq!(ba, vector!(3i32, 4));
-/// ```
-///
-/// ```compile_fail
-/// # use aljabar::*;
-/// let v = vector!(1i32, 2, 3, 4);
-/// let bad = v.xyrg(); // Compile error, mixes xyzw and rgba names.
-/// ```
-///
-/// ## Examples
-///
-/// To get the first two elements of a 4-vector.
-/// ```
-/// # use aljabar::*;
-/// let v = vector!(1i32, 2, 3, 4).xy();
-/// ```
-///
-/// To get the first and last element of a 4-vector.
-/// ```
-/// # use aljabar::*;
-/// let v = vector!(1i32, 2, 3, 4).xw();
-/// ```
-///
-/// To reverse the order of a 3-vector.
-/// ```
-/// # use aljabar::*;
-/// let v = vector!(1i32, 2, 3).zyx();
-/// ```
-///
-/// To select the first and third elements into the second and fourth elements,
-/// respectively.
-/// ```
-/// # use aljabar::*;
-/// let v = vector!(1i32, 2, 3, 4).xxzz();
-/// ```
+#[cfg_attr(feature = "swizzle", doc = r##"
+# Swizzling
+[Swizzling](https://en.wikipedia.org/wiki/Swizzling_(computer_graphics))
+is supported for up to four elements. Swizzling is a technique for easily
+rearranging and accessing elements of a vector, used commonly in graphics
+shader programming. Swizzling is available on vectors whose element type
+implements `Clone`.
+Single-element accessors return the element itself. Multi-element accessors
+return vectors of the appropriate size.
+## Element names
+Only the first four elements of a vector may be swizzled. If you have vectors
+larger than length four and want to manipulate their elements, you must do so
+manually.
+Because swizzling is often used in compute graphics contexts when dealing with
+colors, both 'xyzw' and 'rgba' element names are available.
+
+| Element Index | xyzw Name | rgba Name |
+|---------------|-----------|-----------|
+| 0             | x         | r         |
+| 1             | y         | g         |
+| 2             | z         | b         |
+| 3             | w         | a         |
+
+## Restrictions
+It is a runtime error to attempt to access an element beyond the bounds of a vector.
+For example, `vec2(1i32, 2).z()` will panic because `z()` is only available on vectors
+of length 3 or greater. Previously, this was a compilation error. However, for newer
+versions of rustc this is no longer always the case.
+```should_panic
+# use aljabar::*;
+let z = vector!(1i32, 2).z(); // Will panic.
+```
+### Mixing
+zle methods are not implemented for mixed xyzw/rgba methods.
+```
+# use aljabar::*;
+let v = vector!(1i32, 2, 3, 4);
+let xy = v.xy(); // OK, only uses xyzw names.
+let ba = v.ba(); // OK, only uses rgba names.
+assert_eq!(xy, vector!(1i32, 2));
+assert_eq!(ba, vector!(3i32, 4));
+```
+```compile_fail
+# use aljabar::*;
+let v = vector!(1i32, 2, 3, 4);
+let bad = v.xyrg(); // Compile error, mixes xyzw and rgba names.
+```
+## Examples
+To get the first two elements of a 4-vector.
+```
+# use aljabar::*;
+let v = vector!(1i32, 2, 3, 4).xy();
+```
+To get the first and last element of a 4-vector.
+```
+# use aljabar::*;
+let v = vector!(1i32, 2, 3, 4).xw();
+```
+To reverse the order of a 3-vector.
+```
+# use aljabar::*;
+let v = vector!(1i32, 2, 3).zyx();
+```
+To select the first and third elements into the second and fourth elements,
+respectively.
+```
+# use aljabar::*;
+let v = vector!(1i32, 2, 3, 4).xxzz();
+```
+"##)]
 #[repr(transparent)]
 pub struct Vector<T, const N: usize>(pub(crate) [T; N]);
 
@@ -161,7 +149,7 @@ impl<T, const N: usize> Vector<T, { N }> {
         let stp: *mut Vector<T, 1> = unsafe { mem::transmute(&mut st) };
         for i in 0..N {
             unsafe {
-                stp.add(i).write(Vector1::<T>::from([fromp
+                stp.add(i).write(Vector::<T, 1>::from([fromp
                     .add(i)
                     .replace(MaybeUninit::uninit())
                     .assume_init()]));
@@ -170,7 +158,8 @@ impl<T, const N: usize> Vector<T, { N }> {
         unsafe { st.assume_init() }
     }
 
-    /// Drop the last component and return the vector with one fewer dimension.
+    /// Removes the last component and returns the vector with one fewer
+    /// dimension.
     ///
     /// ```
     /// # use aljabar::*;
@@ -198,7 +187,7 @@ impl<T, const N: usize> Vector<T, { N }> {
         })
     }
 
-    /// Extend the vector with an additional value.
+    /// Extends the vector with an additional value.
     ///
     /// Useful for performing affine transformations.
     /// ```
@@ -229,12 +218,14 @@ impl<T, const N: usize> Vector<T, { N }> {
 ///
 /// Not particularly useful other than as the return value of the
 /// [truncate](Vector::truncate) method.
+#[doc(hidden)]
 pub type TruncatedVector<T, const N: usize> = Vector<T, { N - 1 }>;
 
 /// A `Vector` with one more additional dimension than `N`.
 ///
 /// Not particularly useful other than as the return value of the
 /// [extend](Vector::extend) method.
+#[doc(hidden)]
 pub type ExtendedVector<T, const N: usize> = Vector<T, { N + 1 }>;
 
 impl<T, const N: usize> Vector<T, { N }>
@@ -362,9 +353,6 @@ impl<T, const N: usize> From<Matrix<T, { N }, 1>> for Vector<T, { N }> {
     }
 }
 
-/// 1-element vector.
-pub type Vector1<T> = Vector<T, 1>;
-
 /// 2-element vector.
 pub type Vector2<T> = Vector<T, 2>;
 
@@ -373,9 +361,6 @@ pub type Vector3<T> = Vector<T, 3>;
 
 /// 4-element vector.
 pub type Vector4<T> = Vector<T, 4>;
-
-/// 5-element vector.
-pub type Vector5<T> = Vector<T, 5>;
 
 /// Constructs a new vector from an array. Necessary to help the compiler. Prefer
 /// calling the macro `vector!`, which calls `new_vector` internally.
@@ -516,7 +501,75 @@ impl<T, const N: usize> IntoIterator for Vector<T, { N }> {
 }
 
 
+
+// @EkardNT: The cool thing about this is that Rust apparently monomorphizes only
+// those functions which are actually used. This means that this impl for vectors
+// of any length N is able to support vectors of length N < 4. For example,
+// calling x() on a Vector2 works, but attempting to call z() will result in a
+// nice compile error.
+//
+// @maplant: Unfortunately, I think due to a compiler change this is no longer the
+// case. I sure hope it's brought back, however...
+impl<T, const N: usize> Vector<T, { N }>
+where
+    T: Clone,
+{
+    /// Alias for `.get(0).clone()`.
+    ///
+    /// # Panics
+    /// When `N` = 0.
+    pub fn x(&self) -> T {
+        self.0[0].clone()
+    }
+
+    /// Alias for `.get(1).clone()`.
+    ///
+    /// # Panics
+    /// When `N` < 2. 
+    pub fn y(&self) -> T {
+        self.0[1].clone()
+    }
+
+    /// Alias for `.get(2).clone()`.
+    ///
+    /// # Panics
+    /// When `N` < 3.
+    pub fn z(&self) -> T {
+        self.0[2].clone()
+    }
+
+    /// Alias for `.get(3).clone()`.
+    ///
+    /// # Panics
+    /// When `N` < 4.
+    pub fn w(&self) -> T {
+        self.0[3].clone()
+    }
+
+    /// Alias for `.x()`.
+    pub fn r(&self) -> T {
+        self.x()
+    }
+
+    /// Alias for `.y()`.
+    pub fn g(&self) -> T {
+        self.y()
+    }
+
+    /// Alias for `.z()`.
+    pub fn b(&self) -> T {
+        self.z()
+    }
+
+    /// Alias for `.w()`.
+    pub fn a(&self) -> T {
+        self.w()
+    }
+}
+
+
 // Generates all the 2, 3, and 4-level swizzle functions.
+#[cfg(feature = "swizzle")]
 macro_rules! swizzle {
     // First level. Doesn't generate any functions itself because the one-letter functions
     // are manually provided in the Swizzle trait.
@@ -585,70 +638,11 @@ macro_rules! swizzle {
     };
 }
 
-// @EkardNT: The cool thing about this is that Rust apparently monomorphizes only
-// those functions which are actually used. This means that this impl for vectors
-// of any length N is able to support vectors of length N < 4. For example,
-// calling x() on a Vector2 works, but attempting to call z() will result in a
-// nice compile error.
-//
-// @maplant: Unfortunately, I think due to a compiler change this is no longer the
-// case. I sure hope it's brought back, however...
+#[cfg(feature = "swizzle")]
 impl<T, const N: usize> Vector<T, { N }>
 where
     T: Clone,
 {
-    /// Alias for `.get(0).clone()`.
-    ///
-    /// # Panics
-    /// When `N` = 0.
-    pub fn x(&self) -> T {
-        self.0[0].clone()
-    }
-
-    /// Alias for `.get(1).clone()`.
-    ///
-    /// # Panics
-    /// When `N` < 2. 
-    pub fn y(&self) -> T {
-        self.0[1].clone()
-    }
-
-    /// Alias for `.get(2).clone()`.
-    ///
-    /// # Panics
-    /// When `N` < 3.
-    pub fn z(&self) -> T {
-        self.0[2].clone()
-    }
-
-    /// Alias for `.get(3).clone()`.
-    ///
-    /// # Panics
-    /// When `N` < 4.
-    pub fn w(&self) -> T {
-        self.0[3].clone()
-    }
-
-    /// Alias for `.x()`.
-    pub fn r(&self) -> T {
-        self.x()
-    }
-
-    /// Alias for `.y()`.
-    pub fn g(&self) -> T {
-        self.y()
-    }
-
-    /// Alias for `.z()`.
-    pub fn b(&self) -> T {
-        self.z()
-    }
-
-    /// Alias for `.w()`.
-    pub fn a(&self) -> T {
-        self.w()
-    }
-
     swizzle! {x, x, y, z, w}
     swizzle! {y, x, y, z, w}
     swizzle! {z, x, y, z, w}

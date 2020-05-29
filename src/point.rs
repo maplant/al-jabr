@@ -79,6 +79,15 @@ impl<T, const N: usize> From<Vector<T, { N }>> for Point<T, { N }> {
     }
 }
 
+/// A point in 2-dimensional space.
+pub type Point2<T> = Point<T, 2>;
+
+/// A point in 3-dimensional space.
+pub type Point3<T> = Point<T, 3>;
+
+/// A point in 4-dimensional space.
+pub type Point4<T> = Point<T, 4>;
+
 /// Constructs a new point from an array. Necessary to help the compiler. Prefer
 /// calling the macro `point!`, which calls `new_point` internally.
 #[inline]

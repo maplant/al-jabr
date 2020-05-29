@@ -28,54 +28,54 @@
 //!
 //! After that, you can begin using `aljabar`.
 //!
-//! ### [Vector] 
+//! ### Vector
 //!
-//! Vectors can be constructed from arrays of any type and size. Use the `vector!`
-//! macro to easily construct a vector:
+//! [Vectors](Vector) can be constructed from arrays of any type and size.
+//! Use the [vector!] macro to easily construct a vector:
 //!
 //! ```
 //! # use aljabar::*;
-//! let a = vector![ 0u32, 1, 2, 3 ]; 
+//! let a = vector![ 0u32, 1, 2, 3 ];
 //! assert_eq!(
-//!     a, 
+//!     a,
 //!     Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
 //! );
 //! ```
-//! 
+//!
 //! [Add], [Sub], and [Neg] will be properly implemented for any `Vector<Scalar, N>`
-//! for any respective implementation of such operations for `Scalar`. Operations 
-//! are only implemented for vectors of equal sizes. 
-//! 
+//! for any respective implementation of such operations for `Scalar`. Operations
+//! are only implemented for vectors of equal sizes.
+//!
 //! ```
 //! # use aljabar::*;
 //! let b = vector![ 0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, ];
-//! let c = vector![ 1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, ] * 0.5; 
+//! let c = vector![ 1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, ] * 0.5;
 //! assert_eq!(
-//!     b + c, 
+//!     b + c,
 //!     vector![ 0.5f32, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5 ]
 //! );
 //! ```
-//! 
-//! If the scalar type implements `Mul` as well, then the Vector will be an 
-//! [InnerSpace] and have the [dot](InnerSpace::dot) product defined for it, 
+//!
+//! If the scalar type implements `Mul` as well, then the Vector will be an
+//! [InnerSpace] and have the [dot](InnerSpace::dot) product defined for it,
 //! as well as the ability to find the squared distance between two vectors
-//! (implements [MetricSpace]) and  the squared magnitude of a vector. If the 
+//! (implements [MetricSpace]) and  the squared magnitude of a vector. If the
 //! scalar type is a real number then the  distance between two vectors and
 //! the magnitude of a vector can be found in addition:
-//! 
+//!
 //! ```rust
 //! # use aljabar::*;
 //! let a = vector!(1i32, 1);
 //! let b = vector!(5i32, 5);
 //! assert_eq!(a.distance2(b), 32);       // distance method not implemented.
 //! assert_eq!((b - a).magnitude2(), 32); // magnitude method not implemented.
-//! 
+//!
 //! let a = vector!(1.0f32, 1.0);
 //! let b = vector!(5.0f32, 5.0);
 //! const close: f32 = 5.65685424949;
 //! assert_eq!(a.distance(b), close);       // distance is implemented.
 //! assert_eq!((b - a).magnitude(), close); // magnitude is implemented.
-//! 
+//!
 //! // Vector normalization is also supported for floating point scalars.
 //! assert_eq!(
 //!     vector!(0.0f32, 20.0, 0.0)
@@ -84,64 +84,68 @@
 //! );
 //! ```
 //!
-//! ### [Matrix]
-//! 
-//! Matrices can be created from arrays of vectors of any size and scalar type. 
-//! Matrices are column-major and constructing a matrix from a raw array reflects 
-//! that. The [matrix!] macro can be used to construct a matrix in row-major order:
-//! 
-//! ``` 
+//! ### Matrix
+//!
+//! [Matrices](Matrix) can be created from arrays of vectors of any size
+//! and scalar type. Matrices are column-major and constructing a matrix from a raw
+//! array reflects that. The [matrix!] macro can be used to construct a matrix in
+//! row-major order:
+//!
+//! ```
 //! # use aljabar::*;
-//! let a = Matrix::<f32, 3, 3>::from( [ vector!(1.0, 0.0, 0.0),
-//!                                      vector!(0.0, 1.0, 0.0),
-//!                                      vector!(0.0, 0.0, 1.0), ] );
+//! let a = Matrix::<f32, 3, 3>::from([
+//!     vector!(1.0, 0.0, 0.0),
+//!     vector!(0.0, 1.0, 0.0),
+//!     vector!(0.0, 0.0, 1.0),
+//! ]);
+//! 
 //! let b: Matrix::<i32, 3, 3> = matrix![
 //!     [ 0, -3, 5 ],
 //!     [ 6, 1, -4 ],
 //!     [ 2, 3, -2 ]
 //! ];
 //! ```
-//! 
+//!
 //! All operations performed on matrices produce fixed-size outputs. For example,
 //! taking the [transpose](Matrix::transpose) of a non-square matrix will produce
-//! a matrix with the width and height swapped: 
-//! 
+//! a matrix with the width and height swapped:
+//!
 //! ```
 //! # use aljabar::*;
 //! assert_eq!(
-//!     Matrix::<i32, 1, 2>::from( [ vector!( 1 ), vector!( 2 ) ] )
+//!     Matrix::<i32, 1, 2>::from([ vector!( 1 ), vector!(2) ])
 //!         .transpose(),
-//!     Matrix::<i32, 2, 1>::from( [ vector!( 1, 2 ) ] )
+//!     Matrix::<i32, 2, 1>::from([ vector!( 1, 2 ) ])
 //! );
 //! ```
-//! 
-//! As with Vectors, if the underlying scalar type supports the appropriate 
+//!
+//! As with Vectors, if the underlying scalar type supports the appropriate
 //! operations, a matrix will implement element-wise [Add] and [Sub] for matrices
-//! of equal size: 
-//! 
+//! of equal size:
+//!
 //! ```
 //! # use aljabar::*;
-//! let a = matrix!( 1u32 );
-//! let b = matrix!( 2u32 );
-//! let c = matrix!( 3u32 );
+//! let a = matrix!(1_u32);
+//! let b = matrix!(2_u32);
+//! let c = matrix!(3_u32);
 //! assert_eq!(a + b, c);
 //! ```
-//! 
-//! And this is true for any type that implements [Add], so therefore the following 
+//!
+//! And this is true for any type that implements [Add], so therefore the following
 //! is possible as well:
-//! 
+//!
 //! ```
 //! # use aljabar::*;
-//! let a = matrix!(matrix!(1u32));
-//! let b = matrix!(matrix!(2u32));
-//! let c = matrix!(matrix!(3u32));
+//! let a = matrix!(matrix!(1_u32));
+//! let b = matrix!(matrix!(2_u32));
+//! let c = matrix!(matrix!(3_u32));
 //! assert_eq!(a + b, c);
 //! ```
-//! 
-//! For a given type `T`, if `T: Clone` and `Vector<T, _>` is an [InnerSpace], then 
+//!
+//! For a given type `T`, if `T: Clone` and `Vector<T, _>` is an [InnerSpace], then
 //! multiplication is defined for `Matrix<T, N, M> * Matrix<T, M, P>`. The result is
-//! a `Matrix<T, N, P>`: 
-//! 
+//! a `Matrix<T, N, P>`:
+//!
 //! ```rust
 //! # use aljabar::*;
 //! let a: Matrix::<i32, 3, 3> = matrix![
@@ -201,18 +205,18 @@ use serde::{
 };
 
 mod array;
-mod vector;
 mod matrix;
 mod point;
 mod rotation;
 pub mod row_view;
+mod vector;
 
 pub use array::*;
-pub use vector::*;
-pub use point::*;
-use row_view::*;
-pub use rotation::*;
 pub use matrix::*;
+pub use point::*;
+pub use rotation::*;
+use row_view::*;
+pub use vector::*;
 
 /// Defines the additive identity for `Self`.
 pub trait Zero {
@@ -424,21 +428,6 @@ impl Real for f64 {
     }
 }
 
-/// A point in 1-dimensional space.
-pub type Point1<T> = Point<T, 1>;
-
-/// A point in 2-dimensional space.
-pub type Point2<T> = Point<T, 2>;
-
-/// A point in 3-dimensional space.
-pub type Point3<T> = Point<T, 3>;
-
-/// A point in 4-dimensional space.
-pub type Point4<T> = Point<T, 4>;
-
-/// A point in 5-dimensional space.
-pub type Point5<T> = Point<T, 5>;
-
 /// Vectors that can be added together and multiplied by scalars form a
 /// VectorSpace.
 ///
@@ -554,20 +543,6 @@ where
 {
 }
 
-pub type Matrix3<T> = Matrix<T, 3, 3>;
-
-/// A 1-by-1 square matrix.
-pub type Mat1x1<T> = Matrix<T, 1, 1>;
-
-/// A 2-by-2 square matrix.
-pub type Mat2x2<T> = Matrix<T, 2, 2>;
-
-/// A 3-by-3 square matrix.
-pub type Mat3x3<T> = Matrix<T, 3, 3>;
-
-/// A 4-by-4 square matrix.
-pub type Mat4x4<T> = Matrix<T, 4, 4>;
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -606,6 +581,8 @@ mod tests {
                 .all(|(x, y)| Vector::<T, { N }>::abs_diff_eq(x, y, epsilon))
         }
     }
+
+    type Vector1<T> = Vector<T, 1>;
 
     /*
     #[test]
@@ -958,12 +935,12 @@ mod tests {
 
     #[test]
     fn test_mat_invert() {
-        assert!(Mat2x2::<f64>::one().invert().unwrap() == Mat2x2::<f64>::one());
+        assert!(Matrix2::<f64>::one().invert().unwrap() == Matrix2::<f64>::one());
 
         // Example taken from cgmath:
 
-        let a: Mat2x2<f64> = matrix![[1.0f64, 2.0f64], [3.0f64, 4.0f64],];
-        let identity: Mat2x2<f64> = Mat2x2::<f64>::one();
+        let a: Matrix2<f64> = matrix![[1.0f64, 2.0f64], [3.0f64, 4.0f64],];
+        let identity: Matrix2<f64> = Matrix2::<f64>::one();
         abs_diff_eq!(
             a.invert().unwrap(),
             matrix![[-2.0f64, 1.0f64], [1.5f64, -0.5f64]]
@@ -978,7 +955,7 @@ mod tests {
 
     #[test]
     fn test_mat_determinant() {
-        assert_eq!(Mat2x2::<f64>::one().determinant(), f64::one());
+        assert_eq!(Matrix2::<f64>::one().determinant(), f64::one());
         /*
         assert_eq!(
             matrix![[3.0f64, 8.0f64], [4.0f64, 6.0f64]].invert().unwrap(),

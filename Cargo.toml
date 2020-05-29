@@ -23,6 +23,10 @@ rand = { version = "0.7", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 smallvec = "0.6"
 
+[features]
+default = []
+swizzle = []
+
 [[test]]
 name = "serde_tests"
 path = "tests/serde_tests.rs"
@@ -31,3 +35,6 @@ required-features = ["serde"]
 [dev-dependencies]
 serde_json = "1.0"
 approx = "0.3.2"
+
+[package.metadata."docs.rs"]
+all-features = true
