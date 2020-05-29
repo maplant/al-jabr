@@ -7,7 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 ## Unreleased Changes
 These changes are included in `master` but have not been released in a new crate version yet.
 
-### [v1.0.0] - 2020-05-29
+## [v1.0.0] - 2020-05-29
 
 - Rename `trunc` method `truncate`.
 - Add `extend`, `max`, `argmax`, `min`, and `argmin` to `Vector`.
