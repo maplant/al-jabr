@@ -7,7 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 ## Unreleased Changes
 These changes are included in `master` but have not been released in a new crate version yet.
 
-### [v1.0.0] changes (so far):
+### [v1.0.0] - 2020-05-29
 
 - Rename `trunc` method `truncate`.
 - Add `extend`, `max`, `argmax`, `min`, and `argmin` to `Vector`.
@@ -16,6 +16,7 @@ These changes are included in `master` but have not been released in a new crate
 - Add complete `inverse`, `determinant` and `lu` methods to `Matrix`.
 - Remove `Angle` trait.
 - Remove `SquareMatrix` trait. 
+- Reorganize `Matrix` type aliases. 
 
 ## [v0.5.0] - 2020-04-25
 
