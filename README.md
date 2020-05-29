@@ -1,5 +1,6 @@
 # aljabar 
 
+[![Build Status](https://travis-ci.com/maplant/aljabar.svg?branch=master)](https://travis-ci.org/maplant/aljabar)
 [![Documentation](https://docs.rs/aljabar/badge.svg)](https://docs.rs/aljabar)
 [![Version](https://img.shields.io/crates/v/aljabar.svg)](https://crates.io/crates/aljabar)
 [![Downloads](https://img.shields.io/crates/d/aljabar.svg)](https://crates.io/crates/aljabar)

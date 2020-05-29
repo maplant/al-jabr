@@ -9,5 +9,6 @@ env:
 script:
   - rustc --version
   - cargo --version
+  - cargo clean
   - cargo build --all-features
   - cargo test --all-features
