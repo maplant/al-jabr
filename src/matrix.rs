@@ -933,7 +933,7 @@ impl<T, const N: usize> Index<(usize, usize)> for LU<T, { N }> {
     type Output = T;
 
     fn index(&self, (row, column): (usize, usize)) -> &Self::Output {
-        &self.1[(self.0[row], column)]
+        &self.1[(row, column)]
     }
 }
 
