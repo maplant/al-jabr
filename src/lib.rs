@@ -727,8 +727,8 @@ mod tests {
 
     #[test]
     fn test_decompose() {
-        let a = matrix![[2.0, 1.0], [-1.0f64, 1.0]];
-        let b = vector!(2.0f64, 5.0);
+        let a = matrix![[-1.0f64, 1.0], [2.0, 1.0]];
+        let b = vector!(5.0f64, 2.0);
         let lu = a.lu().unwrap();
 
         assert_eq!(a * lu.solve(b), b);
