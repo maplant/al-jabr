@@ -5,7 +5,7 @@
 [![Downloads](https://img.shields.io/crates/d/aljabar.svg)](https://crates.io/crates/aljabar)
 
 An experimental n-dimensional linear algebra and mathematics library for computer
-graphics. 
+graphics, designed to be roughly compatible with [cgmath](https://github.com/rustgd/cgmath).
 
 The library provides:
 
@@ -16,13 +16,15 @@ The library provides:
 * orthonormal (rotation) matrices: `Orthonormal`
 
 
-aljabar supports Vectors and Matrices of any size and will provide 
+`aljabar` supports Vectors and Matrices of any size and will provide 
 implementations for any mathematic operations that are supported by their
 scalars. Additionally, aljabar can leverage Rust's type system to ensure that
 operations are only applied to values that are the correct size.
 
-aljabar relies heavily on unstable Rust features such as const generics and thus
+`aljabar` relies heavily on unstable Rust features such as const generics and thus
 requires nightly to build. 
+
+For more information and a guide on getting started, check out the [documentation](https://docs.rs/aljabar/).
 
 ## Cargo Features
 
