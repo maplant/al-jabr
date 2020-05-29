@@ -4,9 +4,9 @@
 
 use super::*;
 
-/// A view into a given row of a matrix. It's possible to index just like a normal
-/// Vector, but doesn't support the usual operators. It can only be converted to a
-/// a Vector if the scalar value supports Clone.
+/// A view into a given row of a matrix. It's possible to index just like a
+/// normal Vector, but doesn't support the usual operators. It can only be
+/// converted to a a Vector if the scalar value supports Clone.
 pub struct RowView<'a, T, const N: usize, const M: usize> {
     row:    usize,
     matrix: &'a Matrix<T, { N }, { M }>,
@@ -87,9 +87,9 @@ impl<'a, T, const N: usize, const M: usize> Iterator for RowIter<'a, T, { N }, {
     }
 }
 
-/// A mutable view into a given row of a matrix. It's possible to index just like a
-/// normal Vector, but doesn't support the usual operators. It can only be converted
-/// to a Vector if the scalar value supports Clone.
+/// A mutable view into a given row of a matrix. It's possible to index just
+/// like a normal Vector, but doesn't support the usual operators. It can only
+/// be converted to a Vector if the scalar value supports Clone.
 pub struct RowViewMut<'a, T, const N: usize, const M: usize> {
     pub(super) row:    usize,
     pub(super) matrix: &'a mut Matrix<T, { N }, { M }>,

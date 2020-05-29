@@ -4,8 +4,8 @@ use super::*;
 /// An `N`-by-`M` Column Major matrix.
 ///
 /// Matrices can be created from arrays of Vectors of any size and scalar type.
-/// As with Vectors there are convenience constructor functions for square matrices
-/// of the most common sizes.
+/// As with Vectors there are convenience constructor functions for square
+/// matrices of the most common sizes.
 ///
 /// ```ignore
 /// # use aljabar::*;
@@ -19,9 +19,9 @@ use super::*;
 /// ];
 /// ```
 ///
-/// All operations performed on matrices produce fixed-size outputs. For example,
-/// taking the `transpose` of a non-square matrix will produce a matrix with the
-/// width and height swapped:
+/// All operations performed on matrices produce fixed-size outputs. For
+/// example, taking the `transpose` of a non-square matrix will produce a matrix
+/// with the width and height swapped:
 ///
 /// ```ignore
 /// # use aljabar::*;
@@ -66,7 +66,8 @@ use super::*;
 /// following three functions are provided:
 ///
 /// * [column_iter](Matrix::column_iter), for immutably iterating over columns.
-/// * [column_iter_mut](Matrix::column_iter_mut), for mutably iterating over columns.
+/// * [column_iter_mut](Matrix::column_iter_mut), for mutably iterating over
+///   columns.
 /// * [into_iter](IntoIterator::into_iter), for taking ownership of the columns.
 ///
 /// Matrices can also be iterated over by their rows, however they can only
@@ -76,8 +77,8 @@ use super::*;
 /// * [row_iter](Matrix::row_iter), for immutably iterating over row views.
 /// * [row_iter_mut](Matrix::row_iter_mut), for mutably iterating over row views
 ///   ([RowViewMut]).
-/// * In order to take ownership of the rows of the matrix, `into_iter`
-///   should called on the result of a [transpose](Matrix::transpose).
+/// * In order to take ownership of the rows of the matrix, `into_iter` should
+///   called on the result of a [transpose](Matrix::transpose).
 #[repr(transparent)]
 pub struct Matrix<T, const N: usize, const M: usize>(pub(crate) [Vector<T, { N }>; { M }]);
 
@@ -338,8 +339,8 @@ pub fn new_matrix<T: Clone, const N: usize, const M: usize>(
     Matrix::<T, { M }, { N }>::from(rows).transpose()
 }
 
-/// Construct a [Matrix] of any size. The matrix is specified in row-major order,
-/// but this function converts it to aljabar's native column-major order.
+/// Construct a [Matrix] of any size. The matrix is specified in row-major
+/// order, but this function converts it to aljabar's native column-major order.
 ///
 /// ```ignore
 /// # use aljabar::*;
@@ -904,8 +905,10 @@ impl<const N: usize> Permutation<{ N }> {
 
 impl<T, const N: usize> Mul<Vector<T, { N }>> for Permutation<{ N }>
 where
-    // The clone bound can be removed from here at some point with
-    // better written code.
+    // The clone bound can be
+    // removed from here at some
+    // point with better written
+    // code.
     T: Clone,
 {
     type Output = Vector<T, { N }>;
@@ -1112,11 +1115,12 @@ into_mint_row_matrix!(RowMatrix3x4, 3, 4, (x, 0), (y, 1), (z, 2));
 into_mint_row_matrix!(RowMatrix4x2, 4, 2, (x, 0), (y, 1), (z, 2), (w, 3));
 into_mint_row_matrix!(RowMatrix4x3, 4, 3, (x, 0), (y, 1), (z, 2), (w, 3));
 
-// It would be possible to implement this without a runtime transpose() by directly
-// copying the corresponding elements from the mint matrix to the appropriate
-// position in the aljabar matrix, but it would be substantially more code to do so.
-// I'm leaving it as a transpose for now in the expectation that converting between
-// aljabar and mint entities will occur infrequently at program boundaries.
+// It would be possible to implement this without a runtime transpose() by
+// directly copying the corresponding elements from the mint matrix to the
+// appropriate position in the aljabar matrix, but it would be substantially
+// more code to do so. I'm leaving it as a transpose for now in the expectation
+// that converting between aljabar and mint entities will occur infrequently at
+// program boundaries.
 macro_rules! from_mint_row_matrix {
     ($mint_name:ident, $rows:expr, $cols:expr, $($component:ident),+) => {
         #[cfg(feature = "mint")]

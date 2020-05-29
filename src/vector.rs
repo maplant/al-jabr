@@ -365,8 +365,8 @@ pub type Vector3<T> = Vector<T, 3>;
 /// 4-element vector.
 pub type Vector4<T> = Vector<T, 4>;
 
-/// Constructs a new vector from an array. Necessary to help the compiler. Prefer
-/// calling the macro `vector!`, which calls `new_vector` internally.
+/// Constructs a new vector from an array. Necessary to help the compiler.
+/// Prefer calling the macro `vector!`, which calls `new_vector` internally.
 #[inline]
 #[doc(hidden)]
 pub fn new_vector<T, const N: usize>(elements: [T; N]) -> Vector<T, { N }> {
@@ -502,14 +502,14 @@ impl<T, const N: usize> IntoIterator for Vector<T, { N }> {
     }
 }
 
-// @EkardNT: The cool thing about this is that Rust apparently monomorphizes only
-// those functions which are actually used. This means that this impl for vectors
-// of any length N is able to support vectors of length N < 4. For example,
-// calling x() on a Vector2 works, but attempting to call z() will result in a
-// nice compile error.
+// @EkardNT: The cool thing about this is that Rust apparently monomorphizes
+// only those functions which are actually used. This means that this impl for
+// vectors of any length N is able to support vectors of length N < 4. For
+// example, calling x() on a Vector2 works, but attempting to call z() will
+// result in a nice compile error.
 //
-// @maplant: Unfortunately, I think due to a compiler change this is no longer the
-// case. I sure hope it's brought back, however...
+// @maplant: Unfortunately, I think due to a compiler change this is no longer
+// the case. I sure hope it's brought back, however...
 impl<T, const N: usize> Vector<T, { N }>
 where
     T: Clone,

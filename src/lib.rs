@@ -42,9 +42,9 @@
 //! );
 //! ```
 //!
-//! [Add], [Sub], and [Neg] will be properly implemented for any `Vector<Scalar, N>`
-//! for any respective implementation of such operations for `Scalar`. Operations
-//! are only implemented for vectors of equal sizes.
+//! [Add], [Sub], and [Neg] will be properly implemented for any `Vector<Scalar,
+//! N>` for any respective implementation of such operations for `Scalar`.
+//! Operations are only implemented for vectors of equal sizes.
 //!
 //! ```
 //! # use aljabar::*;
@@ -87,9 +87,9 @@
 //! ### Matrix
 //!
 //! [Matrices](Matrix) can be created from arrays of vectors of any size
-//! and scalar type. Matrices are column-major and constructing a matrix from a raw
-//! array reflects that. The [matrix!] macro can be used to construct a matrix in
-//! row-major order:
+//! and scalar type. Matrices are column-major and constructing a matrix from a
+//! raw array reflects that. The [matrix!] macro can be used to construct a
+//! matrix in row-major order:
 //!
 //! ```
 //! # use aljabar::*;
@@ -106,9 +106,9 @@
 //! ];
 //! ```
 //!
-//! All operations performed on matrices produce fixed-size outputs. For example,
-//! taking the [transpose](Matrix::transpose) of a non-square matrix will produce
-//! a matrix with the width and height swapped:
+//! All operations performed on matrices produce fixed-size outputs. For
+//! example, taking the [transpose](Matrix::transpose) of a non-square matrix
+//! will produce a matrix with the width and height swapped:
 //!
 //! ```
 //! # use aljabar::*;
@@ -120,8 +120,8 @@
 //! ```
 //!
 //! As with Vectors, if the underlying scalar type supports the appropriate
-//! operations, a matrix will implement element-wise [Add] and [Sub] for matrices
-//! of equal size:
+//! operations, a matrix will implement element-wise [Add] and [Sub] for
+//! matrices of equal size:
 //!
 //! ```
 //! # use aljabar::*;
@@ -131,8 +131,8 @@
 //! assert_eq!(a + b, c);
 //! ```
 //!
-//! And this is true for any type that implements [Add], so therefore the following
-//! is possible as well:
+//! And this is true for any type that implements [Add], so therefore the
+//! following is possible as well:
 //!
 //! ```
 //! # use aljabar::*;
@@ -142,9 +142,9 @@
 //! assert_eq!(a + b, c);
 //! ```
 //!
-//! For a given type `T`, if `T: Clone` and `Vector<T, _>` is an [InnerSpace], then
-//! multiplication is defined for `Matrix<T, N, M> * Matrix<T, M, P>`. The result is
-//! a `Matrix<T, N, P>`:
+//! For a given type `T`, if `T: Clone` and `Vector<T, _>` is an [InnerSpace],
+//! then multiplication is defined for `Matrix<T, N, M> * Matrix<T, M, P>`. The
+//! result is a `Matrix<T, N, P>`:
 //!
 //! ```rust
 //! # use aljabar::*;
@@ -168,7 +168,6 @@
 //!     c
 //! );
 //! ```
-//!
 
 #![allow(incomplete_features)]
 #![feature(const_generics)]
@@ -493,9 +492,10 @@ where
     }
 
     /// Returns the [reflection](https://en.wikipedia.org/wiki/Reflection_(mathematics))
-    /// of the current vector with respect to the given surface normal. The surface normal
-    /// must be of length 1 for the return value to be correct. The current vector is
-    /// interpreted as pointing toward the surface, and does not need to be normalized.
+    /// of the current vector with respect to the given surface normal. The
+    /// surface normal must be of length 1 for the return value to be
+    /// correct. The current vector is interpreted as pointing toward the
+    /// surface, and does not need to be normalized.
     fn reflect(self, surface_normal: Self) -> Self {
         let a = surface_normal.clone() * self.clone().dot(surface_normal);
         self - (a.clone() + a)
@@ -629,7 +629,8 @@ mod tests {
         let d = [0u32];
         assert_ne!(a, b);
         assert_eq!(a, c);
-        assert_eq!(a, &d); // No blanket impl on T for deref... why? infinite loops?
+        assert_eq!(a, &d); // No blanket impl on T for deref... why? infinite
+                           // loops?
     }
 
     #[test]
