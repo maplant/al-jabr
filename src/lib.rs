@@ -979,6 +979,33 @@ mod tests {
     }
 
     #[test]
+    fn test_mat_swap() {
+        let mut m = matrix![ [ 1.0, 2.0 ], [ 3.0, 4.0 ] ];
+        m.swap_columns(0, 1);
+        assert_eq!(
+            m,
+            matrix![ [2.0, 1.0], [4.0, 3.0] ]
+        );
+        let mut m = matrix![ [ 1.0, 2.0 ], [ 3.0, 4.0 ] ];
+        m.swap_rows(0, 1);
+        assert_eq!(
+            m,
+            matrix![ [3.0, 4.0], [1.0, 2.0] ]
+        );
+        let mut m = matrix![ [ 1.0, 2.0 ], [ 3.0, 4.0 ] ];
+        m.swap_columns(0, 0);
+        assert_eq!(
+            m,
+            matrix![ [ 1.0, 2.0 ], [ 3.0, 4.0 ] ]
+        );
+        m.swap_rows(0, 0);
+        assert_eq!(
+            m,
+            matrix![ [ 1.0, 2.0 ], [ 3.0, 4.0 ] ]
+        );
+    }
+
+    #[test]
     fn test_vec_macro_constructor() {
         let v: Vector<f32, 0> = vector![];
         assert!(v.is_empty());

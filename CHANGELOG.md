@@ -7,6 +7,11 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 ## Unreleased Changes
 These changes are included in `master` but have not been released in a new crate version yet.
 
+## [v1.0.1] - 2020-07-19
+
+- Fix an instance of undefined behavior in `swap_columns` and `swap_rows` when attempting to 
+  swap a row or column with itself.
+
 ## [v1.0.0] - 2020-05-29
 
 - Rename `trunc` method `truncate`.

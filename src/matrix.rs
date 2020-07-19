@@ -85,6 +85,10 @@ pub struct Matrix<T, const N: usize, const M: usize>(pub(crate) [Vector<T, { N }
 impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }> {
     /// Swap the two given columns in-place.
     pub fn swap_columns(&mut self, a: usize, b: usize) {
+        // Swapping when a == b is a no-op.
+        if a == b {
+            return;
+        }
         let a: *mut MaybeUninit<Vector<T, { N }>> = unsafe { mem::transmute(&mut self.0[a]) };
         let b: *mut MaybeUninit<Vector<T, { N }>> = unsafe { mem::transmute(&mut self.0[b]) };
         // The following should return a MaybeUninit<T>, which will not be dropped.
@@ -93,6 +97,10 @@ impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }> {
 
     /// Swap the two given rows in-place.
     pub fn swap_rows(&mut self, a: usize, b: usize) {
+        // Swapping when a == b is a no-op.
+        if a == b {
+            return;
+        }
         for i in 0..N {
             let a: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut self.0[i][a]) };
             let b: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut self.0[i][b]) };
