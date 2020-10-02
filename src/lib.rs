@@ -170,9 +170,11 @@
 //! ```
 
 #![allow(incomplete_features)]
+#![feature(const_evaluatable_checked)]
 #![feature(const_generics)]
 #![feature(trivial_bounds)]
 #![feature(maybe_uninit_ref)]
+#![feature(maybe_uninit_uninit_array)]
 
 use core::{
     cmp::PartialOrd,
@@ -180,7 +182,7 @@ use core::{
     hash::{Hash, Hasher},
     iter::{FromIterator, Product},
     marker::PhantomData,
-    mem::{self, MaybeUninit},
+    mem::{self, transmute_copy, MaybeUninit},
     ops::{
         Add, AddAssign, Deref, DerefMut, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub,
         SubAssign,
