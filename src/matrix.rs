@@ -882,12 +882,12 @@ impl<const N: usize> DerefMut for Permutation<{ N }> {
 impl<const N: usize> Permutation<{ N }> {
     /// Returns the unit permutation.
     pub fn unit() -> Permutation<{ N }> {
-        let mut arr = MaybeUninit::<[usize; N]>::uninit();
+        let mut arr: [MaybeUninit<usize>; N] = MaybeUninit::uninit_array();
         let arr = unsafe {
             for i in 0..N {
-                *arr.get_mut().index_mut(i) = i;
+                arr[i] = MaybeUninit::new(i);
             }
-            arr.assume_init()
+            transmute_copy::<_, _>(&arr)
         };
         Permutation { arr, num_swaps: 0 }
     }
