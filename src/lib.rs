@@ -170,6 +170,7 @@
 //! ```
 
 #![allow(incomplete_features)]
+#![feature(const_evaluatable_checked)]
 #![feature(const_generics)]
 #![feature(trivial_bounds)]
 #![feature(maybe_uninit_ref)]
