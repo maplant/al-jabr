@@ -80,7 +80,7 @@ use super::*;
 /// * In order to take ownership of the rows of the matrix, `into_iter` should
 ///   called on the result of a [transpose](Matrix::transpose).
 #[repr(transparent)]
-pub struct Matrix<T, const N: usize, const M: usize>(pub(crate) [Vector<T, { N }>; { M }]);
+pub struct Matrix<T, const N: usize, const M: usize>(pub(crate) [Vector<T, { N }>; M]);
 
 impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }> {
     /// Swap the two given columns in-place.
@@ -156,12 +156,12 @@ impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }> {
     /// Returns the transpose of the matrix.
     pub fn transpose(self) -> Matrix<T, { M }, { N }> {
         let mut from = MaybeUninit::new(self);
-        let mut trans = MaybeUninit::<[Vector<T, { M }>; { N }]>::uninit();
+        let mut trans = MaybeUninit::<[Vector<T, { M }>; N]>::uninit();
         let fromp: *mut Vector<MaybeUninit<T>, { N }> = unsafe { mem::transmute(&mut from) };
         let transp: *mut Vector<T, { M }> = unsafe { mem::transmute(&mut trans) };
         for j in 0..N {
             // Fetch the current row
-            let mut row = MaybeUninit::<[T; { M }]>::uninit();
+            let mut row = MaybeUninit::<[T; M]>::uninit();
             let rowp: *mut T = unsafe { mem::transmute(&mut row) };
             for k in 0..M {
                 unsafe {
@@ -185,7 +185,7 @@ where
 {
     /// Return the diagonal of the matrix. Only available for square matrices.
     pub fn diagonal(&self) -> Vector<T, { N }> {
-        let mut diag = MaybeUninit::<[T; { N }]>::uninit();
+        let mut diag = MaybeUninit::<[T; N]>::uninit();
         let diagp: *mut T = unsafe { mem::transmute(&mut diag) };
         for i in 0..N {
             unsafe {
@@ -258,16 +258,16 @@ where
     }
 }
 
-impl<T, const N: usize, const M: usize> From<[Vector<T, { N }>; { M }]>
+impl<T, const N: usize, const M: usize> From<[Vector<T, { N }>; M]>
     for Matrix<T, { N }, { M }>
 {
-    fn from(array: [Vector<T, { N }>; { M }]) -> Self {
+    fn from(array: [Vector<T, { N }>; M]) -> Self {
         Matrix::<T, { N }, { M }>(array)
     }
 }
 
-impl<T, const N: usize, const M: usize> From<[[T; { N }]; { M }]> for Matrix<T, { N }, { M }> {
-    fn from(array: [[T; { N }]; { M }]) -> Self {
+impl<T, const N: usize, const M: usize> From<[[T; N]; M]> for Matrix<T, { N }, { M }> {
+    fn from(array: [[T; N]; M]) -> Self {
         let mut array = MaybeUninit::<[[T; N]; M]>::new(array);
         let mut vec_array: MaybeUninit<[Vector<T, { N }>; M]> = MaybeUninit::uninit();
         let arrayp: *mut MaybeUninit<[T; N]> = unsafe { mem::transmute(&mut array) };
@@ -385,7 +385,7 @@ where
 impl<T, const N: usize, const M: usize> Copy for Matrix<T, { N }, { M }> where T: Copy {}
 
 impl<T, const N: usize, const M: usize> Deref for Matrix<T, { N }, { M }> {
-    type Target = [Vector<T, { N }>; { M }];
+    type Target = [Vector<T, { N }>; M];
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -415,7 +415,7 @@ impl<T, const N: usize, const M: usize> FromIterator<T> for Matrix<T, { N }, { M
         I: IntoIterator<Item = T>,
     {
         let mut iter = iter.into_iter();
-        let mut new = MaybeUninit::<[Vector<T, { N }>; { M }]>::uninit();
+        let mut new = MaybeUninit::<[Vector<T, { N }>; M]>::uninit();
         let newp: *mut Vector<T, { N }> = unsafe { mem::transmute(&mut new) };
 
         for i in 0..M {
@@ -454,7 +454,7 @@ impl<T, const N: usize, const M: usize> FromIterator<Vector<T, { N }>> for Matri
         I: IntoIterator<Item = Vector<T, { N }>>,
     {
         let mut iter = iter.into_iter();
-        let mut new = MaybeUninit::<[Vector<T, { N }>; { M }]>::uninit();
+        let mut new = MaybeUninit::<[Vector<T, { N }>; M]>::uninit();
         let newp: *mut Vector<T, { N }> = unsafe { mem::transmute(&mut new) };
 
         for i in 0..M {
@@ -494,7 +494,7 @@ where
     Vector<T, { N }>: Zero,
 {
     fn zero() -> Self {
-        let mut zero_mat = MaybeUninit::<[Vector<T, { N }>; { M }]>::uninit();
+        let mut zero_mat = MaybeUninit::<[Vector<T, { N }>; M]>::uninit();
         let matp: *mut Vector<T, { N }> = unsafe { mem::transmute(&mut zero_mat) };
 
         for i in 0..M {
@@ -523,7 +523,7 @@ where
     Self: PartialEq<Self>,
 {
     fn one() -> Self {
-        let mut unit_mat = MaybeUninit::<[Vector<T, { N }>; { N }]>::uninit();
+        let mut unit_mat = MaybeUninit::<[Vector<T, { N }>; N]>::uninit();
         let matp: *mut Vector<T, { N }> = unsafe { mem::transmute(&mut unit_mat) };
         for i in 0..N {
             let mut unit_vec = MaybeUninit::<Vector<T, { N }>>::uninit();
@@ -583,7 +583,7 @@ impl<T, const N: usize, const M: usize> IndexMut<(usize, usize)> for Matrix<T, {
 
 impl<A, B, RHS, const N: usize, const M: usize> PartialEq<RHS> for Matrix<A, { N }, { M }>
 where
-    RHS: Deref<Target = [Vector<B, { N }>; { M }]>,
+    RHS: Deref<Target = [Vector<B, { N }>; M]>,
     A: PartialEq<B>,
 {
     fn eq(&self, other: &RHS) -> bool {
@@ -622,7 +622,7 @@ where
     type Output = Matrix<<A as Add<B>>::Output, { N }, { M }>;
 
     fn add(self, rhs: Matrix<B, { N }, { M }>) -> Self::Output {
-        let mut mat = MaybeUninit::<[Vector<<A as Add<B>>::Output, { N }>; { M }]>::uninit();
+        let mut mat = MaybeUninit::<[Vector<<A as Add<B>>::Output, { N }>; M]>::uninit();
         let mut lhs = MaybeUninit::new(self);
         let mut rhs = MaybeUninit::new(rhs);
         let matp: *mut Vector<<A as Add<B>>::Output, { N }> = unsafe { mem::transmute(&mut mat) };
@@ -662,7 +662,7 @@ where
     type Output = Matrix<<A as Sub<B>>::Output, { N }, { M }>;
 
     fn sub(self, rhs: Matrix<B, { N }, { M }>) -> Self::Output {
-        let mut mat = MaybeUninit::<[Vector<<A as Sub<B>>::Output, { N }>; { M }]>::uninit();
+        let mut mat = MaybeUninit::<[Vector<<A as Sub<B>>::Output, { N }>; M]>::uninit();
         let mut lhs = MaybeUninit::new(self);
         let mut rhs = MaybeUninit::new(rhs);
         let matp: *mut Vector<<A as Sub<B>>::Output, { N }> = unsafe { mem::transmute(&mut mat) };
@@ -702,7 +702,7 @@ where
 
     fn neg(self) -> Self::Output {
         let mut from = MaybeUninit::new(self);
-        let mut mat = MaybeUninit::<[Vector<<T as Neg>::Output, { N }>; { M }]>::uninit();
+        let mut mat = MaybeUninit::<[Vector<<T as Neg>::Output, { N }>; M]>::uninit();
         let fromp: *mut MaybeUninit<Vector<T, { N }>> = unsafe { mem::transmute(&mut from) };
         let matp: *mut Vector<<T as Neg>::Output, { N }> = unsafe { mem::transmute(&mut mat) };
         for i in 0..M {
@@ -733,18 +733,18 @@ where
         // but that's absolutely not true. I got the arrays iterations wrong on
         // the first try and Rust was nice enough to inform me of that fact.
         let mut mat = MaybeUninit::<
-            [Vector<<Vector<T, { M }> as VectorSpace>::Scalar, { N }>; { P }],
+            [Vector<<Vector<T, { M }> as VectorSpace>::Scalar, { N }>; P],
         >::uninit();
         let matp: *mut Vector<<Vector<T, { M }> as VectorSpace>::Scalar, { N }> =
             unsafe { mem::transmute(&mut mat) };
         for i in 0..P {
             let mut column =
-                MaybeUninit::<[<Vector<T, { M }> as VectorSpace>::Scalar; { N }]>::uninit();
+                MaybeUninit::<[<Vector<T, { M }> as VectorSpace>::Scalar; N]>::uninit();
             let columnp: *mut <Vector<T, { M }> as VectorSpace>::Scalar =
                 unsafe { mem::transmute(&mut column) };
             for j in 0..N {
                 // Fetch the current row:
-                let mut row = MaybeUninit::<[T; { M }]>::uninit();
+                let mut row = MaybeUninit::<[T; M]>::uninit();
                 let rowp: *mut T = unsafe { mem::transmute(&mut row) };
                 for k in 0..M {
                     unsafe {
@@ -778,12 +778,12 @@ where
 
     fn mul(self, rhs: Vector<T, { M }>) -> Self::Output {
         let mut column =
-            MaybeUninit::<[<Vector<T, { M }> as VectorSpace>::Scalar; { N }]>::uninit();
+            MaybeUninit::<[<Vector<T, { M }> as VectorSpace>::Scalar; N]>::uninit();
         let columnp: *mut <Vector<T, { M }> as VectorSpace>::Scalar =
             unsafe { mem::transmute(&mut column) };
         for j in 0..N {
             // Fetch the current row:
-            let mut row = MaybeUninit::<[T; { M }]>::uninit();
+            let mut row = MaybeUninit::<[T; M]>::uninit();
             let rowp: *mut T = unsafe { mem::transmute(&mut row) };
             for k in 0..M {
                 unsafe {
@@ -807,7 +807,7 @@ where
     type Output = Matrix<T, { N }, { M }>;
 
     fn mul(self, scalar: T) -> Self::Output {
-        let mut mat = MaybeUninit::<[Vector<T, { N }>; { M }]>::uninit();
+        let mut mat = MaybeUninit::<[Vector<T, { N }>; M]>::uninit();
         let matp: *mut Vector<T, { N }> = unsafe { mem::transmute(&mut mat) };
         for i in 0..M {
             unsafe {
@@ -837,7 +837,7 @@ impl<const N: usize, const M: usize> Mul<Matrix<f64, { N }, { M }>> for f64 {
 /// Permutation matrix created for LU decomposition.
 #[derive(Copy, Clone)]
 pub struct Permutation<const N: usize> {
-    arr:       [usize; { N }],
+    arr:       [usize; N],
     num_swaps: usize,
 }
 
@@ -853,7 +853,7 @@ impl<const N: usize> fmt::Debug for Permutation<{ N }> {
 
 impl<RHS, const N: usize> PartialEq<RHS> for Permutation<{ N }>
 where
-    RHS: Deref<Target = [usize; { N }]>,
+    RHS: Deref<Target = [usize; N]>,
 {
     fn eq(&self, other: &RHS) -> bool {
         for (a, b) in self.arr.iter().zip(other.deref().iter()) {
@@ -866,7 +866,7 @@ where
 }
 
 impl<const N: usize> Deref for Permutation<{ N }> {
-    type Target = [usize; { N }];
+    type Target = [usize; N];
 
     fn deref(&self) -> &Self::Target {
         &self.arr

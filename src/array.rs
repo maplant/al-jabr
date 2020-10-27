@@ -5,7 +5,7 @@ use super::*;
 /// Owned iterator over an array type.
 #[doc(hidden)]
 pub struct ArrayIter<T, const N: usize> {
-    pub(crate) array: MaybeUninit<[T; { N }]>,
+    pub(crate) array: MaybeUninit<[T; N]>,
     pub(crate) pos:   usize,
 }
 

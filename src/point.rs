@@ -123,8 +123,8 @@ where
 
 impl<T, const N: usize> Copy for Point<T, { N }> where T: Copy {}
 
-impl<T, const N: usize> Into<[T; { N }]> for Point<T, { N }> {
-    fn into(self) -> [T; { N }] {
+impl<T, const N: usize> Into<[T; N]> for Point<T, { N }> {
+    fn into(self) -> [T; N] {
         self.0
     }
 }
@@ -162,7 +162,7 @@ where
 }
 
 impl<T, const N: usize> Deref for Point<T, { N }> {
-    type Target = [T; { N }];
+    type Target = [T; N];
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -188,7 +188,7 @@ where
 
 impl<A, B, RHS, const N: usize> PartialEq<RHS> for Point<A, { N }>
 where
-    RHS: Deref<Target = [B; { N }]>,
+    RHS: Deref<Target = [B; N]>,
     A: PartialEq<B>,
 {
     fn eq(&self, other: &RHS) -> bool {
