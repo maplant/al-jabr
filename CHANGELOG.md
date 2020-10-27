@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 ## Unreleased Changes
 These changes are included in `master` but have not been released in a new crate version yet.
 
+## [v1.0.2] - 2020-10-26
+
+- Add `const_evaluatable_checked` unstable feature to allow for `truncate` and `extend` methods to be used.
+
 ## [v1.0.1] - 2020-07-19
 
 - Fix an instance of undefined behavior in `swap_columns` and `swap_rows` when attempting to 
