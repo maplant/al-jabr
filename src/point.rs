@@ -98,7 +98,7 @@ pub fn new_point<T, const N: usize>(elements: [T; N]) -> Point<T, { N }> {
 /// Construct a new [Point] of any size.
 ///
 /// ```
-/// # use aljabar::*;
+/// # use al_jabr::*;
 /// let p: Point<u32, 0> = point![];
 /// let p = point![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
 /// let p = point![true, false, false, true];

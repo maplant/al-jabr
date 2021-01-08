@@ -7,7 +7,7 @@ use super::*;
 /// convenience constructor functions provided for the most common sizes.
 ///
 /// ```
-/// # use aljabar::*;
+/// # use al_jabr::*;
 /// let a: Vector::<u32, 4> = vector!( 0u32, 1, 2, 3 );
 /// assert_eq!(
 ///     a,
@@ -45,13 +45,13 @@ For example, `vec2(1i32, 2).z()` will panic because `z()` is only available on v
 of length 3 or greater. Previously, this was a compilation error. However, for newer
 versions of rustc this is no longer always the case.
 ```should_panic
-# use aljabar::*;
+# use al_jabr::*;
 let z = vector!(1i32, 2).z(); // Will panic.
 ```
 ### Mixing
 zle methods are not implemented for mixed xyzw/rgba methods.
 ```
-# use aljabar::*;
+# use al_jabr::*;
 let v = vector!(1i32, 2, 3, 4);
 let xy = v.xy(); // OK, only uses xyzw names.
 let ba = v.ba(); // OK, only uses rgba names.
@@ -59,30 +59,30 @@ assert_eq!(xy, vector!(1i32, 2));
 assert_eq!(ba, vector!(3i32, 4));
 ```
 ```compile_fail
-# use aljabar::*;
+# use al_jabr::*;
 let v = vector!(1i32, 2, 3, 4);
 let bad = v.xyrg(); // Compile error, mixes xyzw and rgba names.
 ```
 ## Examples
 To get the first two elements of a 4-vector.
 ```
-# use aljabar::*;
+# use al_jabr::*;
 let v = vector!(1i32, 2, 3, 4).xy();
 ```
 To get the first and last element of a 4-vector.
 ```
-# use aljabar::*;
+# use al_jabr::*;
 let v = vector!(1i32, 2, 3, 4).xw();
 ```
 To reverse the order of a 3-vector.
 ```
-# use aljabar::*;
+# use al_jabr::*;
 let v = vector!(1i32, 2, 3).zyx();
 ```
 To select the first and third elements into the second and fourth elements,
 respectively.
 ```
-# use aljabar::*;
+# use al_jabr::*;
 let v = vector!(1i32, 2, 3, 4).xxzz();
 ```
 "##
@@ -134,8 +134,8 @@ impl<T, const N: usize> Vector<T, { N }> {
 
     /// Converts the Vector into a Matrix with `N` columns each of size `1`.
     ///
-    /// ```ignore
-    /// # use aljabar::*;
+    /// ```
+    /// # use al_jabr::*;
     /// let v = vector!(1i32, 2, 3, 4);
     /// let m = Matrix::<i32, 1, 4>::from([
     ///     vector!(1i32),
@@ -161,11 +161,12 @@ impl<T, const N: usize> Vector<T, { N }> {
         unsafe { st.assume_init() }
     }
 
+    /*
     /// Removes the last component and returns the vector with one fewer
     /// dimension.
     ///
     /// ```
-    /// # use aljabar::*;
+    /// # use al_jabr::*;
     /// let (xyz, w) = vector!(0u32, 1, 2, 3).truncate();
     /// assert_eq!(xyz, vector!(0u32, 1, 2));
     /// assert_eq!(w, 3);
@@ -189,12 +190,14 @@ impl<T, const N: usize> Vector<T, { N }> {
                 .assume_init()
         })
     }
+    */
 
+    /*
     /// Extends the vector with an additional value.
     ///
     /// Useful for performing affine transformations.
     /// ```
-    /// # use aljabar::*;
+    /// # use al_jabr::*;
     /// let xyzw = vector!(0u32, 1, 2).extend(3);
     /// assert_eq!(xyzw, vector!(0u32, 1, 2, 3));
     /// ```
@@ -215,8 +218,10 @@ impl<T, const N: usize> Vector<T, { N }> {
             head.assume_init()
         }
     }
+    */
 }
 
+/*
 /// A `Vector` with one fewer dimension than `N`.
 ///
 /// Not particularly useful other than as the return value of the
@@ -230,6 +235,7 @@ pub type TruncatedVector<T, const N: usize> = Vector<T, { N - 1 }>;
 /// [extend](Vector::extend) method.
 #[doc(hidden)]
 pub type ExtendedVector<T, const N: usize> = Vector<T, { N + 1 }>;
+*/
 
 impl<T, const N: usize> Vector<T, { N }>
 where
@@ -376,7 +382,7 @@ pub fn new_vector<T, const N: usize>(elements: [T; N]) -> Vector<T, { N }> {
 /// Construct a new [Vector] of any size.
 ///
 /// ```
-/// # use aljabar::*;
+/// # use al_jabr::*;
 /// let v: Vector<u32, 0> = vector![];
 /// let v = vector![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
 /// let v = vector![true, false, false, true];

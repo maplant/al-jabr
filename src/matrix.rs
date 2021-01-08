@@ -7,8 +7,8 @@ use super::*;
 /// As with Vectors there are convenience constructor functions for square
 /// matrices of the most common sizes.
 ///
-/// ```ignore
-/// # use aljabar::*;
+/// ```
+/// # use al_jabr::*;
 /// let a = Matrix::<f32, 3, 3>::from( [ vector!( 1.0, 0.0, 0.0 ),
 ///                                      vector!( 0.0, 1.0, 0.0 ),
 ///                                      vector!( 0.0, 0.0, 1.0 ), ] );
@@ -23,8 +23,8 @@ use super::*;
 /// example, taking the `transpose` of a non-square matrix will produce a matrix
 /// with the width and height swapped:
 ///
-/// ```ignore
-/// # use aljabar::*;
+/// ```
+/// # use al_jabr::*;
 /// assert_eq!(
 ///     Matrix::<i32, 1, 2>::from( [ vector!( 1 ), vector!( 2 ) ] )
 ///         .transpose(),
@@ -41,7 +41,7 @@ use super::*;
 /// appropriate column of the matrix.
 ///
 /// ```
-/// # use aljabar::*;
+/// # use al_jabr::*;
 /// let m: Matrix::<i32, 2, 2> = matrix![
 ///     [ 0, 2 ],
 ///     [ 1, 3 ],
@@ -335,10 +335,10 @@ pub fn new_matrix<T: Clone, const N: usize, const M: usize>(
 }
 
 /// Construct a [Matrix] of any size. The matrix is specified in row-major
-/// order, but this function converts it to aljabar's native column-major order.
+/// order, but this function converts it to al_jabr's native column-major order.
 ///
-/// ```ignore
-/// # use aljabar::*;
+/// ```
+/// # use al_jabr::*;
 /// // `matrix` allows you to create a matrix using natural writing order (row-major).
 /// let m1: Matrix<u32, 4, 3> = matrix![
 ///     [0, 1, 2],
@@ -1117,9 +1117,9 @@ into_mint_row_matrix!(RowMatrix4x3, 4, 3, (x, 0), (y, 1), (z, 2), (w, 3));
 
 // It would be possible to implement this without a runtime transpose() by
 // directly copying the corresponding elements from the mint matrix to the
-// appropriate position in the aljabar matrix, but it would be substantially
+// appropriate position in the al_jabr matrix, but it would be substantially
 // more code to do so. I'm leaving it as a transpose for now in the expectation
-// that converting between aljabar and mint entities will occur infrequently at
+// that converting between al_jabr and mint entities will occur infrequently at
 // program boundaries.
 macro_rules! from_mint_row_matrix {
     ($mint_name:ident, $rows:expr, $cols:expr, $($component:ident),+) => {
