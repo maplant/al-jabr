@@ -1,4 +1,4 @@
-// Copyright 2019 The Aljabar Developers. For a full listing of authors,
+// Copyright 2019 The Al_Jabr Developers. For a full listing of authors,
 // refer to the Cargo.toml file at the top-level directory of this distribution.
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
@@ -7,26 +7,26 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 //
-//! The super generic super experimental linear algebra library.
+//! A generic linear algebra library for computer graphics.
 //!
-//! `aljabar` is roughly compatibly with [cgmath](https://github.com/rustgd/cgmath)
+//! `al_jabr` is roughly compatibly with [cgmath](https://github.com/rustgd/cgmath)
 //! and is intended to provide a small set of lightweight linear algebra
 //! operations typically useful in interactive computer graphics.
 //!
-//! `aljabar` is n-dimensional, meaning that its data structures support an
+//! `al_jabr` is n-dimensional, meaning that its data structures support an
 //! arbitrary number of elements. If you wish to create a five-dimensional rigid
-//! body simulation, `aljabar` can help you.
+//! body simulation, `al_jabr` can help you.
 //!
 //! ## Getting started
 //!
-//! All of `aljabar`'s types are exported in the root of the crate, so importing
+//! All of `al_jabr`'s types are exported in the root of the crate, so importing
 //! them all is as easy as adding the following to the top of your source file:
 //!
 //! ```
-//! use aljabar::*;
+//! use al_jabr::*;
 //! ```
 //!
-//! After that, you can begin using `aljabar`.
+//! After that, you can begin using `al_jabr`.
 //!
 //! ### Vector
 //!
@@ -34,7 +34,7 @@
 //! Use the [vector!] macro to easily construct a vector:
 //!
 //! ```
-//! # use aljabar::*;
+//! # use al_jabr::*;
 //! let a = vector![ 0u32, 1, 2, 3 ];
 //! assert_eq!(
 //!     a,
@@ -47,7 +47,7 @@
 //! Operations are only implemented for vectors of equal sizes.
 //!
 //! ```
-//! # use aljabar::*;
+//! # use al_jabr::*;
 //! let b = vector![ 0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, ];
 //! let c = vector![ 1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, ] * 0.5;
 //! assert_eq!(
@@ -64,7 +64,7 @@
 //! the magnitude of a vector can be found in addition:
 //!
 //! ```rust
-//! # use aljabar::*;
+//! # use al_jabr::*;
 //! let a = vector!(1i32, 1);
 //! let b = vector!(5i32, 5);
 //! assert_eq!(a.distance2(b), 32);       // distance method not implemented.
@@ -91,8 +91,8 @@
 //! raw array reflects that. The [matrix!] macro can be used to construct a
 //! matrix in row-major order:
 //!
-//! ```ignore
-//! # use aljabar::*;
+//! ```
+//! # use al_jabr::*;
 //! let a = Matrix::<f32, 3, 3>::from([
 //!     vector!(1.0, 0.0, 0.0),
 //!     vector!(0.0, 1.0, 0.0),
@@ -110,8 +110,8 @@
 //! example, taking the [transpose](Matrix::transpose) of a non-square matrix
 //! will produce a matrix with the width and height swapped:
 //!
-//! ```ignore
-//! # use aljabar::*;
+//! ```
+//! # use al_jabr::*;
 //! assert_eq!(
 //!     Matrix::<i32, 1, 2>::from([ vector!( 1 ), vector!(2) ])
 //!         .transpose(),
@@ -124,7 +124,7 @@
 //! matrices of equal size:
 //!
 //! ```
-//! # use aljabar::*;
+//! # use al_jabr::*;
 //! let a = matrix!(1_u32);
 //! let b = matrix!(2_u32);
 //! let c = matrix!(3_u32);
@@ -135,7 +135,7 @@
 //! following is possible as well:
 //!
 //! ```
-//! # use aljabar::*;
+//! # use al_jabr::*;
 //! let a = matrix!(matrix!(1_u32));
 //! let b = matrix!(matrix!(2_u32));
 //! let c = matrix!(matrix!(3_u32));
@@ -147,7 +147,7 @@
 //! result is a `Matrix<T, N, P>`:
 //!
 //! ```rust
-//! # use aljabar::*;
+//! # use al_jabr::*;
 //! let a: Matrix::<i32, 3, 3> = matrix![
 //!     [ 0, -3, 5 ],
 //!     [ 6, 1, -4 ],
@@ -169,11 +169,6 @@
 //! );
 //! ```
 
-#![allow(incomplete_features)]
-#![feature(const_evaluatable_checked)]
-#![feature(const_generics)]
-#![feature(trivial_bounds)]
-#![feature(maybe_uninit_ref)]
 #![feature(maybe_uninit_uninit_array)]
 
 use core::{
@@ -599,7 +594,7 @@ mod tests {
     }
 
     #[test]
-    fn test_permutation_parity() {
+    fn permutation_parity() {
         let p1 = Permutation::<4>::unit();
         let p2 = Permutation([3usize, 1, 2, 0]);
         let p3 = Permutation([2usize, 3, 1, 0]);
@@ -610,13 +605,13 @@ mod tests {
     */
 
     #[test]
-    fn test_vec_zero() {
+    fn vec_zero() {
         let a = Vector3::<u32>::zero();
         assert_eq!(a, Vector3::<u32>::from([0, 0, 0]));
     }
 
     #[test]
-    fn test_vec_index() {
+    fn vec_index() {
         let a = Vector1::<u32>::from([0]);
         assert_eq!(a[0], 0);
         let mut b = Vector2::<u32>::from([1, 2]);
@@ -625,7 +620,7 @@ mod tests {
     }
 
     #[test]
-    fn test_vec_eq() {
+    fn vec_eq() {
         let a = Vector1::<u32>::from([0]);
         let b = Vector1::<u32>::from([1]);
         let c = Vector1::<u32>::from([0]);
@@ -637,7 +632,7 @@ mod tests {
     }
 
     #[test]
-    fn test_vec_addition() {
+    fn vec_addition() {
         let a = Vector1::<u32>::from([0]);
         let b = Vector1::<u32>::from([1]);
         let c = Vector1::<u32>::from([2]);
@@ -659,7 +654,7 @@ mod tests {
     }
 
     #[test]
-    fn test_vec_subtraction() {
+    fn vec_subtraction() {
         let mut a = Vector1::<u32>::from([3]);
         let b = Vector1::<u32>::from([1]);
         let c = Vector1::<u32>::from([2]);
@@ -669,14 +664,14 @@ mod tests {
     }
 
     #[test]
-    fn test_vec_negation() {
+    fn vec_negation() {
         let a = Vector4::<i32>::from([1, 2, 3, 4]);
         let b = Vector4::<i32>::from([-1, -2, -3, -4]);
         assert_eq!(-a, b);
     }
 
     #[test]
-    fn test_vec_scale() {
+    fn vec_scale() {
         let a = Vector4::<f32>::from([2.0, 4.0, 2.0, 4.0]);
         let b = Vector4::<f32>::from([4.0, 8.0, 4.0, 8.0]);
         let c = Vector4::<f32>::from([1.0, 2.0, 1.0, 2.0]);
@@ -685,7 +680,7 @@ mod tests {
     }
 
     #[test]
-    fn test_vec_cross() {
+    fn vec_cross() {
         let a = vector!(1isize, 2isize, 3isize);
         let b = vector!(4isize, 5isize, 6isize);
         let r = vector!(-3isize, 6isize, -3isize);
@@ -693,7 +688,7 @@ mod tests {
     }
 
     #[test]
-    fn test_vec_distance() {
+    fn vec_distance() {
         let a = Vector1::<f32>::from([0.0]);
         let b = Vector1::<f32>::from([1.0]);
         assert_eq!(a.distance2(b), 1.0);
@@ -707,7 +702,7 @@ mod tests {
     }
 
     #[test]
-    fn test_vec_normalize() {
+    fn vec_normalize() {
         let a = vector!(5.0);
         assert_eq!(a.clone().magnitude(), 5.0);
         let a_norm = a.normalize();
@@ -715,20 +710,20 @@ mod tests {
     }
 
     #[test]
-    fn test_vec_transpose() {
+    fn vec_transpose() {
         let v = vector!(1i32, 2, 3, 4);
         let m = Matrix::<i32, 1, 4>::from([vector!(1i32), vector!(2), vector!(3), vector!(4)]);
         assert_eq!(v.transpose(), m);
     }
 
     #[test]
-    fn test_from_fn() {
+    fn from_fn() {
         let indices: Vector<usize, 10> = vector!(0usize, 1, 2, 3, 4, 5, 6, 7, 8, 9);
         assert_eq!(Vector::<usize, 10>::from_fn(|i| i), indices);
     }
 
     #[test]
-    fn test_decompose() {
+    fn decompose() {
         let a = matrix![[-1.0f64, 1.0], [2.0, 1.0]];
         let b = vector!(5.0f64, 2.0);
         let lu = a.lu().unwrap();
@@ -737,28 +732,28 @@ mod tests {
     }
 
     #[test]
-    fn test_vec_map() {
+    fn vec_map() {
         let int = vector!(1i32, 0, 1, 1, 0, 1, 1, 0, 0, 0);
         let boolean = vector!(true, false, true, true, false, true, true, false, false, false);
         assert_eq!(int.map(|i| i != 0), boolean);
     }
 
     #[test]
-    fn test_vec_from_iter() {
+    fn vec_from_iter() {
         let v = vec![1i32, 2, 3, 4];
         let vec = Vector::<i32, 4>::from_iter(v);
         assert_eq!(vec, vector![1i32, 2, 3, 4])
     }
 
     #[test]
-    fn test_vec_into_iter() {
+    fn vec_into_iter() {
         let v = vector!(1i32, 2, 3, 4);
         let vec: Vec<i32> = v.into_iter().collect();
         assert_eq!(vec, vec![1i32, 2, 3, 4])
     }
 
     #[test]
-    fn test_vec_indexed_map() {
+    fn vec_indexed_map() {
         let boolean = vector!(true, false, true, true, false, true, true, false, false, false);
         let indices = vector!(0usize, 1, 2, 3, 4, 5, 6, 7, 8, 9);
         assert_eq!(boolean.indexed_map(|i, _| i), indices);
@@ -767,7 +762,7 @@ mod tests {
     // Does not compile.
     /*
     #[test]
-    fn test_vec_first() {
+    fn vec_first() {
         let a = Vector2::<i32>::from([ 1, 2 ]);
         let b = Vector3::<i32>::from([ 1, 2, 3 ]);
         let c = b.first::<2_usize>();
@@ -776,13 +771,13 @@ mod tests {
     */
 
     #[test]
-    fn test_mat_identity() {
+    fn mat_identity() {
         let unit = matrix![[1u32, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1],];
         assert_eq!(Matrix::<u32, 4, 4>::one(), unit);
     }
 
     #[test]
-    fn test_mat_negation() {
+    fn mat_negation() {
         let neg_unit = matrix![
             [-1i32, 0, 0, 0],
             [0, -1, 0, 0],
@@ -793,7 +788,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mat_add() {
+    fn mat_add() {
         let a = matrix![matrix![1u32]];
         let b = matrix![matrix![10u32]];
         let c = matrix![matrix![11u32]];
@@ -801,14 +796,14 @@ mod tests {
     }
 
     #[test]
-    fn test_mat_scalar_mult() {
+    fn mat_scalar_mult() {
         let a = Matrix::<f32, 2, 2>::from([vector!(0.0, 1.0), vector!(0.0, 2.0)]);
         let b = Matrix::<f32, 2, 2>::from([vector!(0.0, 2.0), vector!(0.0, 4.0)]);
         assert_eq!(a * 2.0, b);
     }
 
     #[test]
-    fn test_mat_mult() {
+    fn mat_mult() {
         let a = Matrix::<f32, 2, 2>::from([vector!(0.0, 0.0), vector!(1.0, 0.0)]);
         let b = Matrix::<f32, 2, 2>::from([vector!(0.0, 1.0), vector!(0.0, 0.0)]);
         assert_eq!(a * b, matrix![[1.0, 0.0], [0.0, 0.0],]);
@@ -839,7 +834,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mat_index() {
+    fn mat_index() {
         let m: Matrix<i32, 2, 2> = matrix![[0, 2], [1, 3],];
         assert_eq!(m[(0, 0)], 0);
         assert_eq!(m[0][0], 0);
@@ -852,7 +847,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mat_transpose() {
+    fn mat_transpose() {
         assert_eq!(
             Matrix::<i32, 1, 2>::from([vector!(1), vector!(2)]).transpose(),
             Matrix::<i32, 2, 1>::from([vector!(1, 2)])
@@ -864,14 +859,14 @@ mod tests {
     }
 
     #[test]
-    fn test_square_matrix() {
+    fn square_matrix() {
         let a: Matrix<i32, 3, 3> = matrix![[5, 0, 0], [0, 8, 12], [0, 0, 16],];
         let diag: Vector<i32, 3> = vector!(5, 8, 16);
         assert_eq!(a.diagonal(), diag);
     }
 
     #[test]
-    fn test_readme_code() {
+    fn readme_code() {
         let a = vector!(0u32, 1, 2, 3);
         assert_eq!(a, Vector::<u32, 4>::from([0u32, 1, 2, 3]));
 
@@ -918,7 +913,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mat_map() {
+    fn mat_map() {
         let int = matrix![[1i32, 0], [1, 1], [0, 1], [1, 0], [0, 0]];
         let boolean = matrix![
             [true, false],
@@ -931,14 +926,14 @@ mod tests {
     }
 
     #[test]
-    fn test_mat_from_iter() {
+    fn mat_from_iter() {
         let v = vec![1i32, 2, 3, 4];
         let mat = Matrix::<i32, 2, 2>::from_iter(v);
         assert_eq!(mat, matrix![[1i32, 2], [3, 4]].transpose())
     }
 
     #[test]
-    fn test_mat_invert() {
+    fn mat_invert() {
         assert!(Matrix2::<f64>::one().invert().unwrap() == Matrix2::<f64>::one());
 
         // Example taken from cgmath:
@@ -958,7 +953,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mat_determinant() {
+    fn mat_determinant() {
         assert_eq!(Matrix2::<f64>::one().determinant(), f64::one());
         /*
         assert_eq!(
@@ -981,7 +976,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mat_swap() {
+    fn mat_swap() {
         let mut m = matrix![ [ 1.0, 2.0 ], [ 3.0, 4.0 ] ];
         m.swap_columns(0, 1);
         assert_eq!(
@@ -1008,7 +1003,7 @@ mod tests {
     }
 
     #[test]
-    fn test_vec_macro_constructor() {
+    fn vec_macro_constructor() {
         let v: Vector<f32, 0> = vector![];
         assert!(v.is_empty());
 
@@ -1022,7 +1017,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mat_macro_constructor() {
+    fn mat_macro_constructor() {
         let m: Matrix<f32, 0, 0> = matrix![];
         assert!(m.is_empty());
 
@@ -1040,7 +1035,7 @@ mod tests {
     }
 
     #[test]
-    fn test_vec_swizzle() {
+    fn vec_swizzle() {
         let v: Vector<f32, 1> = Vector::<f32, 1>::from([1.0]);
         assert_eq!(1.0, v.x());
 
@@ -1067,7 +1062,7 @@ mod tests {
     }
 
     #[test]
-    fn test_vec_reflect() {
+    fn vec_reflect() {
         // Incident straight on to the surface.
         let v = vector!(1, 0);
         let n = vector!(-1, 0);
@@ -1082,7 +1077,7 @@ mod tests {
     }
 
     #[test]
-    fn test_rotation() {
+    fn rotation() {
         let rot = Orthonormal::<f32, 3>::from(Euler {
             x: 0.0,
             y: 0.0,

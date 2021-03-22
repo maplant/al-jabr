@@ -1,20 +1,20 @@
 [package]
-name = "aljabar"
-version = "1.0.2"
+name = "al-jabr"
+version = "0.1.0"
 authors = ["Matthew Plant <map@maplant.com>", "Øystein Hovind <oystein.hovind@folq.no>"]
 edition = "2018"
-description = "A super generic, super experimental linear algebra library."
+description = "An n-dimensional linear algebra library intended for game development."
 license = "MIT/Apache-2.0"
 
-documentation = "https://docs.rs/crate/aljabar"
-homepage = "https://github.com/maplant/aljabar"
-repository = "https://github.com/maplant/aljabar"
+documentation = "https://docs.rs/crate/al-jabr"
+homepage = "https://github.com/maplant/al-jabr"
+repository = "https://github.com/maplant/al-jabr"
 readme = "README.md"
 
-keywords = [ "linear", "algebra", "matrix", "vector", "math" ]
+keywords = [ "linear", "algebra", "matrix", "vector", "math", "quaternion", "gamedev"]
 
 [lib]
-name = "aljabar"
+name = "al_jabr"
 
 [dependencies]
 mint = { version = "0.5", optional = true }

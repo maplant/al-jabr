@@ -1,11 +1,11 @@
-# aljabar 
+# al-jabr 
 
-[![Build Status](https://api.travis-ci.org/maplant/aljabar.svg?branch=master)](https://travis-ci.org/github/maplant/aljabar)
-[![Documentation](https://docs.rs/aljabar/badge.svg)](https://docs.rs/aljabar)
-[![Version](https://img.shields.io/crates/v/aljabar.svg)](https://crates.io/crates/aljabar)
-[![Downloads](https://img.shields.io/crates/d/aljabar.svg)](https://crates.io/crates/aljabar)
+[![Build Status](https://api.travis-ci.org/maplant/al-jabr.svg?branch=master)](https://travis-ci.org/github/maplant/al-jabr)
+[![Documentation](https://docs.rs/al-jabr/badge.svg)](https://docs.rs/al-jabr)
+[![Version](https://img.shields.io/crates/v/al-jabr.svg)](https://crates.io/crates/al-jabr)
+[![Downloads](https://img.shields.io/crates/d/al-jabr.svg)](https://crates.io/crates/al-jabr)
 
-An experimental n-dimensional linear algebra and mathematics library for computer
+An n-dimensional linear algebra and mathematics library for computer
 graphics, designed to be roughly compatible with [cgmath](https://github.com/rustgd/cgmath).
 
 The library provides:
@@ -17,20 +17,17 @@ The library provides:
 * orthonormal (rotation) matrices: `Orthonormal`
 
 
-`aljabar` supports Vectors and Matrices of any size and will provide 
+`al-jabr` supports Vectors and Matrices of any size and will provide 
 implementations for any mathematic operations that are supported by their
-scalars. Additionally, aljabar can leverage Rust's type system to ensure that
-operations are only applied to values that are the correct size. `aljabar` can
+scalars. Additionally, al-jabr can leverage Rust's type system to ensure that
+operations are only applied to values that are the correct size. `al-jabr` can
 do this while remaining no-std compatible. 
 
-`aljabar` relies heavily on unstable Rust features such as const generics and thus
-requires nightly to build. 
-
-For more information and a guide on getting started, check out the [documentation](https://docs.rs/aljabar/).
+For more information and a guide on getting started, check out the [documentation](https://docs.rs/al-jabr/).
 
 ## Cargo Features
 
-* The `mint` feature (off by default) adds a dependency to the [mint](https://crates.io/crates/mint) crate and provides support for converting between aljabar types and mint types.
+* The `mint` feature (off by default) adds a dependency to the [mint](https://crates.io/crates/mint) crate and provides support for converting between al-jabr types and mint types.
 * The `serde` feature (off by default) adds serialization/deserialization support from the [serde](https://crates.io/crates/serde) crate.
 * The `rand` feature (off by default) allows you to create random points, vectors, and matrices by sampling from a random number source.
 * The `swizzle` feature (off by default) enables [swizzle](https://en.wikipedia.org/wiki/Swizzling_(computer_graphics)) functions for vectors.
@@ -38,11 +35,11 @@ For more information and a guide on getting started, check out the [documentatio
 ## Contributions
 
 Pull request of any nature are welcome, especially regaring performance improvements.
-Although a aljabar is generic with respect to dimensionality, algorithms specialized 
+Although a al-jabr is generic with respect to dimensionality, algorithms specialized 
 for certain dimensions are straightforward to add and are intended to replace the 
 generic algorithms along the most common code paths in the future.
 
 ## Support 
 
-Contact the author at `map@maplant.com` or [file an issue on github.](https://github.com/maplant/aljabar/issues/new/choose)
+Contact the author at `map@maplant.com` or [file an issue on github.](https://github.com/maplant/al-jabr/issues/new/choose)
 
