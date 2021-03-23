@@ -266,20 +266,12 @@ impl<T, const N: usize, const M: usize> From<[Vector<T, { N }>; M]>
     }
 }
 
-impl<T, const N: usize, const M: usize> From<[[T; N]; M]> for Matrix<T, { N }, { M }> {
+impl<T, const N: usize, const M: usize> From<[[T; N]; M]> for Matrix<T, N, M> {
     fn from(array: [[T; N]; M]) -> Self {
-        let mut array = MaybeUninit::<[[T; N]; M]>::new(array);
-        let mut vec_array: MaybeUninit<[Vector<T, { N }>; M]> = MaybeUninit::uninit();
-        let arrayp: *mut MaybeUninit<[T; N]> = unsafe { mem::transmute(&mut array) };
-        let vec_arrayp: *mut Vector<T, { N }> = unsafe { mem::transmute(&mut vec_array) };
-        for i in 0..M {
-            unsafe {
-                vec_arrayp.add(i).write(Vector::<T, { N }>(
-                    arrayp.add(i).replace(MaybeUninit::uninit()).assume_init(),
-                ));
-            }
-        }
-        Matrix::<T, { N }, { M }>(unsafe { vec_array.assume_init() })
+        let ptr = &array as *const [[T; N]; M] as *const Matrix<T, N, M>;
+        let output = unsafe { ptr.read() };
+        mem::forget(array);
+        output
     }
 }
 
@@ -989,13 +981,13 @@ where
 }
 
 #[cfg(feature = "rand")]
-impl<T, const N: usize, const M: usize> Distribution<Matrix<T, { N }, { M }>> for Standard
+impl<T, const N: usize, const M: usize> Distribution<Matrix<T, N, M>> for Standard
 where
     Standard: Distribution<Vector<T, { N }>>,
 {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Matrix<T, { N }, { M }> {
-        let mut rand = MaybeUninit::<[Vector<T, { N }>; { M }]>::uninit();
-        let randp: *mut Vector<T, { N }> = unsafe { mem::transmute(&mut rand) };
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Matrix<T, N, M> {
+        let mut rand = MaybeUninit::<[Vector<T, N>; M]>::uninit();
+        let randp: *mut Vector<T, N > = unsafe { mem::transmute(&mut rand) };
 
         for i in 0..M {
             unsafe {
@@ -1003,12 +995,12 @@ where
             }
         }
 
-        Matrix::<T, { N }, { M }>(unsafe { rand.assume_init() })
+        Matrix::<T, N, M>(unsafe { rand.assume_init() })
     }
 }
 
 #[cfg(feature = "serde")]
-impl<T, const N: usize, const M: usize> Serialize for Matrix<T, { N }, { M }>
+impl<T, const N: usize, const M: usize> Serialize for Matrix<T, N, M>
 where
     Vector<T, { N }>: Serialize,
 {
@@ -1025,7 +1017,7 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<'de, T, const N: usize, const M: usize> Deserialize<'de> for Matrix<T, { N }, { M }>
+impl<'de, T, const N: usize, const M: usize> Deserialize<'de> for Matrix<T, N, M>
 where
     T: Deserialize<'de>,
 {
@@ -1034,7 +1026,7 @@ where
         D: Deserializer<'de>,
     {
         deserializer
-            .deserialize_tuple(N, ArrayVisitor::<[Vector<T, { N }>; { M }]>::new())
+            .deserialize_tuple(N, ArrayVisitor::<[Vector<T, N>; M]>::new())
             .map(Matrix)
     }
 }

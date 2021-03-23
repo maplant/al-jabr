@@ -979,7 +979,7 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<'de, T, const N: usize> Deserialize<'de> for Vector<T, { N }>
+impl<'de, T, const N: usize> Deserialize<'de> for Vector<T, N>
 where
     T: Deserialize<'de>,
 {
@@ -988,7 +988,7 @@ where
         D: Deserializer<'de>,
     {
         deserializer
-            .deserialize_tuple(N, ArrayVisitor::<[T; { N }]>::new())
+            .deserialize_tuple(N, ArrayVisitor::<[T; N]>::new())
             .map(Vector)
     }
 }
