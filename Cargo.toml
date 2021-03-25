@@ -11,7 +11,7 @@ homepage = "https://github.com/maplant/al-jabr"
 repository = "https://github.com/maplant/al-jabr"
 readme = "README.md"
 
-keywords = [ "linear", "algebra", "matrix", "vector", "math", "quaternion", "gamedev"]
+keywords = [ "linear", "algebra", "matrix", "vector", "math" ]
 
 [lib]
 name = "al_jabr"
