@@ -874,7 +874,10 @@ impl<const N: usize> DerefMut for Permutation<{ N }> {
 impl<const N: usize> Permutation<{ N }> {
     /// Returns the unit permutation.
     pub fn unit() -> Permutation<{ N }> {
-        let mut arr: [MaybeUninit<usize>; N] = MaybeUninit::uninit_array();
+        let mut arr: [MaybeUninit<usize>; N] = unsafe {
+            // SAFETY: This is how uninit_array is implemented.
+            MaybeUninit::<[MaybeUninit<usize>; N]>::uninit().assume_init()
+        };
         let arr = unsafe {
             for i in 0..N {
                 arr[i] = MaybeUninit::new(i);

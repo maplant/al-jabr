@@ -169,8 +169,6 @@
 //! );
 //! ```
 
-#![feature(maybe_uninit_uninit_array)]
-
 use core::{
     cmp::PartialOrd,
     fmt,
