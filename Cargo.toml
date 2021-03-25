@@ -3,7 +3,7 @@ name = "al-jabr"
 version = "0.1.0"
 authors = ["Matthew Plant <map@maplant.com>", "Øystein Hovind <oystein.hovind@folq.no>"]
 edition = "2018"
-description = "An n-dimensional linear algebra library intended for game development."
+description = "An n-dimensional linear algebra library."
 license = "MIT/Apache-2.0"
 
 documentation = "https://docs.rs/crate/al-jabr"

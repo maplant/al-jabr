@@ -6,7 +6,8 @@
 [![Downloads](https://img.shields.io/crates/d/al-jabr.svg)](https://crates.io/crates/al-jabr)
 
 An n-dimensional linear algebra and mathematics library for computer
-graphics, designed to be roughly compatible with [cgmath](https://github.com/rustgd/cgmath).
+graphics and other applications, designed to be roughly compatible with
+[cgmath](https://github.com/rustgd/cgmath).
 
 The library provides:
 
@@ -34,10 +35,7 @@ For more information and a guide on getting started, check out the [documentatio
 
 ## Contributions
 
-Pull request of any nature are welcome, especially regaring performance improvements.
-Although a al-jabr is generic with respect to dimensionality, algorithms specialized 
-for certain dimensions are straightforward to add and are intended to replace the 
-generic algorithms along the most common code paths in the future.
+Pull request of any nature are welcome. 
 
 ## Support 
 
