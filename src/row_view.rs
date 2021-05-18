@@ -1,7 +1,6 @@
 //! Support for iterating over matrix rows. This is less natural than
 //! iterating over columns due to the iteration not matching the stride
 //! of the underlying storage.
-
 use super::*;
 
 /// A view into a given row of a matrix. It's possible to index just like a

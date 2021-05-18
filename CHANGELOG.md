@@ -7,6 +7,15 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 ## Unreleased Changes
 These changes are included in `master` but have not been released in a new crate version yet.
 
+## [v0.2.0]
+
+- Redefine Vector in terms of Matrices, as opposed to definining Matrices in terms of Vectors.
+  This is a more natural definition and allows for a dramatic reduction of code.
+
+## [v0.1.0] 
+
+- Renamed the crate to `al-jabr` and remove methods that are not compatible with rust stable.
+
 ## [v1.0.2] - 2020-10-26
 
 - Add `const_evaluatable_checked` unstable feature to allow for `truncate` and `extend` methods to be used.
@@ -35,7 +44,7 @@ These changes are included in `master` but have not been released in a new crate
 ## [v0.4.2] - 2019-12-07
 
 - Add support for the `mint` crate.
-- Add `IntoIterato` implementations for `Vector`, `Matrix` and `Point`.
+- Add `IntoIterator` implementations for `Vector`, `Matrix` and `Point`.
 
 ## [v0.4.1] - 2019-09-20
 

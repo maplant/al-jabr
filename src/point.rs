@@ -19,50 +19,63 @@ pub struct Point<T, const N: usize>(pub(crate) [T; N]);
 
 impl<T, const N: usize> Point<T, { N }> {
     /// Convenience method for converting from vector.
-    pub fn from_vec(v: Vector<T, { N }>) -> Self {
-        Self(v.0)
+    pub fn from_vec(Matrix([v]): Vector<T, { N }>) -> Self {
+        Self(v)
     }
 
     /// Convenience method for converting from vector.
     pub fn to_vec(self) -> Vector<T, { N }> {
-        Vector(self.0)
+        Matrix([self.0])
     }
 }
 
-impl<T, const N: usize> Point<T, { N }>
-where
-    T: Clone,
-{
+impl<T, const N: usize> Point<T, { N }> {
     /// Alias for `.get(0).clone()`.
     ///
     /// # Panics
     /// When `N` = 0.
-    pub fn x(&self) -> T {
-        self.0[0].clone()
+    pub fn x(&self) -> &T {
+        &self.0[0]
+    }
+
+    pub fn x_mut(&mut self) -> &mut T {
+        &mut self.0[0]
     }
 
     /// Alias for `.get(1).clone()`.
     ///
     /// # Panics
     /// When `N` < 2.
-    pub fn y(&self) -> T {
-        self.0[1].clone()
+    pub fn y(&self) -> &T {
+        &self.0[1]
+    }
+
+    pub fn y_mut(&mut self) -> &mut T {
+        &mut self.0[1]
     }
 
     /// Alias for `.get(2).clone()`.
     ///
     /// # Panics
     /// When `N` < 3.
-    pub fn z(&self) -> T {
-        self.0[2].clone()
+    pub fn z(&self) -> &T {
+        &self.0[2]
+    }
+
+    pub fn z_mut(&mut self) -> &mut T {
+        &mut self.0[2]
     }
 
     /// Alias for `.get(3).clone()`.
     ///
     /// # Panics
     /// When `N` < 4.
-    pub fn w(&self) -> T {
-        self.0[3].clone()
+    pub fn w(&self) -> &T {
+        &self.0[3]
+    }
+
+    pub fn w_mut(&mut self) -> &mut T {
+        &mut self.0[3]
     }
 }
 
@@ -73,7 +86,7 @@ impl<T, const N: usize> From<[T; N]> for Point<T, { N }> {
 }
 
 impl<T, const N: usize> From<Vector<T, { N }>> for Point<T, { N }> {
-    fn from(Vector(array): Vector<T, { N }>) -> Self {
+    fn from(Matrix([array]): Vector<T, { N }>) -> Self {
         Point::<T, { N }>(array)
     }
 }
@@ -208,9 +221,9 @@ where
     type Output = Point<<A as Add<B>>::Output, { N }>;
 
     fn add(self, rhs: Vector<B, { N }>) -> Self::Output {
-        let lhs = Vector(self.0);
-        let rhs = Vector(rhs.0);
-        Point((lhs + rhs).0)
+        let lhs = Matrix([self.0]);
+        let Matrix([res]) = lhs + rhs;
+        Point(res)
     }
 }
 
@@ -221,9 +234,9 @@ where
     type Output = Point<<A as Sub<B>>::Output, { N }>;
 
     fn sub(self, rhs: Vector<B, { N }>) -> Self::Output {
-        let lhs = Vector(self.0);
-        let rhs = Vector(rhs.0);
-        Point((lhs - rhs).0)
+        let lhs = Matrix([self.0]);
+        let Matrix([res]) = lhs - rhs;
+        Point(res)
     }
 }
 
@@ -234,8 +247,8 @@ where
     type Output = Vector<<A as Sub<B>>::Output, { N }>;
 
     fn sub(self, rhs: Point<B, { N }>) -> Self::Output {
-        let lhs = Vector(self.0);
-        let rhs = Vector(rhs.0);
+        let lhs = Matrix([self.0]);
+        let rhs = Matrix([rhs.0]);
         lhs - rhs
     }
 }

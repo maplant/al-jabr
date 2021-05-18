@@ -18,7 +18,8 @@ where
 
     /// Rotates a point around the origin.
     fn rotate_point(&self, p: Point<Self::Scalar, { DIMS }>) -> Point<Self::Scalar, { DIMS }> {
-        Point(self.rotate_vector(Vector(p.0)).0)
+        let Matrix([res]) = self.rotate_vector(Matrix([p.0]));
+        Point(res)
     }
 }
 
@@ -42,7 +43,7 @@ where
 {
     fn from(angle: T) -> Self {
         let (s, c) = angle.sin_cos();
-        Orthonormal(Matrix([vector!(c.clone(), s.clone()), vector!(-s, c)]))
+        Orthonormal(Matrix([[c.clone(), s.clone()], [-s, c]]))
     }
 }
 
@@ -53,9 +54,9 @@ where
     fn from(Euler { x, y, z }: Euler<T>) -> Self {
         let ((xs, xc), (ys, yc), (zs, zc)) = (x.sin_cos(), y.sin_cos(), z.sin_cos());
         Orthonormal(Matrix([
-            vector![yc * zc, xc * zs + xs * ys * zc, xs * zs - xc * ys * zc],
-            vector![-yc * zs, xc * zc - xs * ys * zs, xs * zc + xc * ys * zs],
-            vector![ys, -xs * yc, xc * yc],
+            [yc * zc, xc * zs + xs * ys * zc, xs * zs - xc * ys * zc],
+            [-yc * zs, xc * zc - xs * ys * zs, xs * zc + xc * ys * zs],
+            [ys, -xs * yc, xc * yc],
         ]))
     }
 }
@@ -137,7 +138,7 @@ impl<T> Quaternion<T> {
     pub const fn new(w: T, xi: T, yj: T, zk: T) -> Quaternion<T> {
         Quaternion {
             s: w,
-            v: Vector([xi, yj, zk]),
+            v: Matrix([[xi, yj, zk]]),
         }
     }
 
@@ -151,9 +152,12 @@ impl<T> Quaternion<T>
 where
     T: Clone,
 {
-    /// Alias for `.s.clone()`
-    pub fn s(&self) -> T {
-        self.s.clone()
+    pub fn s(&self) -> &T {
+        &self.s
+    }
+
+    pub fn s_mut(&mut self) -> &mut T {
+        &mut self.s
     }
 }
 
@@ -176,7 +180,7 @@ where
     }
 
     fn is_zero(&self) -> bool {
-        self.s.is_zero() && self.v[0].is_zero() && self.v[1].is_zero() && self.v[2].is_zero()
+        self.s.is_zero() && self.v.x().is_zero() && self.v.y().is_zero() && self.v.z().is_zero()
     }
 }
 
@@ -189,7 +193,7 @@ where
     }
 
     fn is_one(&self) -> bool {
-        self.s.is_one() && self.v[0].is_one() && self.v[1].is_one() && self.v[2].is_one()
+        self.s.is_one() && self.v.x().is_one() && self.v.y().is_one() && self.v.z().is_one()
     }
 }
 
@@ -221,7 +225,7 @@ where
     fn mul(self, scalar: T) -> Self {
         let Quaternion {
             s,
-            v: Vector([x, y, z]),
+            v: Matrix([[x, y, z]]),
         } = self;
         Quaternion::new(
             s * scalar.clone(),
@@ -241,7 +245,7 @@ where
     fn div(self, scalar: T) -> Self {
         let Quaternion {
             s,
-            v: Vector([x, y, z]),
+            v: Matrix([[x, y, z]]),
         } = self;
         Quaternion::new(
             s / scalar.clone(),
@@ -257,10 +261,10 @@ where
     T: Real + Clone,
 {
     fn mul_assign(&mut self, scalar: T) {
-        self.s = self.s() * scalar.clone();
-        self.v[0] = self.v[0].clone() * scalar.clone();
-        self.v[1] = self.v[1].clone() * scalar.clone();
-        self.v[2] = self.v[2].clone() * scalar.clone();
+        self.s = self.s().clone() * scalar.clone();
+        *self.v.x_mut() = self.v.x().clone() * scalar.clone();
+        *self.v.y_mut() = self.v.y().clone() * scalar.clone();
+        *self.v.z_mut() = self.v.z().clone() * scalar.clone();
     }
 }
 
@@ -269,10 +273,10 @@ where
     T: Real + Clone,
 {
     fn div_assign(&mut self, scalar: T) {
-        self.s = self.s() / scalar.clone();
-        self.v[0] = self.v[0].clone() / scalar.clone();
-        self.v[1] = self.v[1].clone() / scalar.clone();
-        self.v[2] = self.v[2].clone() / scalar.clone();
+        self.s = self.s().clone() / scalar.clone();
+        *self.v.x_mut() = self.v.x().clone() / scalar.clone();
+        *self.v.y_mut() = self.v.z().clone() / scalar.clone();
+        *self.v.z_mut() = self.v.y().clone() / scalar.clone();
     }
 }
 
@@ -301,16 +305,24 @@ where
     fn mul(self, rhs: Quaternion<T>) -> Self {
         Quaternion::new(
             // source: cgmath/quaternion.rs
-            self.s() * rhs.s()
-                - self.v.x() * rhs.v.x()
-                - self.v.y() * rhs.v.y()
-                - self.v.z() * rhs.v.z(),
-            self.s() * rhs.v.x() + self.v.x() * rhs.s() + self.v.y() * rhs.v.z()
-                - self.v.z() * rhs.v.y(),
-            self.s() * rhs.v.y() + self.v.y() * rhs.s() + self.v.z() * rhs.v.x()
-                - self.v.x() * rhs.v.z(),
-            self.s() * rhs.v.z() + self.v.z() * rhs.s() + self.v.x() * rhs.v.y()
-                - self.v.y() * rhs.v.x(),
+            // Absolutely awful with all of the clones. I should probably
+            // just require copy here.
+            self.s().clone() * rhs.s().clone()
+                - self.v.x().clone() * rhs.v.x().clone()
+                - self.v.y().clone() * rhs.v.y().clone()
+                - self.v.z().clone() * rhs.v.z().clone(),
+            self.s().clone() * rhs.v.x().clone()
+                + self.v.x().clone() * rhs.s().clone()
+                + self.v.y().clone() * rhs.v.z().clone()
+                - self.v.z().clone() * rhs.v.y().clone(),
+            self.s().clone() * rhs.v.y().clone()
+                + self.v.y().clone() * rhs.s().clone()
+                + self.v.z().clone() * rhs.v.x().clone()
+                - self.v.x().clone() * rhs.v.z().clone(),
+            self.s().clone() * rhs.v.z().clone()
+                + self.v.z().clone() * rhs.s().clone()
+                + self.v.x().clone() * rhs.v.y().clone()
+                - self.v.y().clone() * rhs.v.x().clone(),
         )
     }
 }
@@ -322,7 +334,7 @@ where
     type Output = Vector3<T>;
 
     fn mul(self, rhs: Vector3<T>) -> Vector3<T> {
-        let s = self.s();
+        let s = self.s().clone();
         self.v
             .clone()
             .cross(self.v.clone().cross(rhs.clone()) + (rhs.clone() * s))
@@ -404,7 +416,10 @@ where
         write!(
             f,
             "Quaternion {{ s: {:?}, x: {:?}, y: {:?}, z: {:?} }}",
-            self.s, self.v.0[0], self.v.0[1], self.v.0[2]
+            self.s,
+            self.v.x(),
+            self.v.y(),
+            self.v.z()
         )
     }
 }
@@ -435,7 +450,7 @@ impl<T> From<mint::Quaternion<T>> for Quaternion<T> {
     fn from(mint_quat: mint::Quaternion<T>) -> Self {
         Quaternion {
             s: mint_quat.s,
-            v: Vector([mint_quat.v.x, mint_quat.v.y, mint_quat.v.z]),
+            v: Matrix([[mint_quat.v.x, mint_quat.v.y, mint_quat.v.z]]),
         }
     }
 }
