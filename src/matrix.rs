@@ -264,18 +264,7 @@ impl<T, const N: usize, const M: usize> From<[[T; N]; M]> for Matrix<T, { N }, {
     }
 }
 
-/*
-impl<T, const N: usize, const M: usize> From<[[T; N]; M]> for Matrix<T, N, M> {
-    fn from(array: [[T; N]; M]) -> Self {
-        let ptr = &array as *const [[T; N]; M] as *const Matrix<T, N, M>;
-        let output = unsafe { ptr.read() };
-        mem::forget(array);
-        output
-    }
-}
-*/
 
-/*
 impl<T> From<Quaternion<T>> for Matrix3<T>
 where
     // This is really annoying to implement with
@@ -283,17 +272,17 @@ where
 {
     fn from(quat: Quaternion<T>) -> Self {
         // Taken from cgmath
-        let x2 = quat.v.x() + quat.v.x();
-        let y2 = quat.v.y() + quat.v.y();
-        let z2 = quat.v.z() + quat.v.z();
+        let x2 = *quat.v.x() + *quat.v.x();
+        let y2 = *quat.v.y() + *quat.v.y();
+        let z2 = *quat.v.z() + *quat.v.z();
 
-        let xx2 = x2 * quat.v.x();
-        let xy2 = x2 * quat.v.y();
-        let xz2 = x2 * quat.v.z();
+        let xx2 = x2 * *quat.v.x();
+        let xy2 = x2 * *quat.v.y();
+        let xz2 = x2 * *quat.v.z();
 
-        let yy2 = y2 * quat.v.y();
-        let yz2 = y2 * quat.v.z();
-        let zz2 = z2 * quat.v.z();
+        let yy2 = y2 * *quat.v.y();
+        let yz2 = y2 * *quat.v.z();
+        let zz2 = z2 * *quat.v.z();
 
         let sy2 = y2 * quat.s;
         let sz2 = z2 * quat.s;
@@ -306,7 +295,6 @@ where
         ]
     }
 }
-*/
 
 /// A 2-by-2 square matrix.
 pub type Matrix2<T> = Matrix<T, 2, 2>;
