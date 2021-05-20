@@ -132,14 +132,14 @@ impl<T, const N: usize, const M: usize> Matrix<T, { N }, { M }> {
 
     /// Applies the given function to each element of the matrix, constructing a
     /// new matrix with the returned outputs.
-    pub fn map<Out, F>(self, mut f: F) -> Matrix<Out, { N }, { M }>
+    pub fn map<Out, F>(self, mut f: F) -> Matrix<Out, N, M>
     where
         F: FnMut(T) -> Out,
     {
         let mut from = MaybeUninit::new(self);
         let mut to = MaybeUninit::<Matrix<Out, { N }, { M }>>::uninit();
-        let fromp: *mut MaybeUninit<Vector<T, { N }>> = unsafe { mem::transmute(&mut from) };
-        let top: *mut Vector<Out, { N }> = unsafe { mem::transmute(&mut to) };
+        let fromp: *mut MaybeUninit<[T; N]> = unsafe { mem::transmute(&mut from) };
+        let top: *mut [Out; N] = unsafe { mem::transmute(&mut to) };
         for i in 0..M {
             unsafe {
                 let fromp: *mut MaybeUninit<T> = mem::transmute(fromp.add(i));
@@ -258,12 +258,33 @@ where
     }
 }
 
-impl<T, const N: usize, const M: usize> From<[[T; N]; M]> for Matrix<T, { N }, { M }> {
+impl<T, const N: usize, const M: usize> From<[[T; N]; M]> for Matrix<T, N, M> {
     fn from(array: [[T; N]; M]) -> Self {
         Matrix::<T, { N }, { M }>(array)
     }
 }
 
+impl<T, const N: usize, const M: usize> From<[Vector<T, N>; M]> for Matrix<T, N, M> {
+    fn from(array: [Vector<T, N>; M]) -> Self {
+        // I really hope that this copy gets optimized away because there's no avoiding
+        // it.
+        let mut from = MaybeUninit::new(array);
+        let mut to = MaybeUninit::<Matrix<T, N, M>>::uninit();
+        let fromp: *mut MaybeUninit<Vector<T, N>> = unsafe { mem::transmute(&mut from) };
+        let top: *mut [T; N] = unsafe { mem::transmute(&mut to) };
+        for i in 0..M {
+            unsafe {
+                let fromp: *mut MaybeUninit<T> = mem::transmute(fromp.add(i));
+                let top: *mut T = mem::transmute(top.add(i));
+                for j in 0..N {
+                    top.add(j)
+                        .write(fromp.add(j).replace(MaybeUninit::uninit()).assume_init());
+                }
+            }
+        }
+        unsafe { to.assume_init() }
+    }
+}
 
 impl<T> From<Quaternion<T>> for Matrix3<T>
 where

@@ -90,7 +90,13 @@ let v = vector!(1i32, 2, 3, 4).xxzz();
 pub type Vector<T, const N: usize> = Matrix<T, N, 1>;
 //pub struct Vector<T, const N: usize>(pub(crate) [T; N]);
 
-impl<T, const N: usize> Vector<T, { N }> {
+impl<T, const N: usize> Vector<T, N> {
+    /// Convert the Vector into its inner array.
+    pub fn into_inner(self) -> [T; N] {
+        let Matrix([inner]) = self;
+        inner
+    }
+
     /// Constructs a new vector whose elements are equal to the value of the
     /// given function evaluated at the element's index.
     pub fn from_fn<Out, F>(mut f: F) -> Vector<Out, { N }>
