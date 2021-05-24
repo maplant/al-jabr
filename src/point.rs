@@ -17,20 +17,31 @@ use super::*;
 #[repr(transparent)]
 pub struct Point<T, const N: usize>(pub(crate) [T; N]);
 
-impl<T, const N: usize> Point<T, { N }> {
+impl<T, const N: usize> Point<T, N> {
     /// Convenience method for converting from vector.
-    pub fn from_vec(Matrix([v]): Vector<T, { N }>) -> Self {
+    pub fn from_vec(Matrix([v]): Vector<T, N>) -> Self {
         Self(v)
     }
 
     /// Convenience method for converting from vector.
-    pub fn to_vec(self) -> Vector<T, { N }> {
+    pub fn to_vec(self) -> Vector<T, N> {
         Matrix([self.0])
     }
+
 }
 
-impl<T, const N: usize> Point<T, { N }> {
-    /// Alias for `.get(0).clone()`.
+impl<T, const N: usize> Point<T, N>
+where
+    T: Zero,
+{
+    /// Construct a point at the origin.
+    pub fn origin() -> Self {
+        Self::from_vec(Vector::zero())
+    }
+}   
+
+impl<T, const N: usize> Point<T, N> {
+    /// Alias for `.get(0)`.
     ///
     /// # Panics
     /// When `N` = 0.
@@ -42,7 +53,7 @@ impl<T, const N: usize> Point<T, { N }> {
         &mut self.0[0]
     }
 
-    /// Alias for `.get(1).clone()`.
+    /// Alias for `.get(1)`.
     ///
     /// # Panics
     /// When `N` < 2.
@@ -54,7 +65,7 @@ impl<T, const N: usize> Point<T, { N }> {
         &mut self.0[1]
     }
 
-    /// Alias for `.get(2).clone()`.
+    /// Alias for `.get(2)`.
     ///
     /// # Panics
     /// When `N` < 3.
@@ -66,7 +77,7 @@ impl<T, const N: usize> Point<T, { N }> {
         &mut self.0[2]
     }
 
-    /// Alias for `.get(3).clone()`.
+    /// Alias for `.get(3)`.
     ///
     /// # Panics
     /// When `N` < 4.
