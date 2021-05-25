@@ -150,6 +150,16 @@ impl<T> Quaternion<T> {
 
 impl<T> Quaternion<T>
 where
+    T: Zero + One,
+{
+    /// Return the identity quaternion.
+    pub fn identity() -> Self {
+        Quaternion::new(T::one(), T::zero(), T::zero(), T::zero())
+    }
+}
+
+impl<T> Quaternion<T>
+where
     T: Clone,
 {
     pub fn s(&self) -> &T {
