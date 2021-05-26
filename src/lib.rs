@@ -780,11 +780,7 @@ mod tests {
         assert_eq!(a * b, c);
         // Removing the type signature here caused the compiler to crash.
         // Since then I've been wary.
-        let a = Matrix::<f32, 3, 3>::from([
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0],
-        ]);
+        let a = Matrix::<f32, 3, 3>::from([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]);
         let b = a.clone();
         let c = a * b;
         assert_eq!(
@@ -859,11 +855,7 @@ mod tests {
             vector!(0.0f32, 1.0, 0.0)
         );
 
-        let _a = Matrix::<f32, 3, 3>::from([
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0],
-        ]);
+        let _a = Matrix::<f32, 3, 3>::from([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]);
         let _b: Matrix<i32, 3, 3> = matrix![[0, -3, 5], [6, 1, -4], [2, 3, -2]];
 
         assert_eq!(
@@ -910,7 +902,11 @@ mod tests {
             matrix![[-2.0f64, 1.0f64], [1.5f64, -0.5f64]]
         ));
 
-        assert!(abs_diff_eq!(a.invert().unwrap() * a, identity, epsilon = 0.1));
+        assert!(abs_diff_eq!(
+            a.invert().unwrap() * a,
+            identity,
+            epsilon = 0.1
+        ));
         assert!(abs_diff_eq!(a * a.invert().unwrap(), identity));
         assert!(matrix![[0.0f64, 2.0f64], [0.0f64, 5.0f64]]
             .invert()
@@ -942,29 +938,17 @@ mod tests {
 
     #[test]
     fn mat_swap() {
-        let mut m = matrix![ [ 1.0, 2.0 ], [ 3.0, 4.0 ] ];
+        let mut m = matrix![[1.0, 2.0], [3.0, 4.0]];
         m.swap_columns(0, 1);
-        assert_eq!(
-            m,
-            matrix![ [2.0, 1.0], [4.0, 3.0] ]
-        );
-        let mut m = matrix![ [ 1.0, 2.0 ], [ 3.0, 4.0 ] ];
+        assert_eq!(m, matrix![[2.0, 1.0], [4.0, 3.0]]);
+        let mut m = matrix![[1.0, 2.0], [3.0, 4.0]];
         m.swap_rows(0, 1);
-        assert_eq!(
-            m,
-            matrix![ [3.0, 4.0], [1.0, 2.0] ]
-        );
-        let mut m = matrix![ [ 1.0, 2.0 ], [ 3.0, 4.0 ] ];
+        assert_eq!(m, matrix![[3.0, 4.0], [1.0, 2.0]]);
+        let mut m = matrix![[1.0, 2.0], [3.0, 4.0]];
         m.swap_columns(0, 0);
-        assert_eq!(
-            m,
-            matrix![ [ 1.0, 2.0 ], [ 3.0, 4.0 ] ]
-        );
+        assert_eq!(m, matrix![[1.0, 2.0], [3.0, 4.0]]);
         m.swap_rows(0, 0);
-        assert_eq!(
-            m,
-            matrix![ [ 1.0, 2.0 ], [ 3.0, 4.0 ] ]
-        );
+        assert_eq!(m, matrix![[1.0, 2.0], [3.0, 4.0]]);
     }
 
     #[test]
@@ -990,13 +974,7 @@ mod tests {
         assert_eq!(1, m[0][0]);
 
         let m = matrix![[1, 2], [3, 4], [5, 6],];
-        assert_eq!(
-            m,
-            Matrix::<u32, 3, 2>::from([
-                [1, 3, 5],
-                [2, 4, 6]
-            ])
-        );
+        assert_eq!(m, Matrix::<u32, 3, 2>::from([[1, 3, 5], [2, 4, 6]]));
     }
 
     #[test]

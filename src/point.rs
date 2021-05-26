@@ -27,7 +27,6 @@ impl<T, const N: usize> Point<T, N> {
     pub fn to_vec(self) -> Vector<T, N> {
         Matrix([self.0])
     }
-
 }
 
 impl<T, const N: usize> Point<T, N>
@@ -38,7 +37,7 @@ where
     pub fn origin() -> Self {
         Self::from_vec(Vector::zero())
     }
-}   
+}
 
 impl<T, const N: usize> Point<T, N> {
     /// Alias for `.get(0)`.
@@ -90,15 +89,15 @@ impl<T, const N: usize> Point<T, N> {
     }
 }
 
-impl<T, const N: usize> From<[T; N]> for Point<T, { N }> {
+impl<T, const N: usize> From<[T; N]> for Point<T, N> {
     fn from(array: [T; N]) -> Self {
-        Point::<T, { N }>(array)
+        Point::<T, N>(array)
     }
 }
 
-impl<T, const N: usize> From<Vector<T, { N }>> for Point<T, { N }> {
-    fn from(Matrix([array]): Vector<T, { N }>) -> Self {
-        Point::<T, { N }>(array)
+impl<T, const N: usize> From<Vector<T, N>> for Point<T, N> {
+    fn from(Matrix([array]): Vector<T, N>) -> Self {
+        Point::<T, N>(array)
     }
 }
 
@@ -115,7 +114,7 @@ pub type Point4<T> = Point<T, 4>;
 /// calling the macro `point!`, which calls `new_point` internally.
 #[inline]
 #[doc(hidden)]
-pub fn new_point<T, const N: usize>(elements: [T; N]) -> Point<T, { N }> {
+pub fn new_point<T, const N: usize>(elements: [T; N]) -> Point<T, N> {
     Point(elements)
 }
 
@@ -136,24 +135,24 @@ macro_rules! point {
     }
 }
 
-impl<T, const N: usize> Clone for Point<T, { N }>
+impl<T, const N: usize> Clone for Point<T, N>
 where
     T: Clone,
 {
     fn clone(&self) -> Self {
-        Point::<T, { N }>(self.0.clone())
+        Point::<T, N>(self.0.clone())
     }
 }
 
-impl<T, const N: usize> Copy for Point<T, { N }> where T: Copy {}
+impl<T, const N: usize> Copy for Point<T, N> where T: Copy {}
 
-impl<T, const N: usize> Into<[T; N]> for Point<T, { N }> {
+impl<T, const N: usize> Into<[T; N]> for Point<T, N> {
     fn into(self) -> [T; N] {
         self.0
     }
 }
 
-impl<T, const N: usize> fmt::Debug for Point<T, { N }>
+impl<T, const N: usize> fmt::Debug for Point<T, N>
 where
     T: fmt::Debug,
 {
@@ -185,7 +184,7 @@ where
     }
 }
 
-impl<T, const N: usize> Deref for Point<T, { N }> {
+impl<T, const N: usize> Deref for Point<T, N> {
     type Target = [T; N];
 
     fn deref(&self) -> &Self::Target {
@@ -193,13 +192,13 @@ impl<T, const N: usize> Deref for Point<T, { N }> {
     }
 }
 
-impl<T, const N: usize> DerefMut for Point<T, { N }> {
+impl<T, const N: usize> DerefMut for Point<T, N> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl<T, const N: usize> Hash for Point<T, { N }>
+impl<T, const N: usize> Hash for Point<T, N>
 where
     T: Hash,
 {
@@ -210,7 +209,7 @@ where
     }
 }
 
-impl<A, B, RHS, const N: usize> PartialEq<RHS> for Point<A, { N }>
+impl<A, B, RHS, const N: usize> PartialEq<RHS> for Point<A, N>
 where
     RHS: Deref<Target = [B; N]>,
     A: PartialEq<B>,
@@ -223,50 +222,50 @@ where
     }
 }
 
-impl<T, const N: usize> Eq for Point<T, { N }> where T: Eq {}
+impl<T, const N: usize> Eq for Point<T, N> where T: Eq {}
 
-impl<A, B, const N: usize> Add<Vector<B, { N }>> for Point<A, { N }>
+impl<A, B, const N: usize> Add<Vector<B, N>> for Point<A, N>
 where
     A: Add<B>,
 {
-    type Output = Point<<A as Add<B>>::Output, { N }>;
+    type Output = Point<<A as Add<B>>::Output, N>;
 
-    fn add(self, rhs: Vector<B, { N }>) -> Self::Output {
+    fn add(self, rhs: Vector<B, N>) -> Self::Output {
         let lhs = Matrix([self.0]);
         let Matrix([res]) = lhs + rhs;
         Point(res)
     }
 }
 
-impl<A, B, const N: usize> Sub<Vector<B, { N }>> for Point<A, { N }>
+impl<A, B, const N: usize> Sub<Vector<B, N>> for Point<A, N>
 where
     A: Sub<B>,
 {
-    type Output = Point<<A as Sub<B>>::Output, { N }>;
+    type Output = Point<<A as Sub<B>>::Output, N>;
 
-    fn sub(self, rhs: Vector<B, { N }>) -> Self::Output {
+    fn sub(self, rhs: Vector<B, N>) -> Self::Output {
         let lhs = Matrix([self.0]);
         let Matrix([res]) = lhs - rhs;
         Point(res)
     }
 }
 
-impl<A, B, const N: usize> Sub<Point<B, { N }>> for Point<A, { N }>
+impl<A, B, const N: usize> Sub<Point<B, N>> for Point<A, N>
 where
     A: Sub<B>,
 {
-    type Output = Vector<<A as Sub<B>>::Output, { N }>;
+    type Output = Vector<<A as Sub<B>>::Output, N>;
 
-    fn sub(self, rhs: Point<B, { N }>) -> Self::Output {
+    fn sub(self, rhs: Point<B, N>) -> Self::Output {
         let lhs = Matrix([self.0]);
         let rhs = Matrix([rhs.0]);
         lhs - rhs
     }
 }
 
-impl<T, const N: usize> IntoIterator for Point<T, { N }> {
+impl<T, const N: usize> IntoIterator for Point<T, N> {
     type Item = T;
-    type IntoIter = ArrayIter<T, { N }>;
+    type IntoIter = ArrayIter<T, N>;
 
     fn into_iter(self) -> Self::IntoIter {
         let Point(array) = self;
@@ -278,12 +277,12 @@ impl<T, const N: usize> IntoIterator for Point<T, { N }> {
 }
 
 #[cfg(feature = "rand")]
-impl<T, const N: usize> Distribution<Point<T, { N }>> for Standard
+impl<T, const N: usize> Distribution<Point<T, N>> for Standard
 where
     Standard: Distribution<T>,
 {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Point<T, { N }> {
-        let mut rand = MaybeUninit::<Point<T, { N }>>::uninit();
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Point<T, N> {
+        let mut rand = MaybeUninit::<Point<T, N>>::uninit();
         let randp: *mut T = unsafe { mem::transmute(&mut rand) };
 
         for i in 0..N {
@@ -295,7 +294,7 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<T, const N: usize> Serialize for Point<T, { N }>
+impl<T, const N: usize> Serialize for Point<T, N>
 where
     T: Serialize,
 {

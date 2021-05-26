@@ -14,10 +14,10 @@ where
     fn invert(&self) -> Self;
 
     /// Rotates a vector.
-    fn rotate_vector(&self, v: Vector<Self::Scalar, { DIMS }>) -> Vector<Self::Scalar, { DIMS }>;
+    fn rotate_vector(&self, v: Vector<Self::Scalar, DIMS>) -> Vector<Self::Scalar, DIMS>;
 
     /// Rotates a point around the origin.
-    fn rotate_point(&self, p: Point<Self::Scalar, { DIMS }>) -> Point<Self::Scalar, { DIMS }> {
+    fn rotate_point(&self, p: Point<Self::Scalar, DIMS>) -> Point<Self::Scalar, DIMS> {
         let Matrix([res]) = self.rotate_vector(Matrix([p.0]));
         Point(res)
     }
@@ -35,7 +35,7 @@ pub struct Euler<T> {
 
 /// A [Matrix] that forms an orthonormal basis. Commonly known as a rotation
 /// matrix.
-pub struct Orthonormal<T, const DIMS: usize>(Matrix<T, { DIMS }, { DIMS }>);
+pub struct Orthonormal<T, const DIMS: usize>(Matrix<T, DIMS, DIMS>);
 
 impl<T> From<T> for Orthonormal<T, 2>
 where
@@ -61,24 +61,24 @@ where
     }
 }
 
-impl<T, const DIMS: usize> Deref for Orthonormal<T, { DIMS }> {
-    type Target = Matrix<T, { DIMS }, { DIMS }>;
+impl<T, const DIMS: usize> Deref for Orthonormal<T, DIMS> {
+    type Target = Matrix<T, DIMS, DIMS>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<T, const DIMS: usize> DerefMut for Orthonormal<T, { DIMS }> {
+impl<T, const DIMS: usize> DerefMut for Orthonormal<T, DIMS> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
 #[cfg(feature = "serde")]
-impl<T, const DIMS: usize> Serialize for Orthonormal<T, { DIMS }>
+impl<T, const DIMS: usize> Serialize for Orthonormal<T, DIMS>
 where
-    Matrix<T, { DIMS }, { DIMS }>: Serialize,
+    Matrix<T, DIMS, DIMS>: Serialize,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -89,28 +89,28 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<'de, T, const DIMS: usize> Deserialize<'de> for Orthonormal<T, { DIMS }>
+impl<'de, T, const DIMS: usize> Deserialize<'de> for Orthonormal<T, DIMS>
 where
-    for<'a> Matrix<T, { DIMS }, { DIMS }>: Deserialize<'a>,
+    for<'a> Matrix<T, DIMS, DIMS>: Deserialize<'a>,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        Ok(Orthonormal(Matrix::<T, { DIMS }, { DIMS }>::deserialize(
+        Ok(Orthonormal(Matrix::<T, DIMS, DIMS>::deserialize(
             deserializer,
         )?))
     }
 }
 
-impl<T, const DIMS: usize> Rotation<{ DIMS }> for Orthonormal<T, { DIMS }>
+impl<T, const DIMS: usize> Rotation<DIMS> for Orthonormal<T, DIMS>
 where
     T: Clone + PartialOrd + Product + Real + One + Zero,
     T: Neg<Output = T>,
     T: Add<T, Output = T> + Sub<T, Output = T>,
     T: Mul<T, Output = T> + Div<T, Output = T>,
-    Matrix<T, { DIMS }, { DIMS }>: Mul,
-    Matrix<T, { DIMS }, { DIMS }>: Mul<Vector<T, { DIMS }>, Output = Vector<T, { DIMS }>>,
+    Matrix<T, DIMS, DIMS>: Mul,
+    Matrix<T, DIMS, DIMS>: Mul<Vector<T, DIMS>, Output = Vector<T, DIMS>>,
 {
     type Scalar = T;
 
@@ -118,7 +118,7 @@ where
         Orthonormal(self.0.clone().invert().unwrap())
     }
 
-    fn rotate_vector(&self, v: Vector<Self::Scalar, { DIMS }>) -> Vector<Self::Scalar, { DIMS }> {
+    fn rotate_vector(&self, v: Vector<Self::Scalar, DIMS>) -> Vector<Self::Scalar, DIMS> {
         self.0.clone() * v
     }
 }
@@ -133,7 +133,7 @@ pub struct Quaternion<T> {
 }
 
 impl<T> Quaternion<T> {
-    /// Constructs a quaternion from one scalar and three imaginary
+    /// Constructs a Quaternion from one scalar and three imaginary
     /// components.
     pub const fn new(w: T, xi: T, yj: T, zk: T) -> Quaternion<T> {
         Quaternion {
@@ -142,7 +142,7 @@ impl<T> Quaternion<T> {
         }
     }
 
-    /// Constructs a quaternion from a scalar and a vector.
+    /// Constructs a Quaternion from a scalar and a vector.
     pub fn from_sv(s: T, v: Vector3<T>) -> Quaternion<T> {
         Quaternion { s, v }
     }

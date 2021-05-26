@@ -99,11 +99,11 @@ impl<T, const N: usize> Vector<T, N> {
 
     /// Constructs a new vector whose elements are equal to the value of the
     /// given function evaluated at the element's index.
-    pub fn from_fn<Out, F>(mut f: F) -> Vector<Out, { N }>
+    pub fn from_fn<Out, F>(mut f: F) -> Vector<Out, N>
     where
         F: FnMut(usize) -> Out,
     {
-        let mut to = MaybeUninit::<Vector<Out, { N }>>::uninit();
+        let mut to = MaybeUninit::<Vector<Out, N>>::uninit();
         let top: *mut Out = unsafe { mem::transmute(&mut to) };
         for i in 0..N {
             unsafe { top.add(i).write(f(i)) }
@@ -111,12 +111,12 @@ impl<T, const N: usize> Vector<T, N> {
         unsafe { to.assume_init() }
     }
 
-    pub fn indexed_map<Out, F>(self, mut f: F) -> Vector<Out, { N }>
+    pub fn indexed_map<Out, F>(self, mut f: F) -> Vector<Out, N>
     where
         F: FnMut(usize, T) -> Out,
     {
         let mut from = MaybeUninit::new(self);
-        let mut to = MaybeUninit::<Vector<Out, { N }>>::uninit();
+        let mut to = MaybeUninit::<Vector<Out, N>>::uninit();
         let fromp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut from) };
         let top: *mut Out = unsafe { mem::transmute(&mut to) };
         for i in 0..N {
@@ -147,7 +147,7 @@ pub type TruncatedVector<T, const N: usize> = Vector<T, { N - 1 }>;
 pub type ExtendedVector<T, const N: usize> = Vector<T, { N + 1 }>;
 */
 
-impl<T, const N: usize> Vector<T, { N }>
+impl<T, const N: usize> Vector<T, N>
 where
     T: Clone,
 {
@@ -204,7 +204,7 @@ where
     }
 }
 
-impl<T, const N: usize> Vector<T, { N }>
+impl<T, const N: usize> Vector<T, N>
 where
     T: Clone + PartialOrd,
 {
@@ -259,7 +259,7 @@ where
     }
 }
 
-impl<T, const N: usize> From<[T; N]> for Vector<T, { N }> {
+impl<T, const N: usize> From<[T; N]> for Vector<T, N> {
     fn from(array: [T; N]) -> Self {
         Matrix([array])
     }
@@ -293,7 +293,7 @@ pub type Vector4<T> = Vector<T, 4>;
 macro_rules! vector {
     ( $($elem:expr),* $(,)? ) => {
         $crate::matrix![
-            $([ $elem ]),* 
+            $([ $elem ]),*
         ]
     }
 }
@@ -306,7 +306,7 @@ macro_rules! vector {
 //
 // @maplant: Unfortunately, I think due to a compiler change this is no longer
 // the case. I sure hope it's brought back, however...
-impl<T, const N: usize> Vector<T, { N }> {
+impl<T, const N: usize> Vector<T, N> {
     /// Alias for `.get(0)`.
     ///
     /// # Panics
@@ -463,7 +463,7 @@ macro_rules! swizzle {
 }
 
 #[cfg(feature = "swizzle")]
-impl<T, const N: usize> Vector<T, { N }>
+impl<T, const N: usize> Vector<T, N>
 where
     T: Clone,
 {
@@ -477,7 +477,7 @@ where
     swizzle! {a, r, g, b, a}
 }
 
-impl<T, const N: usize> VectorSpace for Vector<T, { N }>
+impl<T, const N: usize> VectorSpace for Vector<T, N>
 where
     T: Clone + Zero,
     T: Add<T, Output = T>,
@@ -488,7 +488,7 @@ where
     type Scalar = T;
 }
 
-impl<T, const N: usize> MetricSpace for Vector<T, { N }>
+impl<T, const N: usize> MetricSpace for Vector<T, N>
 where
     Self: InnerSpace,
 {
@@ -499,7 +499,7 @@ where
     }
 }
 
-impl<T, const N: usize> InnerSpace for Vector<T, { N }>
+impl<T, const N: usize> InnerSpace for Vector<T, N>
 where
     T: Clone + Zero,
     T: Add<T, Output = T>,
@@ -515,10 +515,11 @@ where
         let lhsp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut lhs) };
         let rhsp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut rhs) };
         for i in 0..N {
-            sum = sum + unsafe {
-                lhsp.add(i).replace(MaybeUninit::uninit()).assume_init()
-                    * rhsp.add(i).replace(MaybeUninit::uninit()).assume_init()
-            };
+            sum = sum
+                + unsafe {
+                    lhsp.add(i).replace(MaybeUninit::uninit()).assume_init()
+                        * rhsp.add(i).replace(MaybeUninit::uninit()).assume_init()
+                };
         }
         sum
     }
