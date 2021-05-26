@@ -20,7 +20,7 @@ The library provides:
 
 `al-jabr` supports Vectors and Matrices of any size and will provide 
 implementations for any mathematic operations that are supported by their
-scalars. Additionally, al-jabr can leverage Rust's type system to ensure that
+scalars. Additionally, `al-jabr` can leverage Rust's type system to ensure that
 operations are only applied to values that are the correct size. `al-jabr` can
 do this while remaining no-std compatible. 
 

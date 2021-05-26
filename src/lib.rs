@@ -31,7 +31,8 @@
 //! ### Vector
 //!
 //! [Vectors](Vector) can be constructed from arrays of any type and size.
-//! Use the [vector!] macro to easily construct a vector:
+//! Under the hood, a Vector is a one-dimensional [Matrix]. Use the [vector!]
+//! macro to easily construct a vector:
 //!
 //! ```
 //! # use al_jabr::*;
@@ -86,7 +87,7 @@
 //!
 //! ### Matrix
 //!
-//! [Matrices](Matrix) can be created from arrays of vectors of any size
+//! [Matrices](Matrix) can be created from an array of arrays of any size
 //! and scalar type. Matrices are column-major and constructing a matrix from a
 //! raw array reflects that. The [matrix!] macro can be used to construct a
 //! matrix in row-major order:
