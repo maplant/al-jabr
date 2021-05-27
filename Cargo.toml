@@ -1,6 +1,6 @@
 [package]
 name = "al-jabr"
-version = "0.3.1"
+version = "0.4.0"
 authors = ["Matthew Plant <map@maplant.com>", "Øystein Hovind <oystein.hovind@folq.no>"]
 edition = "2018"
 description = "An n-dimensional linear algebra library."
