@@ -90,6 +90,76 @@ let v = vector!(1i32, 2, 3, 4).xxzz();
 pub type Vector<T, const N: usize> = Matrix<T, N, 1>;
 //pub struct Vector<T, const N: usize>(pub(crate) [T; N]);
 
+impl<T> Vector<T, 1>
+where
+    T: One,
+{
+    /// Construct a Vector1 in the positive x direction.
+    pub fn unit_x() -> Self {
+        Matrix([[ T::one() ]])
+    }
+}
+
+impl<T> Vector<T, 2>
+where
+    T: One + Zero,
+{
+    /// Construct a Vector2 in the positive x direction.
+    pub fn unit_x() -> Self {
+        Matrix([[ T::one(), T::zero() ]])
+    }
+
+    /// Construct a Vector2 in the positive y direction.
+    pub fn unit_y() -> Self {
+        Matrix([[ T::zero(), T::one() ]])
+    }
+}
+
+impl<T> Vector<T, 3>
+where
+    T: One + Zero,
+{
+    /// Construct a Vector3 in the positive x direction.
+    pub fn unit_x() -> Self {
+        Matrix([[ T::one(), T::zero(), T::zero() ]])
+    }
+
+    /// Construct a Vector3 in the positive y direction.
+    pub fn unit_y() -> Self {
+        Matrix([[ T::zero(), T::one(), T::zero() ]])
+    }
+
+    /// Construct a Vector3 in the positive z direction.
+    pub fn unit_z() -> Self {
+        Matrix([[ T::zero(), T::zero(), T::one() ]])
+    }
+}
+
+impl<T> Vector<T, 4>
+where
+    T: One + Zero,
+{
+    /// Construct a Vector4 in the positive x direction.
+    pub fn unit_x() -> Self {
+        Matrix([[ T::one(), T::zero(), T::zero(), T::zero() ]])
+    }
+
+    /// Construct a Vector4 in the positive y direction.
+    pub fn unit_y() -> Self {
+        Matrix([[ T::zero(), T::one(), T::zero(), T::zero() ]])
+    }
+
+    /// Construct a Vector4 in the positive z direction.
+    pub fn unit_z() -> Self {
+        Matrix([[ T::zero(), T::zero(), T::one(), T::zero() ]])
+    }
+
+    /// Construct a Vector4 in the positive w direction.
+    pub fn unit_w() -> Self {
+        Matrix([[ T::zero(), T::zero(), T::zero(), T::one() ]])
+    }
+}
+
 impl<T, const N: usize> Vector<T, N> {
     /// Convert the Vector into its inner array.
     pub fn into_inner(self) -> [T; N] {
