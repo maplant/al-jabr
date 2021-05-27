@@ -27,6 +27,7 @@ where
 /// the rotation around its respective axis in radians.
 #[repr(C)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Copy, Clone)]
 pub struct Euler<T> {
     pub x: T,
     pub y: T,
