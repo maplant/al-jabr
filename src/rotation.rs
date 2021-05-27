@@ -151,6 +151,17 @@ impl<T> Quaternion<T> {
 
 impl<T> Quaternion<T>
 where
+    T: Real + Mul<T, Output = T> + Clone,
+{
+    /// Constructs the rotation as a rotation along an axis.
+    pub fn from_axis_angle(axis: Vector3<T>, angle: T) -> Self {
+        let (s, c) = (angle.div2()).sin_cos();
+        Quaternion::from_sv(c, axis * s)
+    }
+}
+
+impl<T> Quaternion<T>
+where
     T: Zero + One,
 {
     /// Return the identity quaternion.
