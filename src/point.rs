@@ -271,7 +271,7 @@ impl<T, const N: usize> IntoIterator for Point<T, N> {
         let Point(array) = self;
         ArrayIter {
             array: MaybeUninit::new(array),
-            pos:   0,
+            pos: 0,
         }
     }
 }
@@ -357,5 +357,69 @@ impl<T: Copy> Into<mint::Point3<T>> for Point<T, 3> {
 impl<T> From<mint::Point3<T>> for Point<T, 3> {
     fn from(mint_point: mint::Point3<T>) -> Self {
         Point([mint_point.x, mint_point.y, mint_point.z])
+    }
+}
+
+#[cfg(any(feature = "approx", test))]
+use approx::{AbsDiffEq, RelativeEq, UlpsEq};
+
+#[cfg(any(feature = "approx", test))]
+impl<T: AbsDiffEq, const N: usize> AbsDiffEq for Point<T, N>
+where
+    T::Epsilon: Copy,
+{
+    type Epsilon = T::Epsilon;
+
+    fn default_epsilon() -> T::Epsilon {
+        T::default_epsilon()
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: T::Epsilon) -> bool {
+        for i in 0..N {
+            if !T::abs_diff_eq(&self.0[i], &other[i], epsilon) {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+#[cfg(feature = "approx")]
+impl<T, const N: usize> RelativeEq for Point<T, N>
+where
+    T: RelativeEq,
+    T::Epsilon: Copy,
+{
+    fn default_max_relative() -> T::Epsilon {
+        T::default_max_relative()
+    }
+
+    fn relative_eq(&self, other: &Self, epsilon: T::Epsilon, max_relative: T::Epsilon) -> bool {
+        for i in 0..N {
+            if !T::relative_eq(&self[i], &other[i], epsilon, max_relative) {
+                return false;
+            }
+        }
+        true
+    }
+}
+
+#[cfg(feature = "approx")]
+impl<T, const N: usize> UlpsEq for Point<T, N>
+where
+    T: UlpsEq,
+    T::Epsilon: Copy,
+{
+    fn default_max_ulps() -> u32 {
+        T::default_max_ulps()
+    }
+
+    fn ulps_eq(&self, other: &Self, epsilon: T::Epsilon, max_ulps: u32) -> bool {
+        for i in 0..N {
+            if !T::ulps_eq(&self[i], &other[i], epsilon, max_ulps) {
+                return false;
+            }
+        }
+        true
     }
 }

@@ -116,7 +116,7 @@ impl<T, const N: usize, const M: usize> Matrix<T, N, M> {
     /// Returns an immutable iterator over the rows of the matrix.
     pub fn row_iter<'a>(&'a self) -> impl Iterator<Item = RowView<'a, T, N, M>> {
         RowIter {
-            row:    0,
+            row: 0,
             matrix: self,
         }
     }
@@ -124,8 +124,8 @@ impl<T, const N: usize, const M: usize> Matrix<T, N, M> {
     /// Returns a mutable iterator over the rows of the matrix
     pub fn row_iter_mut<'a>(&'a mut self) -> impl Iterator<Item = RowViewMut<'a, T, N, M>> {
         RowIterMut {
-            row:     0,
-            matrix:  self,
+            row: 0,
+            matrix: self,
             phantom: PhantomData,
         }
     }
@@ -566,7 +566,7 @@ impl<T, const N: usize, const M: usize> IntoIterator for Matrix<T, N, M> {
         let Matrix(array) = self;
         ArrayIter {
             array: MaybeUninit::new(array),
-            pos:   0,
+            pos: 0,
         }
     }
 }
@@ -994,7 +994,7 @@ impl<const N: usize, const M: usize> Mul<Matrix<f64, N, M>> for f64 {
 /// Permutation matrix created for LU decomposition.
 #[derive(Copy, Clone)]
 pub struct Permutation<const N: usize> {
-    arr:       [usize; N],
+    arr: [usize; N],
     num_swaps: usize,
 }
 
@@ -1265,7 +1265,7 @@ where
 }
 
 #[cfg(any(feature = "approx", test))]
-use approx::AbsDiffEq;
+use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 
 #[cfg(any(feature = "approx", test))]
 impl<T: AbsDiffEq, const N: usize, const M: usize> AbsDiffEq for Matrix<T, N, M>
@@ -1282,6 +1282,50 @@ where
         for i in 0..M {
             for j in 0..N {
                 if !T::abs_diff_eq(&self[i][j], &other[i][j], epsilon) {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+}
+
+#[cfg(feature = "approx")]
+impl<T, const N: usize, const M: usize> RelativeEq for Matrix<T, N, M>
+where
+    T: RelativeEq,
+    T::Epsilon: Copy,
+{
+    fn default_max_relative() -> T::Epsilon {
+        T::default_max_relative()
+    }
+
+    fn relative_eq(&self, other: &Self, epsilon: T::Epsilon, max_relative: T::Epsilon) -> bool {
+        for i in 0..M {
+            for j in 0..N {
+                if !T::relative_eq(&self[i][j], &other[i][j], epsilon, max_relative) {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+}
+
+#[cfg(feature = "approx")]
+impl<T, const N: usize, const M: usize> UlpsEq for Matrix<T, N, M>
+where
+    T: UlpsEq,
+    T::Epsilon: Copy,
+{
+    fn default_max_ulps() -> u32 {
+        T::default_max_ulps()
+    }
+
+    fn ulps_eq(&self, other: &Self, epsilon: T::Epsilon, max_ulps: u32) -> bool {
+        for i in 0..M {
+            for j in 0..N {
+                if !T::ulps_eq(&self[i][j], &other[i][j], epsilon, max_ulps) {
                     return false;
                 }
             }
