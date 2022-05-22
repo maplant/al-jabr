@@ -219,6 +219,45 @@ where
     }
 }
 
+// Taken directly from https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+impl From<Quaternion<f32>> for Euler<f32> {
+    fn from(q: Quaternion<f32>) -> Euler<f32> {
+        Euler {
+            x: (2.0 * (q.s * q.v.x() + q.v.y() * q.v.z()))
+                .atan2(1.0 - 2.0 * (q.v.x() * q.v.x() + q.v.y() * q.v.y())),
+            y: {
+                let sinp = 2.0 * (q.s * q.v.y() - q.v.z() * q.v.x());
+                if sinp.abs() >= 1.0 {
+                    std::f32::consts::FRAC_PI_2.copysign(sinp)
+                } else {
+                    sinp.asin()
+                }
+            },
+            z: (2.0 * (q.s * q.v.z() + q.v.x() * q.v.y()))
+                .atan2(1.0 - 2.0 * (q.v.y() * q.v.y() + q.v.z() * q.v.z())),
+        }
+    }
+}
+
+impl From<Quaternion<f64>> for Euler<f64> {
+    fn from(q: Quaternion<f64>) -> Euler<f64> {
+        Euler {
+            x: (2.0 * (q.s * q.v.x() + q.v.y() * q.v.z()))
+                .atan2(1.0 - 2.0 * (q.v.x() * q.v.x() + q.v.y() * q.v.y())),
+            y: {
+                let sinp = 2.0 * (q.s * q.v.y() - q.v.z() * q.v.x());
+                if sinp.abs() >= 1.0 {
+                    std::f64::consts::FRAC_PI_2.copysign(sinp)
+                } else {
+                    sinp.asin()
+                }
+            },
+            z: (2.0 * (q.s * q.v.z() + q.v.x() * q.v.y()))
+                .atan2(1.0 - 2.0 * (q.v.y() * q.v.y() + q.v.z() * q.v.z())),
+        }
+    }
+}
+
 impl<T> From<Euler<T>> for Quaternion<T>
 where
     T: Real + Clone,
