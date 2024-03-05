@@ -1,4 +1,3 @@
-/// An `N`-by-`M` Column Major matrix.
 use super::*;
 
 /// An `N`-by-`M` Column Major matrix.

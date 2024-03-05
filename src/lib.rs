@@ -337,6 +337,12 @@ where
     /// Returns the tangent of the angle.
     fn tan(self) -> Self;
 
+    /// Returns the arcsine of the angle.
+    fn asin(self) -> Self;
+
+    /// Returns the arccos of the angle.
+    fn acos(self) -> Self;
+
     /// Returns the four quadrant arctangent of `self` and `x` in radians.
     fn atan2(self, x: Self) -> Self;
 
@@ -367,6 +373,14 @@ impl Real for f32 {
 
     fn cos(self) -> Self {
         self.cos()
+    }
+
+    fn asin(self) -> Self {
+        self.asin()
+    }
+
+    fn acos(self) -> Self {
+        self.acos()
     }
 
     fn tan(self) -> Self {
@@ -405,6 +419,14 @@ impl Real for f64 {
 
     fn cos(self) -> Self {
         self.cos()
+    }
+
+    fn asin(self) -> Self {
+        self.asin()
+    }
+
+    fn acos(self) -> Self {
+        self.acos()
     }
 
     fn tan(self) -> Self {
