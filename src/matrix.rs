@@ -996,6 +996,16 @@ impl<const N: usize, const M: usize> Mul<Matrix<f64, N, M>> for f64 {
     }
 }
 
+impl<T, const N: usize, const M: usize> Matrix<T, N, M>
+where
+    T: Real + One + Clone,
+{
+    /// Linear interpolate between two matrices.
+    pub fn lerp(self, rhs: Self, t: T) -> Self {
+        self * (T::one() - t.clone()) + rhs * t
+    }
+}
+
 /// Permutation matrix created for LU decomposition.
 #[derive(Copy, Clone)]
 pub struct Permutation<const N: usize> {

@@ -561,54 +561,94 @@ where
 }
 
 /// An object with a magnitude of one
+#[repr(transparent)]
 pub struct Unit<T>(T);
 
 impl<T> Unit<T> {
     pub fn into_inner(self) -> T {
-	self.0
+        self.0
+    }
+}
+
+impl<T> Deref for Unit<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for Unit<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
 impl<T> Unit<T>
 where
-    T: RealInnerSpace + VectorSpace + Neg,
-    T::Scalar: Real + Zero + One + Clone,
+    T: RealInnerSpace + VectorSpace,
+    T::Scalar: Real + One,
 {
     /// Construct a new unit object, normalizing the input in the process
     pub fn new_normalize(obj: T) -> Self {
-	Unit(obj.normalize())
-    }
-
-    pub fn nlerp(self, mut other: Self, amount: T) -> Self {
-	todo!()
-    }
-
-    pub fn slerp(self, mut rhs: Self, amount: T) -> Self {
-	let mut dot = self.0.clone().dot(rhs.0.clone());
-
-	if dot.clone() < T::Scalar::zero() {
-	    rhs.0 = -rhs.0;
-	    dot = -dot;
-	}
-
-	if dot.clone() >= T::Scalar::one() {
-	    return self;
-	} 
-
-	let theta = dot.acos();
-	let scale_lhs = (theta.clone() * (T::Scalar::one() - amount)).sin();
-	let scale_rhs = (theta * amount).sin();
-
-	Self::new_normalize(self.0 * scale_lhs + rhs.0 * scale_rhs)
+        Unit(obj.normalize())
     }
 }
 
+impl<T> Unit<T>
+where
+    T: RealInnerSpace + VectorSpace + Neg<Output = T>,
+    T::Scalar: Real + Zero + One + Clone,
+{
+    /// Perform a normalized linear interpolation between self and rhs
+    pub fn nlerp(self, mut rhs: Self, amount: T::Scalar) -> Self {
+        if self.0.clone().dot(rhs.0.clone()) < T::Scalar::zero() {
+            rhs.0 = -rhs.0;
+        }
+        Self::new_normalize(self.0 * (T::Scalar::one() - amount.clone()) + rhs.0 * amount)
+    }
+
+    /// Perform a spherical linear interpolation between self and rhs
+    pub fn slerp(self, mut rhs: Self, amount: T::Scalar) -> Self {
+        let mut dot = self.0.clone().dot(rhs.0.clone());
+
+        if dot.clone() < T::Scalar::zero() {
+            rhs.0 = -rhs.0;
+            dot = -dot;
+        }
+
+        if dot.clone() >= T::Scalar::one() {
+            return self;
+        }
+
+        let theta = dot.acos();
+        let scale_lhs = (theta.clone() * (T::Scalar::one() - amount.clone())).sin();
+        let scale_rhs = (theta * amount).sin();
+
+        Self::new_normalize(self.0 * scale_lhs + rhs.0 * scale_rhs)
+    }
+}
+
+/// Convert a object to a unit object
+pub trait IntoUnit: Sized {
+    fn into_unit(self) -> Unit<Self>;
+}
+
+impl<T> IntoUnit for T
+where
+    T: RealInnerSpace + VectorSpace,
+    T::Scalar: Real + One,
+{
+    fn into_unit(self) -> Unit<Self> {
+        Unit::new_normalize(self)
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use approx::abs_diff_eq;
-    
+
     type Vector1<T> = Vector<T, 1>;
 
     /*
@@ -798,7 +838,14 @@ mod tests {
         let c = b.first::<2_usize>();
         assert_eq!(a, c);
     }
-    */
+     */
+
+    #[test]
+    fn vec_linear_interpolate() {
+        let v1 = vector!(0.0, 0.0, 0.0);
+        let v2 = vector!(1.0, 2.0, 3.0);
+        assert_eq!(v1.lerp(v2, 0.5), vector!(0.5, 1.0, 1.5));
+    }
 
     #[test]
     fn mat_identity() {

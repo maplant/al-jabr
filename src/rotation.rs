@@ -162,19 +162,6 @@ where
 
 impl<T> Quaternion<T>
 where
-    T: Real + Zero + One + Clone,
-{
-    /// Perform a normalized linear interpolation
-    pub fn nlerp(self, mut other: Self, amount: T) -> Self {
-        if self.clone().dot(other.clone()) < T::zero() {
-            other = -other;
-        }
-        (self * (T::one() - amount.clone()) + other * amount).normalize()
-    }
-}
-
-impl<T> Quaternion<T>
-where
     T: Zero + One,
 {
     /// Return the identity quaternion.
