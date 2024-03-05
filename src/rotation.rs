@@ -151,12 +151,25 @@ impl<T> Quaternion<T> {
 
 impl<T> Quaternion<T>
 where
-    T: Real + Mul<T, Output = T> + Clone,
+    T: Real + Clone,
 {
     /// Constructs the rotation as a rotation along an axis.
     pub fn from_axis_angle(axis: Vector3<T>, angle: T) -> Self {
         let (s, c) = (angle.div2()).sin_cos();
         Quaternion::from_sv(c, axis * s)
+    }
+}
+
+impl<T> Quaternion<T>
+where
+    T: Real + Zero + One + PartialOrd + Clone,
+{
+    /// Perform a normalized linear interpolation
+    pub fn nlerp(self, mut other: Self, amount: T) -> Self {
+        if self.clone().dot(other.clone()) < T::zero() {
+            other = -other;
+        }
+        (self * (T::one() - amount.clone()) + other * amount).normalize()
     }
 }
 
@@ -274,6 +287,20 @@ where
             -xs.clone() * zs.clone() * yc.clone() + ys.clone() * xc.clone() * zc.clone(),
             xs.clone() * ys.clone() * zc.clone() + zs.clone() * xc.clone() * yc.clone(),
         )
+    }
+}
+
+impl<T> Neg for Quaternion<T>
+where
+    T: Neg<Output = T>,
+{
+    type Output = Quaternion<T>;
+
+    fn neg(self) -> Self {
+        Self {
+            s: -self.s,
+            v: -self.v,
+        }
     }
 }
 
@@ -436,7 +463,7 @@ where
 
 impl<T> MetricSpace for Quaternion<T>
 where
-    T: Clone + AddAssign + Sub<T, Output = T> + Real + Zero,
+    T: Real + Zero + Clone,
 {
     type Metric = T;
 
@@ -447,7 +474,7 @@ where
 
 impl<T> InnerSpace for Quaternion<T>
 where
-    T: Clone + Real + Zero + AddAssign,
+    T: Real + Zero + Clone,
 {
     fn dot(self, other: Self) -> Self::Scalar {
         self.s * other.s + self.v.dot(other.v)
