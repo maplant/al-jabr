@@ -497,11 +497,11 @@ where
 impl<T> Eq for Quaternion<T> where T: Eq {}
 
 #[cfg(feature = "mint")]
-impl<T: Copy> Into<mint::Quaternion<T>> for Quaternion<T> {
-    fn into(self) -> mint::Quaternion<T> {
+impl<T: Copy> From<Quaternion<T>> for mint::Quaternion<T> {
+    fn from(q: Quaternion<T>) -> mint::Quaternion<T> {
         mint::Quaternion {
-            s: self.s,
-            v: self.v.into(),
+            s: q.s,
+            v: q.v.into(),
         }
     }
 }

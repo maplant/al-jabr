@@ -183,9 +183,6 @@ use core::{
     },
 };
 
-#[cfg(feature = "mint")]
-use mint;
-
 #[cfg(feature = "rand")]
 use rand::{
     distributions::{Distribution, Standard},
@@ -668,7 +665,7 @@ mod tests {
     #[test]
     fn vec_normalize() {
         let a = vector!(5.0);
-        assert_eq!(a.clone().magnitude(), 5.0);
+        assert_eq!(a.magnitude(), 5.0);
         let a_norm = a.normalize();
         assert_eq!(a_norm, vector!(1.0));
     }
@@ -782,7 +779,7 @@ mod tests {
         // Removing the type signature here caused the compiler to crash.
         // Since then I've been wary.
         let a = Matrix::<f32, 3, 3>::from([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]);
-        let b = a.clone();
+        let b = a;
         let c = a * b;
         assert_eq!(
             c,
@@ -846,7 +843,7 @@ mod tests {
 
         let a = vector!(1.0f32, 1.0);
         let b = vector!(5.0f32, 5.0);
-        const CLOSE: f32 = 5.65685424949;
+        const CLOSE: f32 = 5.656854;
         assert_eq!(a.distance(b), CLOSE); // distance is implemented.
         assert_eq!((b - a).magnitude(), CLOSE); // magnitude is implemented.
 

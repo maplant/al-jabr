@@ -96,7 +96,7 @@ where
 {
     /// Construct a Vector1 in the positive x direction.
     pub fn unit_x() -> Self {
-        Matrix([[ T::one() ]])
+        Matrix([[T::one()]])
     }
 }
 
@@ -106,12 +106,12 @@ where
 {
     /// Construct a Vector2 in the positive x direction.
     pub fn unit_x() -> Self {
-        Matrix([[ T::one(), T::zero() ]])
+        Matrix([[T::one(), T::zero()]])
     }
 
     /// Construct a Vector2 in the positive y direction.
     pub fn unit_y() -> Self {
-        Matrix([[ T::zero(), T::one() ]])
+        Matrix([[T::zero(), T::one()]])
     }
 }
 
@@ -121,17 +121,17 @@ where
 {
     /// Construct a Vector3 in the positive x direction.
     pub fn unit_x() -> Self {
-        Matrix([[ T::one(), T::zero(), T::zero() ]])
+        Matrix([[T::one(), T::zero(), T::zero()]])
     }
 
     /// Construct a Vector3 in the positive y direction.
     pub fn unit_y() -> Self {
-        Matrix([[ T::zero(), T::one(), T::zero() ]])
+        Matrix([[T::zero(), T::one(), T::zero()]])
     }
 
     /// Construct a Vector3 in the positive z direction.
     pub fn unit_z() -> Self {
-        Matrix([[ T::zero(), T::zero(), T::one() ]])
+        Matrix([[T::zero(), T::zero(), T::one()]])
     }
 }
 
@@ -141,22 +141,22 @@ where
 {
     /// Construct a Vector4 in the positive x direction.
     pub fn unit_x() -> Self {
-        Matrix([[ T::one(), T::zero(), T::zero(), T::zero() ]])
+        Matrix([[T::one(), T::zero(), T::zero(), T::zero()]])
     }
 
     /// Construct a Vector4 in the positive y direction.
     pub fn unit_y() -> Self {
-        Matrix([[ T::zero(), T::one(), T::zero(), T::zero() ]])
+        Matrix([[T::zero(), T::one(), T::zero(), T::zero()]])
     }
 
     /// Construct a Vector4 in the positive z direction.
     pub fn unit_z() -> Self {
-        Matrix([[ T::zero(), T::zero(), T::one(), T::zero() ]])
+        Matrix([[T::zero(), T::zero(), T::one(), T::zero()]])
     }
 
     /// Construct a Vector4 in the positive w direction.
     pub fn unit_w() -> Self {
-        Matrix([[ T::zero(), T::zero(), T::zero(), T::one() ]])
+        Matrix([[T::zero(), T::zero(), T::zero(), T::one()]])
     }
 }
 
@@ -174,7 +174,7 @@ impl<T, const N: usize> Vector<T, N> {
         F: FnMut(usize) -> Out,
     {
         let mut to = MaybeUninit::<Vector<Out, N>>::uninit();
-        let top: *mut Out = unsafe { mem::transmute(&mut to) };
+        let top = &mut to as *mut MaybeUninit<Matrix<Out, N, 1>> as *mut Out;
         for i in 0..N {
             unsafe { top.add(i).write(f(i)) }
         }
@@ -187,8 +187,8 @@ impl<T, const N: usize> Vector<T, N> {
     {
         let mut from = MaybeUninit::new(self);
         let mut to = MaybeUninit::<Vector<Out, N>>::uninit();
-        let fromp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut from) };
-        let top: *mut Out = unsafe { mem::transmute(&mut to) };
+        let fromp = &mut from as *mut MaybeUninit<Matrix<T, N, 1>> as *mut MaybeUninit<T>;
+        let top = &mut to as *mut MaybeUninit<Matrix<Out, N, 1>> as *mut Out;
         for i in 0..N {
             unsafe {
                 top.add(i).write(f(
@@ -230,7 +230,7 @@ where
             panic!("attempt to return {} elements from a {}-vector", M, N);
         }
         let mut head = MaybeUninit::<Vector<T, { M }>>::uninit();
-        let headp: *mut T = unsafe { mem::transmute(&mut head) };
+        let headp = &mut head as *mut MaybeUninit<Matrix<T, M, 1>> as *mut T;
         for i in 0..M {
             unsafe {
                 headp.add(i).write(self.0[0][i].clone());
@@ -248,7 +248,7 @@ where
             panic!("attempt to return {} elements from a {}-vector", M, N);
         }
         let mut tail = MaybeUninit::<Vector<T, { M }>>::uninit();
-        let tailp: *mut T = unsafe { mem::transmute(&mut tail) };
+        let tailp = &mut tail as *mut MaybeUninit<Matrix<T, M, 1>> as *mut T;
         for i in 0..M {
             unsafe {
                 tailp.add(i + N - M).write(self.0[0][i].clone());
@@ -335,9 +335,9 @@ impl<T, const N: usize> From<[T; N]> for Vector<T, N> {
     }
 }
 
-impl<T, const N: usize> Into<[T; N]> for Vector<T, N> {
-    fn into(self: Vector<T, N>) -> [T; N] {
-        let Matrix([vec]) = self;
+impl<T, const N: usize> From<Vector<T, N>> for [T; N] {
+    fn from(v: Vector<T, N>) -> [T; N] {
+        let Matrix([vec]) = v;
         vec
     }
 }
@@ -582,8 +582,8 @@ where
         let mut lhs = MaybeUninit::new(self);
         let mut rhs = MaybeUninit::new(rhs);
         let mut sum = <T as Zero>::zero();
-        let lhsp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut lhs) };
-        let rhsp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut rhs) };
+        let lhsp = &mut lhs as *mut MaybeUninit<Matrix<T, N, 1>> as *mut MaybeUninit<T>;
+        let rhsp = &mut rhs as *mut MaybeUninit<Matrix<T, N, 1>> as *mut MaybeUninit<T>;
         for i in 0..N {
             sum = sum
                 + unsafe {
@@ -596,11 +596,11 @@ where
 }
 
 #[cfg(feature = "mint")]
-impl<T: Copy> Into<mint::Vector2<T>> for Vector<T, 2> {
-    fn into(self) -> mint::Vector2<T> {
+impl<T: Copy> From<Vector<T, 2>> for mint::Vector2<T> {
+    fn from(v: Vector<T, 2>) -> mint::Vector2<T> {
         mint::Vector2 {
-            x: self.0[0][0],
-            y: self.0[0][1],
+            x: *v.x(),
+            y: *v.y(),
         }
     }
 }
@@ -613,12 +613,12 @@ impl<T> From<mint::Vector2<T>> for Vector<T, 2> {
 }
 
 #[cfg(feature = "mint")]
-impl<T: Copy> Into<mint::Vector3<T>> for Vector<T, 3> {
-    fn into(self) -> mint::Vector3<T> {
+impl<T: Copy> From<Vector<T, 3>> for mint::Vector3<T> {
+    fn from(v: Vector<T, 3>) -> mint::Vector3<T> {
         mint::Vector3 {
-            x: self.0[0][0],
-            y: self.0[0][1],
-            z: self.0[0][2],
+            x: *v.x(),
+            y: *v.y(),
+            z: *v.z(),
         }
     }
 }
@@ -631,13 +631,13 @@ impl<T> From<mint::Vector3<T>> for Vector<T, 3> {
 }
 
 #[cfg(feature = "mint")]
-impl<T: Copy> Into<mint::Vector4<T>> for Vector<T, 4> {
-    fn into(self) -> mint::Vector4<T> {
+impl<T: Copy> From<Vector<T, 4>> for mint::Vector4<T> {
+    fn from(v: Vector<T, 4>) -> mint::Vector4<T> {
         mint::Vector4 {
-            x: self.0[0][0],
-            y: self.0[0][1],
-            z: self.0[0][2],
-            w: self.0[0][3],
+            x: *v.x(),
+            y: *v.y(),
+            z: *v.z(),
+            w: *v.w(),
         }
     }
 }

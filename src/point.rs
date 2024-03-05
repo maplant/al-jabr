@@ -146,9 +146,9 @@ where
 
 impl<T, const N: usize> Copy for Point<T, N> where T: Copy {}
 
-impl<T, const N: usize> Into<[T; N]> for Point<T, N> {
-    fn into(self) -> [T; N] {
-        self.0
+impl<T, const N: usize> From<Point<T, N>> for [T; N] {
+    fn from(p: Point<T, N>) -> [T; N] {
+        p.0
     }
 }
 
@@ -283,7 +283,7 @@ where
 {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Point<T, N> {
         let mut rand = MaybeUninit::<Point<T, N>>::uninit();
-        let randp: *mut T = unsafe { mem::transmute(&mut rand) };
+        let randp = &mut rand as *mut MaybeUninit<Point<T, N>> as *mut T;
 
         for i in 0..N {
             unsafe { randp.add(i).write(self.sample(rng)) }
@@ -326,11 +326,11 @@ where
 }
 
 #[cfg(feature = "mint")]
-impl<T: Copy> Into<mint::Point2<T>> for Point<T, 2> {
-    fn into(self) -> mint::Point2<T> {
+impl<T: Copy> From<Point<T, 2>> for mint::Point2<T> {
+    fn from(p: Point<T, 2>) -> mint::Point2<T> {
         mint::Point2 {
-            x: self.0[0],
-            y: self.0[1],
+            x: p.0[0],
+            y: p.0[1],
         }
     }
 }
@@ -343,12 +343,12 @@ impl<T> From<mint::Point2<T>> for Point<T, 2> {
 }
 
 #[cfg(feature = "mint")]
-impl<T: Copy> Into<mint::Point3<T>> for Point<T, 3> {
-    fn into(self) -> mint::Point3<T> {
+impl<T: Copy> From<Point<T, 3>> for mint::Point3<T> {
+    fn from(p: Point<T, 3>) -> mint::Point3<T> {
         mint::Point3 {
-            x: self.0[0],
-            y: self.0[1],
-            z: self.0[2],
+            x: p.0[0],
+            y: p.0[1],
+            z: p.0[2],
         }
     }
 }
@@ -361,7 +361,7 @@ impl<T> From<mint::Point3<T>> for Point<T, 3> {
 }
 
 #[cfg(any(feature = "approx", test))]
-use approx::{AbsDiffEq, RelativeEq, UlpsEq};
+use approx::AbsDiffEq;
 
 #[cfg(any(feature = "approx", test))]
 impl<T: AbsDiffEq, const N: usize> AbsDiffEq for Point<T, N>
@@ -383,6 +383,9 @@ where
         true
     }
 }
+
+#[cfg(feature = "approx")]
+use approx::{RelativeEq, UlpsEq};
 
 #[cfg(feature = "approx")]
 impl<T, const N: usize> RelativeEq for Point<T, N>
