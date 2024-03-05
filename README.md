@@ -1,6 +1,5 @@
 # al-jabr 
 
-[![Build Status](https://api.travis-ci.org/maplant/al-jabr.svg?branch=master)](https://travis-ci.org/github/maplant/al-jabr)
 [![Documentation](https://docs.rs/al-jabr/badge.svg)](https://docs.rs/al-jabr)
 [![Version](https://img.shields.io/crates/v/al-jabr.svg)](https://crates.io/crates/al-jabr)
 [![Downloads](https://img.shields.io/crates/d/al-jabr.svg)](https://crates.io/crates/al-jabr)
@@ -39,5 +38,5 @@ Pull request of any nature are welcome.
 
 ## Support 
 
-Contact the author at `map@maplant.com` or [file an issue on github.](https://github.com/maplant/al-jabr/issues/new/choose)
+Contact the author at `maplant@protonmail.com` or [file an issue on github.](https://github.com/maplant/al-jabr/issues/new/choose)
 

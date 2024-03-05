@@ -7,10 +7,17 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 ## Unreleased Changes
 These changes are included in `master` but have not been released in a new crate version yet.
 
+## [v0.5.0]
+
+- Add `asin` and `acos` methods to `Real`.
+- Add `Unit` struct to enforce normalized objects.
+- Add `nlerp` and `slerp` method to `Unit`.
+- Add `lerp` method to `Matrix`.
+
 ## [v0.4.1] 
 
-- Implement remaining `approx` traits for `Matrix` and `Point`
-- Change to edition 2021
+- Implement remaining `approx` traits for `Matrix` and `Point`.
+- Change to edition 2021.
 
 ## [v0.2.0]
 
