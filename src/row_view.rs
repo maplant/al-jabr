@@ -7,7 +7,7 @@ use super::*;
 /// normal Vector, but doesn't support the usual operators. It can only be
 /// converted to a a Vector if the scalar value supports Clone.
 pub struct RowView<'a, T, const N: usize, const M: usize> {
-    row:    usize,
+    row: usize,
     matrix: &'a Matrix<T, { N }, { M }>,
 }
 
@@ -15,8 +15,8 @@ impl<'a, T, const N: usize, const M: usize> RowView<'a, T, { N }, { M }> {
     /// Returns an iterator over the given row.
     pub fn iter(&self) -> impl Iterator<Item = &'a T> {
         RowViewIter {
-            row:    self.row,
-            col:    0,
+            row: self.row,
+            col: 0,
             matrix: self.matrix,
         }
     }
@@ -28,8 +28,8 @@ impl<'a, T, const N: usize, const M: usize> IntoIterator for RowView<'a, T, { N 
 
     fn into_iter(self) -> Self::IntoIter {
         RowViewIter {
-            row:    self.row,
-            col:    0,
+            row: self.row,
+            col: 0,
             matrix: self.matrix,
         }
     }
@@ -45,8 +45,8 @@ impl<'a, T, const N: usize, const M: usize> Index<usize> for RowView<'a, T, { N 
 
 /// An iterator over a [RowView].
 pub struct RowViewIter<'a, T, const N: usize, const M: usize> {
-    row:    usize,
-    col:    usize,
+    row: usize,
+    col: usize,
     matrix: &'a Matrix<T, { N }, { M }>,
 }
 
@@ -65,7 +65,7 @@ impl<'a, T, const N: usize, const M: usize> Iterator for RowViewIter<'a, T, { N 
 }
 
 pub(super) struct RowIter<'a, T, const N: usize, const M: usize> {
-    pub(super) row:    usize,
+    pub(super) row: usize,
     pub(super) matrix: &'a Matrix<T, { N }, { M }>,
 }
 
@@ -75,7 +75,7 @@ impl<'a, T, const N: usize, const M: usize> Iterator for RowIter<'a, T, { N }, {
     fn next(&mut self) -> Option<Self::Item> {
         let row = if self.row < N {
             Some(RowView {
-                row:    self.row,
+                row: self.row,
                 matrix: self.matrix,
             })
         } else {
@@ -90,7 +90,7 @@ impl<'a, T, const N: usize, const M: usize> Iterator for RowIter<'a, T, { N }, {
 /// like a normal Vector, but doesn't support the usual operators. It can only
 /// be converted to a Vector if the scalar value supports Clone.
 pub struct RowViewMut<'a, T, const N: usize, const M: usize> {
-    pub(super) row:    usize,
+    pub(super) row: usize,
     pub(super) matrix: &'a mut Matrix<T, { N }, { M }>,
 }
 
@@ -109,8 +109,8 @@ impl<'a, T, const N: usize, const M: usize> IndexMut<usize> for RowViewMut<'a, T
 }
 
 pub(super) struct RowIterMut<'a, T, const N: usize, const M: usize> {
-    pub(super) row:     usize,
-    pub(super) matrix:  *mut Matrix<T, { N }, { M }>,
+    pub(super) row: usize,
+    pub(super) matrix: *mut Matrix<T, { N }, { M }>,
     pub(super) phantom: PhantomData<&'a mut Matrix<T, { N }, { M }>>,
 }
 
@@ -120,7 +120,7 @@ impl<'a, T, const N: usize, const M: usize> Iterator for RowIterMut<'a, T, { N }
     fn next(&mut self) -> Option<Self::Item> {
         let row = if self.row < N {
             Some(RowViewMut {
-                row:    self.row,
+                row: self.row,
                 matrix: unsafe { &mut *self.matrix },
             })
         } else {

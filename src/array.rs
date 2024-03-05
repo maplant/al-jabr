@@ -6,7 +6,7 @@ use super::*;
 #[doc(hidden)]
 pub struct ArrayIter<T, const N: usize> {
     pub(crate) array: MaybeUninit<[T; N]>,
-    pub(crate) pos:   usize,
+    pub(crate) pos: usize,
 }
 
 impl<T, const N: usize> Iterator for ArrayIter<T, { N }> {
@@ -18,7 +18,8 @@ impl<T, const N: usize> Iterator for ArrayIter<T, { N }> {
         } else {
             let pos = self.pos;
             self.pos += 1;
-            let arrayp: *mut MaybeUninit<T> = unsafe { mem::transmute(&mut self.array) };
+            let arrayp: *mut MaybeUninit<T> =
+                &mut self.array as *mut MaybeUninit<[T; N]> as *mut MaybeUninit<T>;
             Some(unsafe { arrayp.add(pos).replace(MaybeUninit::uninit()).assume_init() })
         }
     }
@@ -59,7 +60,7 @@ where
         A: SeqAccess<'de>,
     {
         let mut to = MaybeUninit::<[T; N]>::uninit();
-        let top: *mut T = unsafe { mem::transmute(&mut to) };
+        let top: *mut T = &mut to as *mut MaybeUninit<[T; N]> as *mut T;
         for i in 0..N {
             if let Some(element) = seq.next_element()? {
                 unsafe {
