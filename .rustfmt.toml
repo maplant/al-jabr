@@ -1,3 +1,0 @@
-struct_field_align_threshold = 20
-max_width = 100
-wrap_comments = true
