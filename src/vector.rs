@@ -329,6 +329,16 @@ where
     }
 }
 
+impl<T, const N: usize> Vector<T, N>
+where
+    T: Real + One + Clone,
+{
+    /// Linear interpolate between two vectors. 
+    pub fn lerp(self, rhs: Self, t: T) -> Self {
+	self * (T::one() - t.clone()) + rhs * t 
+    }
+}
+
 impl<T, const N: usize> From<[T; N]> for Vector<T, N> {
     fn from(array: [T; N]) -> Self {
         Matrix([array])

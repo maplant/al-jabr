@@ -162,7 +162,7 @@ where
 
 impl<T> Quaternion<T>
 where
-    T: Real + Zero + One + PartialOrd + Clone,
+    T: Real + Zero + One + Clone,
 {
     /// Perform a normalized linear interpolation
     pub fn nlerp(self, mut other: Self, amount: T) -> Self {

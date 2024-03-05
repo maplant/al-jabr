@@ -322,6 +322,7 @@ where
     Self: Mul<Output = Self>,
     Self: Div<Output = Self>,
     Self: Neg<Output = Self>,
+    Self: PartialOrd + PartialEq,
 {
     fn sqrt(self) -> Self;
 
@@ -540,11 +541,55 @@ where
 {
 }
 
+/// An object with a magnitude of one
+pub struct Unit<T>(T);
+
+impl<T> Unit<T> {
+    pub fn into_inner(self) -> T {
+	self.0
+    }
+}
+
+impl<T> Unit<T>
+where
+    T: RealInnerSpace + VectorSpace + Neg,
+    T::Scalar: Real + Zero + One + Clone,
+{
+    /// Construct a new unit object, normalizing the input in the process
+    pub fn new_normalize(obj: T) -> Self {
+	Unit(obj.normalize())
+    }
+
+    pub fn nlerp(self, mut other: Self, amount: T) -> Self {
+	todo!()
+    }
+
+    pub fn slerp(self, mut rhs: Self, amount: T) -> Self {
+	let mut dot = self.0.clone().dot(rhs.0.clone());
+
+	if dot.clone() < T::Scalar::zero() {
+	    rhs.0 = -rhs.0;
+	    dot = -dot;
+	}
+
+	if dot.clone() >= T::Scalar::one() {
+	    return self;
+	} 
+
+	let theta = dot.acos();
+	let scale_lhs = (theta.clone() * (T::Scalar::one() - amount)).sin();
+	let scale_rhs = (theta * amount).sin();
+
+	Self::new_normalize(self.0 * scale_lhs + rhs.0 * scale_rhs)
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use approx::abs_diff_eq;
-
+    
     type Vector1<T> = Vector<T, 1>;
 
     /*
