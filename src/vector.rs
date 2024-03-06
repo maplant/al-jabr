@@ -342,14 +342,59 @@ impl<T, const N: usize> From<Vector<T, N>> for [T; N] {
     }
 }
 
+/// 1-element vector.
+pub type Vector1<T> = Vector<T, 1>;
+
 /// 2-element vector.
 pub type Vector2<T> = Vector<T, 2>;
+
+impl<T> Vector2<T> {
+    /// Extend a Vector1 into a Vector2.
+    pub fn from_vec1(v: Vector1<T>, y: T) -> Self {
+        let Matrix([[x]]) = v;
+        Matrix([[x, y]])
+    }
+}
 
 /// 3-element vector.
 pub type Vector3<T> = Vector<T, 3>;
 
+impl<T> Vector3<T> {
+    /// Extend a Vector1 into a Vector3.
+    pub fn from_vec1(v: Vector1<T>, y: T, z: T) -> Self {
+        let Matrix([[x]]) = v;
+        Matrix([[x, y, z]])
+    }
+
+    /// Extend a Vector2 into a Vector3.
+    pub fn from_vec2(v: Vector2<T>, z: T) -> Self {
+        let Matrix([[x, y]]) = v;
+        Matrix([[x, y, z]])
+    }
+}
+
 /// 4-element vector.
 pub type Vector4<T> = Vector<T, 4>;
+
+impl<T> Vector4<T> {
+    /// Extend a Vector1 into a Vector4.
+    pub fn from_vec1(v: Vector1<T>, y: T, z: T, w: T) -> Self {
+        let Matrix([[x]]) = v;
+        Matrix([[x, y, z, w]])
+    }
+
+    /// Extend a Vector2 into a Vector4.
+    pub fn from_vec2(v: Vector2<T>, z: T, w: T) -> Self {
+        let Matrix([[x, y]]) = v;
+        Matrix([[x, y, z, w]])
+    }
+
+    /// Extend a Vector3 into a Vector4.
+    pub fn from_vec3(v: Vector3<T>, w: T) -> Self {
+        let Matrix([[x, y, z]]) = v;
+        Matrix([[x, y, z, w]])
+    }
+}
 
 /// Construct a new [Vector] of any size.
 ///

@@ -101,14 +101,59 @@ impl<T, const N: usize> From<Vector<T, N>> for Point<T, N> {
     }
 }
 
+/// A point in 1-dimensional space.
+pub type Point1<T> = Point<T, 1>;
+
 /// A point in 2-dimensional space.
 pub type Point2<T> = Point<T, 2>;
+
+impl<T> Point2<T> {
+    /// Extend a Point1 into a Point2.
+    pub fn from_point1(p: Point1<T>, y: T) -> Self {
+        let Point([x]) = p;
+        Point([x, y])
+    }
+}
 
 /// A point in 3-dimensional space.
 pub type Point3<T> = Point<T, 3>;
 
+impl<T> Point3<T> {
+    /// Extend a Point1 into a Point3.
+    pub fn from_point1(p: Point1<T>, y: T, z: T) -> Self {
+        let Point([x]) = p;
+        Point([x, y, z])
+    }
+
+    /// Extend a Point2 into a Point3.
+    pub fn from_point2(p: Point2<T>, z: T) -> Self {
+        let Point([x, y]) = p;
+        Point([x, y, z])
+    }
+}
+
 /// A point in 4-dimensional space.
 pub type Point4<T> = Point<T, 4>;
+
+impl<T> Point4<T> {
+    /// Extend a Point1 into a Point4.
+    pub fn from_point1(p: Point1<T>, y: T, z: T, w: T) -> Self {
+        let Point([x]) = p;
+        Point([x, y, z, w])
+    }
+
+    /// Extend a Point2 into a Point4.
+    pub fn from_point2(p: Point2<T>, z: T, w: T) -> Self {
+        let Point([x, y]) = p;
+        Point([x, y, z, w])
+    }
+
+    /// Extend a Point3 into a Point4.
+    pub fn from_point3(p: Point3<T>, w: T) -> Self {
+        let Point([x, y, z]) = p;
+        Point([x, y, z, w])
+    }
+}
 
 /// Constructs a new point from an array. Necessary to help the compiler. Prefer
 /// calling the macro `point!`, which calls `new_point` internally.
