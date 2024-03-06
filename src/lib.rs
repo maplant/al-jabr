@@ -561,6 +561,7 @@ where
 }
 
 /// An object with a magnitude of one
+#[derive(Copy, Clone)]
 #[repr(transparent)]
 pub struct Unit<T>(T);
 
