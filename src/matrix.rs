@@ -184,7 +184,7 @@ where
     T: Zero + One + Clone,
 {
     /// Create an affine transformation matrix from a translation vector.
-    pub fn from_translation(v: Vector2<T>) -> Matrix3<T> {
+    pub fn from_translation(v: Vector2<T>) -> Self {
         let Matrix([[x, y]]) = v;
         matrix![
             [T::one(), T::zero(), T::zero(),],
@@ -194,12 +194,12 @@ where
     }
 
     /// Create an affine transformation matrix from a uniform scale.
-    pub fn from_scale(scale: T) -> Matrix3<T> {
+    pub fn from_scale(scale: T) -> Self {
         Matrix3::from_nonuniform_scale(scale.clone(), scale)
     }
 
-    /// Create an affine trasnformation matrix from a non-uniform scale.
-    pub fn from_nonuniform_scale(x: T, y: T) -> Matrix3<T> {
+    /// Create an affine transformation matrix from a non-uniform scale.
+    pub fn from_nonuniform_scale(x: T, y: T) -> Self {
         matrix![
             [x, T::zero(), T::zero()],
             [T::zero(), y, T::zero()],
@@ -208,12 +208,22 @@ where
     }
 }
 
+impl<T> Matrix3<T>
+where
+    T: Real + One + Copy + Clone,
+{
+    /// Create an affine transformation matrix from a unit quaternion.
+    pub fn from_rotation(q: Unit<Quaternion<T>>) -> Self {
+        Self::from(q.into_inner())
+    }
+}
+
 impl<T> Matrix4<T>
 where
     T: Zero + One + Clone,
 {
     /// Create an affine transformation matrix from a translation vector.
-    pub fn from_translation(v: Vector3<T>) -> Matrix4<T> {
+    pub fn from_translation(v: Vector3<T>) -> Self {
         let Matrix([[x, y, z]]) = v;
         matrix![
             [T::one(), T::zero(), T::zero(), T::zero()],
@@ -224,18 +234,28 @@ where
     }
 
     /// Create an affine transformation matrix from a uniform scale.
-    pub fn from_scale(scale: T) -> Matrix4<T> {
+    pub fn from_scale(scale: T) -> Self {
         Matrix4::from_nonuniform_scale(scale.clone(), scale.clone(), scale)
     }
 
     /// Create an affine trasnformation matrix from a non-uniform scale.
-    pub fn from_nonuniform_scale(x: T, y: T, z: T) -> Matrix4<T> {
+    pub fn from_nonuniform_scale(x: T, y: T, z: T) -> Self {
         matrix![
             [x, T::zero(), T::zero(), T::zero()],
             [T::zero(), y, T::zero(), T::zero()],
             [T::zero(), T::zero(), z, T::zero()],
             [T::zero(), T::zero(), T::zero(), T::one()],
         ]
+    }
+}
+
+impl<T> Matrix4<T>
+where
+    T: Real + One + Zero + Copy + Clone,
+{
+    /// Create an affine transformation matrix from a unit quaternion.
+    pub fn from_rotation(q: Unit<Quaternion<T>>) -> Self {
+        Self::from(q.into_inner())
     }
 }
 
@@ -350,7 +370,7 @@ impl<T, const N: usize, const M: usize> From<[Vector<T, N>; M]> for Matrix<T, N,
 impl<T> From<Quaternion<T>> for Matrix3<T>
 where
     // This is really annoying to implement with
-    T: Add + Mul + Sub + Real + One + Copy + Clone,
+    T: Real + One + Copy + Clone,
 {
     fn from(quat: Quaternion<T>) -> Self {
         // Taken from cgmath
