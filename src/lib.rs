@@ -562,6 +562,7 @@ where
 
 /// An object with a magnitude of one
 #[derive(Copy, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(transparent)]
 pub struct Unit<T>(T);
 

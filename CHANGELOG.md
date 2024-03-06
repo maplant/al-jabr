@@ -7,12 +7,17 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 ## Unreleased Changes
 These changes are included in `master` but have not been released in a new crate version yet.
 
+## [v0.5.3]
+
+- Add `from_rotation` constructor for `Matrix3` and `Matrix4`.
+- Derive `serde::Serialize` and `serde::Serialize` and for `Unit` when `T` supports it.
+
 ## [v0.5.2]
 
 - Add `Vector1` and `Point1`
 - Add `from_vec1`, `from_vec2`, and `from_vec3` constructors to extend vectors.
 - Add `from_point1`, `from_point1`, and `from_point1`, constructors to extend points.
-- Make `Unit` `Copy` and `Clone` dependant on `T`
+- Make `Unit` `Copy` and `Clone` dependent on `T`.
 
 ## [v0.5.1]
 
