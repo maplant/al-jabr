@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 ## Unreleased Changes
 These changes are included in `master` but have not been released in a new crate version yet.
 
+## [v0.5.1]
+
+- Remove redundant `lerp` definition (oops).
+
 ## [v0.5.0]
 
 - Add `asin` and `acos` methods to `Real`.
