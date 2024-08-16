@@ -7,6 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 ## Unreleased Changes
 These changes are included in `master` but have not been released in a new crate version yet.
 
+## [v0.5.4]
+- Fix affine matrix construction
+
 ## [v0.5.3]
 
 - Add `from_rotation` constructor for `Matrix3` and `Matrix4`.

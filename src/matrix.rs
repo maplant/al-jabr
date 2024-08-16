@@ -711,9 +711,9 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Matrix [ ")?;
-        for j in 0..M {
+        for i in 0..N {
             write!(f, "[ ")?;
-            for i in 0..N {
+            for j in 0..M {
                 write!(f, "{:?} ", self.0[j][i])?;
             }
             write!(f, "] ")?;
