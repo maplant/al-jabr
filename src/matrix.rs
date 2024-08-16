@@ -187,8 +187,8 @@ where
     pub fn from_translation(v: Vector2<T>) -> Self {
         let Matrix([[x, y]]) = v;
         Self([
-            [T::one(), T::zero(), T::zero(),],
-            [T::zero(), T::one(), T::zero(),],
+            [T::one(), T::zero(), T::zero()],
+            [T::zero(), T::one(), T::zero()],
             [x, y, T::one()],
         ])
     }
