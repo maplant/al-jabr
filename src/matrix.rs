@@ -851,9 +851,8 @@ where
 
 impl<T, const N: usize, const M: usize, const P: usize> Mul<Matrix<T, M, { P }>> for Matrix<T, N, M>
 where
-    T: Add<T, Output = T> + Mul<T, Output = T> + Clone + std::fmt::Debug,
+    T: Add<T, Output = T> + Mul<T, Output = T> + Clone,
     Vector<T, M>: InnerSpace,
-    <Vector<T, M> as VectorSpace>::Scalar: std::fmt::Debug,
 {
     type Output = Matrix<<Vector<T, M> as VectorSpace>::Scalar, N, { P }>;
 
