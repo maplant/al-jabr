@@ -187,8 +187,8 @@ where
     pub fn from_translation(v: Vector2<T>) -> Self {
         let Matrix([[x, y]]) = v;
         Self([
-            [T::one(), T::zero(), T::zero(),],
-            [T::zero(), T::one(), T::zero(),],
+            [T::one(), T::zero(), T::zero()],
+            [T::zero(), T::one(), T::zero()],
             [x, y, T::one()],
         ])
     }
@@ -852,8 +852,8 @@ where
 impl<T, const N: usize, const M: usize, const P: usize> Mul<Matrix<T, M, { P }>> for Matrix<T, N, M>
 where
     T: Add<T, Output = T> + Mul<T, Output = T> + Clone + std::fmt::Debug,
-Vector<T, M>: InnerSpace,
-<Vector<T, M> as VectorSpace>::Scalar: std::fmt::Debug,
+    Vector<T, M>: InnerSpace,
+    <Vector<T, M> as VectorSpace>::Scalar: std::fmt::Debug,
 {
     type Output = Matrix<<Vector<T, M> as VectorSpace>::Scalar, N, { P }>;
 
