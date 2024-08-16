@@ -338,6 +338,50 @@ where
     }
 }
 
+impl<T> Matrix4<T>
+where
+    T: Copy + Clone + PartialOrd + Product + Real + One + Zero,
+    T: Neg<Output = T>,
+    T: Add<T, Output = T> + Sub<T, Output = T>,
+    T: Mul<T, Output = T> + Div<T, Output = T>,
+    Self: Add<Self>,
+    Self: Sub<Self>,
+    Self: Mul<Self>,
+    Self: Mul<Vector4<T>, Output = Vector4<T>>,
+{
+    /// Takes an affine matrix and returns the decomposition of it.
+    pub fn to_scale_rotation_translation(&self) -> (Vector3<T>, Quaternion<T>, Vector3<T>) {
+        let det = self.determinant();
+
+        let scale = vector!(
+            Vector::from(self[0]).magnitude() * det.signum(),
+            Vector::from(self[1]).magnitude(),
+            Vector::from(self[2]).magnitude()
+        );
+
+        let inv_scale = vector!(
+            T::one() / *scale.x(),
+            T::one() / *scale.y(),
+            T::one() / *scale.z()
+        );
+
+        let Matrix([[xx, xy, xz, _]]) = Vector::from(self.0[0]) * *inv_scale.x();
+        let Matrix([[yx, yy, yz, _]]) = Vector::from(self.0[1]) * *inv_scale.y();
+        let Matrix([[zx, zy, zz, _]]) = Vector::from(self.0[2]) * *inv_scale.z();
+
+        let rotation = Quaternion::from(Orthonormal::new(Matrix::from([
+            vector!(xx, xy, xz),
+            vector!(yx, yy, yz),
+            vector!(zx, zy, zz),
+        ])));
+
+        let [x, y, z, _] = self[3];
+        let translation = vector!(x, y, z);
+
+        (scale, rotation, translation)
+    }
+}
+
 impl<T, const N: usize, const M: usize> From<[[T; N]; M]> for Matrix<T, N, M> {
     fn from(array: [[T; N]; M]) -> Self {
         Matrix::<T, N, M>(array)

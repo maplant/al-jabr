@@ -38,6 +38,12 @@ pub struct Euler<T> {
 /// matrix.
 pub struct Orthonormal<T, const DIMS: usize>(Matrix<T, DIMS, DIMS>);
 
+impl<T, const DIMS: usize> Orthonormal<T, DIMS> {
+    pub fn new(mat: Matrix<T, DIMS, DIMS>) -> Self {
+        Self(mat)
+    }
+}
+
 impl<T> From<T> for Orthonormal<T, 2>
 where
     T: Real + Clone,
@@ -157,6 +163,73 @@ where
     pub fn from_axis_angle(axis: Vector3<T>, angle: T) -> Self {
         let (s, c) = (angle.div2()).sin_cos();
         Quaternion::from_sv(c, axis * s)
+    }
+}
+
+impl<T> From<Orthonormal<T, 3>> for Quaternion<T>
+where
+    T: Copy + Clone + PartialOrd + Product + Real + One + Zero,
+    T: Neg<Output = T>,
+    T: Add<T, Output = T> + Sub<T, Output = T>,
+    T: Mul<T, Output = T> + Div<T, Output = T>,
+{
+    fn from(orthonormal: Orthonormal<T, 3>) -> Self {
+        // Based on Glam, which is in turn based on https://github.com/microsoft/DirectXMath
+        // `XM$quaternionRotationMatrix`
+        let [m00, m01, m02] = orthonormal.0[0];
+        let [m10, m11, m12] = orthonormal.0[1];
+        let [m20, m21, m22] = orthonormal.0[2];
+        if m22 <= T::zero() {
+            // x^2 + y^2 >= z^2 + w^2
+            let dif10 = m11 - m00;
+            let omm22 = T::one() - m22;
+            if dif10 <= T::zero() {
+                // x^2 >= y^2
+                let four_xsq = omm22 - dif10;
+                let inv4x = four_xsq.sqrt().div2();
+                Self::new(
+                    four_xsq * inv4x,
+                    (m01 + m10) * inv4x,
+                    (m02 + m20) * inv4x,
+                    (m12 - m21) * inv4x,
+                )
+            } else {
+                // y^2 >= x^2
+                let four_ysq = omm22 + dif10;
+                let inv4y = four_ysq.sqrt().div2();
+                Self::new(
+                    (m01 + m10) * inv4y,
+                    four_ysq * inv4y,
+                    (m12 + m21) * inv4y,
+                    (m20 - m02) * inv4y,
+                )
+            }
+        } else {
+            // z^2 + w^2 >= x^2 + y^2
+            let sum10 = m11 + m00;
+            let opm22 = T::one() + m22;
+            if sum10 <= T::zero() {
+                // z^2 >= w^2
+                let four_zsq = opm22 - sum10;
+                let inv4z = four_zsq.sqrt().div2();
+                Self::new(
+                    (m02 + m20) * inv4z,
+                    (m12 + m21) * inv4z,
+                    four_zsq * inv4z,
+                    (m01 - m10) * inv4z,
+                )
+            } else {
+                // w^2 >= z^2
+                let four_wsq = opm22 + sum10;
+                let inv4w = four_wsq.sqrt().div2();
+                Self::new(
+                    (m12 - m21) * inv4w,
+                    (m20 - m02) * inv4w,
+                    (m01 - m10) * inv4w,
+                    four_wsq * inv4w,
+                )
+            }
+        }
     }
 }
 
