@@ -7,8 +7,14 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 ## Unreleased Changes
 These changes are included in `master` but have not been released in a new crate version yet.
 
+## [v0.5.5]
+- Add `to_scale_rotation_translation` function to Matrix4.
+- Add `From<Orthonormal<T, 3>>` for `Quaternion<T>`.
+- Add `new` function to `Orthonormal`.
+- Add `signum` function to `Real`.
+
 ## [v0.5.4]
-- Fix affine matrix construction
+- Fix affine matrix construction.
 
 ## [v0.5.3]
 

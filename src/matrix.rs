@@ -755,9 +755,9 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Matrix [ ")?;
-        for j in 0..M {
+        for i in 0..N {
             write!(f, "[ ")?;
-            for i in 0..N {
+            for j in 0..M {
                 write!(f, "{:?} ", self.0[j][i])?;
             }
             write!(f, "] ")?;
@@ -896,8 +896,8 @@ where
 impl<T, const N: usize, const M: usize, const P: usize> Mul<Matrix<T, M, { P }>> for Matrix<T, N, M>
 where
     T: Add<T, Output = T> + Mul<T, Output = T> + Clone + std::fmt::Debug,
-Vector<T, M>: InnerSpace,
-<Vector<T, M> as VectorSpace>::Scalar: std::fmt::Debug,
+    Vector<T, M>: InnerSpace,
+    <Vector<T, M> as VectorSpace>::Scalar: std::fmt::Debug,
 {
     type Output = Matrix<<Vector<T, M> as VectorSpace>::Scalar, N, { P }>;
 
