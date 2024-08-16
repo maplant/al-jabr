@@ -186,11 +186,11 @@ where
     /// Create an affine transformation matrix from a translation vector.
     pub fn from_translation(v: Vector2<T>) -> Self {
         let Matrix([[x, y]]) = v;
-        matrix![
+        Self([
             [T::one(), T::zero(), T::zero(),],
             [T::zero(), T::one(), T::zero(),],
             [x, y, T::one()],
-        ]
+        ])
     }
 
     /// Create an affine transformation matrix from a uniform scale.
@@ -200,11 +200,11 @@ where
 
     /// Create an affine transformation matrix from a non-uniform scale.
     pub fn from_nonuniform_scale(x: T, y: T) -> Self {
-        matrix![
+        Self([
             [x, T::zero(), T::zero()],
             [T::zero(), y, T::zero()],
             [T::zero(), T::zero(), T::one()],
-        ]
+        ])
     }
 }
 
@@ -225,12 +225,12 @@ where
     /// Create an affine transformation matrix from a translation vector.
     pub fn from_translation(v: Vector3<T>) -> Self {
         let Matrix([[x, y, z]]) = v;
-        matrix![
+        Self([
             [T::one(), T::zero(), T::zero(), T::zero()],
             [T::zero(), T::one(), T::zero(), T::zero()],
             [T::zero(), T::zero(), T::one(), T::zero()],
             [x, y, z, T::one()],
-        ]
+        ])
     }
 
     /// Create an affine transformation matrix from a uniform scale.
@@ -240,12 +240,12 @@ where
 
     /// Create an affine trasnformation matrix from a non-uniform scale.
     pub fn from_nonuniform_scale(x: T, y: T, z: T) -> Self {
-        matrix![
+        Self([
             [x, T::zero(), T::zero(), T::zero()],
             [T::zero(), y, T::zero(), T::zero()],
             [T::zero(), T::zero(), z, T::zero()],
             [T::zero(), T::zero(), T::zero(), T::one()],
-        ]
+        ])
     }
 }
 
@@ -390,11 +390,11 @@ where
         let sz2 = z2 * quat.s;
         let sx2 = x2 * quat.s;
 
-        matrix![
+        Self([
             [T::one() - yy2 - zz2, xy2 + sz2, xz2 - sy2],
             [xy2 - sz2, T::one() - xx2 - zz2, yz2 + sx2],
             [xz2 + sy2, yz2 - sx2, T::one() - xx2 - yy2],
-        ]
+        ])
     }
 }
 
@@ -421,12 +421,12 @@ where
         let sz2 = z2 * quat.s;
         let sx2 = x2 * quat.s;
 
-        matrix![
+        Self([
             [T::one() - yy2 - zz2, xy2 + sz2, xz2 - sy2, T::zero()],
             [xy2 - sz2, T::one() - xx2 - zz2, yz2 + sx2, T::zero()],
             [xz2 + sy2, yz2 - sx2, T::one() - xx2 - yy2, T::zero()],
             [T::zero(), T::zero(), T::zero(), T::one()],
-        ]
+        ])
     }
 }
 
@@ -711,9 +711,9 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Matrix [ ")?;
-        for i in 0..N {
+        for j in 0..M {
             write!(f, "[ ")?;
-            for j in 0..M {
+            for i in 0..N {
                 write!(f, "{:?} ", self.0[j][i])?;
             }
             write!(f, "] ")?;
@@ -851,8 +851,9 @@ where
 
 impl<T, const N: usize, const M: usize, const P: usize> Mul<Matrix<T, M, { P }>> for Matrix<T, N, M>
 where
-    T: Add<T, Output = T> + Mul<T, Output = T> + Clone,
-    Vector<T, M>: InnerSpace,
+    T: Add<T, Output = T> + Mul<T, Output = T> + Clone + std::fmt::Debug,
+Vector<T, M>: InnerSpace,
+<Vector<T, M> as VectorSpace>::Scalar: std::fmt::Debug,
 {
     type Output = Matrix<<Vector<T, M> as VectorSpace>::Scalar, N, { P }>;
 
