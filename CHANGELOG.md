@@ -7,6 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 ## Unreleased Changes
 These changes are included in `master` but have not been released in a new crate version yet.
 
+## [v0.5.6]
+- Add some missing derives to `Euler` and `Unit`.
+
 ## [v0.5.5]
 - Add `to_scale_rotation_translation` function to Matrix4.
 - Add `From<Orthonormal<T, 3>>` for `Quaternion<T>`.
