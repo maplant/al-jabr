@@ -349,6 +349,9 @@ where
 
     /// Returns the sine and the cosine of the angle.
     fn sin_cos(self) -> (Self, Self);
+
+    /// Returns the sign of the number.
+    fn signum(self) -> Self;
 }
 
 impl Real for f32 {
@@ -395,6 +398,10 @@ impl Real for f32 {
     fn sin_cos(self) -> (Self, Self) {
         (self.sin(), self.cos())
     }
+
+    fn signum(self) -> Self {
+        self.signum()
+    }
 }
 
 impl Real for f64 {
@@ -440,6 +447,10 @@ impl Real for f64 {
 
     fn sin_cos(self) -> (Self, Self) {
         (self.sin(), self.cos())
+    }
+
+    fn signum(self) -> Self {
+        self.signum()
     }
 }
 
@@ -561,7 +572,7 @@ where
 }
 
 /// An object with a magnitude of one
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(transparent)]
 pub struct Unit<T>(T);
