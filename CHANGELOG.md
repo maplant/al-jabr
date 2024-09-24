@@ -7,6 +7,12 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 ## Unreleased Changes
 These changes are included in `master` but have not been released in a new crate version yet.
 
+## [v0.6.0]
+- Rename `Vector{N}` to `ColumnVector{N}`.
+- Add `Vector2`, `Vector3` and `Vector4` structs to improve ergonomics while dealing with smaller
+  vector types.
+- Make `Point` types be struct based rather than array based to reflect the change in vectors.
+
 ## [v0.5.6]
 - Add some missing derives to `Euler` and `Unit`.
 

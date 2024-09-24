@@ -407,6 +407,7 @@ macro_rules! implement_vector {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[repr(C)]
 pub struct Vector2<T> {
     pub x: T,
     pub y: T,
@@ -438,6 +439,7 @@ implement_vector!(Vector2, x, y);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[repr(C)]
 pub struct Vector3<T> {
     pub x: T,
     pub y: T,
@@ -498,6 +500,7 @@ implement_vector!(Vector3, x, y, z);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[repr(C)]
 pub struct Vector4<T> {
     pub x: T,
     pub y: T,
