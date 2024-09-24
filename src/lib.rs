@@ -30,30 +30,21 @@
 //!
 //! ### Vector
 //!
-//! [Vectors](Vector) can be constructed from arrays of any type and size.
-//! Under the hood, a Vector is a one-dimensional [Matrix]. Use the [vector!]
-//! macro to easily construct a vector:
+//! Small (N = 2, 3, 4) vectors as well as N-dimensional [Column Vectors](Vector) are
+//! provided. Unless you have a need for larger vectors, it is recommended to use
+//! [Vector2], [Vector3] or [Vector4].
 //!
-//! ```
-//! # use al_jabr::*;
-//! let a = vector![ 0u32, 1, 2, 3 ];
-//! assert_eq!(
-//!     a,
-//!     Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
-//! );
-//! ```
-//!
-//! [Add], [Sub], and [Neg] will be properly implemented for any `Vector<Scalar,
+//! [Add], [Sub], and [Neg] will be properly implemented for any `ColumnVector<Scalar,
 //! N>` for any respective implementation of such operations for `Scalar`.
 //! Operations are only implemented for vectors of equal sizes.
 //!
 //! ```
 //! # use al_jabr::*;
-//! let b = vector![ 0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, ];
-//! let c = vector![ 1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, ] * 0.5;
+//! let b = column_vector![ 0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, ];
+//! let c = column_vector![ 1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, ] * 0.5;
 //! assert_eq!(
 //!     b + c,
-//!     vector![ 0.5f32, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5 ]
+//!     column_vector![ 0.5f32, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5 ]
 //! );
 //! ```
 //!
@@ -66,22 +57,22 @@
 //!
 //! ```rust
 //! # use al_jabr::*;
-//! let a = vector!(1i32, 1);
-//! let b = vector!(5i32, 5);
+//! let a = Vector2::new(1i32, 1);
+//! let b = Vector2::new(5i32, 5);
 //! assert_eq!(a.distance2(b), 32);       // distance method not implemented.
 //! assert_eq!((b - a).magnitude2(), 32); // magnitude method not implemented.
 //!
-//! let a = vector!(1.0f32, 1.0);
-//! let b = vector!(5.0f32, 5.0);
+//! let a = Vector2::new(1.0f32, 1.0);
+//! let b = Vector2::new(5.0f32, 5.0);
 //! const close: f32 = 5.65685424949;
 //! assert_eq!(a.distance(b), close);       // distance is implemented.
 //! assert_eq!((b - a).magnitude(), close); // magnitude is implemented.
 //!
 //! // Vector normalization is also supported for floating point scalars.
 //! assert_eq!(
-//!     vector!(0.0f32, 20.0, 0.0)
+//!     Vector3::new(0.0f32, 20.0, 0.0)
 //!         .normalize(),
-//!     vector!(0.0f32, 1.0, 0.0)
+//!     Vector3::new(0.0f32, 1.0, 0.0)
 //! );
 //! ```
 //!

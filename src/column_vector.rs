@@ -1,17 +1,17 @@
-//! `N`-element vector.
+//! `N`-element column vector.
 use super::*;
 
-/// `N`-element vector.
+/// `N`-element column vector.
 ///
-/// Vectors can be constructed from arrays of any type and size. There are
+/// Column vectors can be constructed from arrays of any type and size. There are
 /// convenience constructor functions provided for the most common sizes.
 ///
 /// ```
 /// # use al_jabr::*;
-/// let a: Vector::<u32, 4> = vector!( 0u32, 1, 2, 3 );
+/// let a: ColumnVector::<u32, 4> = column_vector!( 0u32, 1, 2, 3 );
 /// assert_eq!(
 ///     a,
-///     Vector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
+///     ColumnVector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
 /// );
 /// ```
 #[cfg_attr(
@@ -46,44 +46,44 @@ of length 3 or greater. Previously, this was a compilation error. However, for n
 versions of rustc this is no longer always the case.
 ```should_panic
 # use al_jabr::*;
-let z = vector!(1i32, 2).z(); // Will panic.
+let z = column_vector!(1i32, 2).z(); // Will panic.
 ```
 ### Mixing
 zle methods are not implemented for mixed xyzw/rgba methods.
 ```
 # use al_jabr::*;
-let v = vector!(1i32, 2, 3, 4);
+let v = column_vector!(1i32, 2, 3, 4);
 let xy = v.xy(); // OK, only uses xyzw names.
 let ba = v.ba(); // OK, only uses rgba names.
-assert_eq!(xy, vector!(1i32, 2));
-assert_eq!(ba, vector!(3i32, 4));
+assert_eq!(xy, column_vector!(1i32, 2));
+assert_eq!(ba, column_vector!(3i32, 4));
 ```
 ```compile_fail
 # use al_jabr::*;
-let v = vector!(1i32, 2, 3, 4);
+let v = column_vector!(1i32, 2, 3, 4);
 let bad = v.xyrg(); // Compile error, mixes xyzw and rgba names.
 ```
 ## Examples
 To get the first two elements of a 4-vector.
 ```
 # use al_jabr::*;
-let v = vector!(1i32, 2, 3, 4).xy();
+let v = column_vector!(1i32, 2, 3, 4).xy();
 ```
 To get the first and last element of a 4-vector.
 ```
 # use al_jabr::*;
-let v = vector!(1i32, 2, 3, 4).xw();
+let v = column_vector!(1i32, 2, 3, 4).xw();
 ```
 To reverse the order of a 3-vector.
 ```
 # use al_jabr::*;
-let v = vector!(1i32, 2, 3).zyx();
+let v = column_vector!(1i32, 2, 3).zyx();
 ```
 To select the first and third elements into the second and fourth elements,
 respectively.
 ```
 # use al_jabr::*;
-let v = vector!(1i32, 2, 3, 4).xxzz();
+let v = column_vector!(1i32, 2, 3, 4).xxzz();
 ```
 "##
 )]
@@ -796,6 +796,11 @@ mod tests {
         let a = Vector2::<f32>::from([0.0, 0.0]);
         let b = Vector2::<f32>::from([1.0, 1.0]);
         assert_eq!(a.distance2(b), 2.0);
+
+        let a = column_vector!(1i32, 1);
+        let b = column_vector!(5i32, 5);
+        assert_eq!(a.distance2(b), 32); // distance method not implemented.
+        assert_eq!((b - a).magnitude2(), 32);
     }
 
     #[test]

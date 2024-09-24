@@ -335,7 +335,7 @@ macro_rules! implement_vector {
             T: Add<T, Output = T> + Sub<T, Output = T> + Mul<T, Output = T> + Div<T, Output = T>,
         {
             fn dot(self, rhs: Self) -> T {
-                $( self.$field * rhs.$field + )+ T::zero()
+                self.x * rhs.x $( + self.$field * rhs.$field )+
                 // self.x * rhs.x + self.y * rhs.y + self.z * rhs.z + self.w * rhs.w
             }
         }
