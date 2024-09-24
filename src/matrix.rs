@@ -185,11 +185,10 @@ where
 {
     /// Create an affine transformation matrix from a translation vector.
     pub fn from_translation(v: Vector2<T>) -> Self {
-        let Matrix([[x, y]]) = v;
         Self([
             [T::one(), T::zero(), T::zero()],
             [T::zero(), T::one(), T::zero()],
-            [x, y, T::one()],
+            [v.x, v.y, T::one()],
         ])
     }
 
@@ -224,12 +223,11 @@ where
 {
     /// Create an affine transformation matrix from a translation vector.
     pub fn from_translation(v: Vector3<T>) -> Self {
-        let Matrix([[x, y, z]]) = v;
         Self([
             [T::one(), T::zero(), T::zero(), T::zero()],
             [T::zero(), T::one(), T::zero(), T::zero()],
             [T::zero(), T::zero(), T::one(), T::zero()],
-            [x, y, z, T::one()],
+            [v.x, v.y, v.z, T::one()],
         ])
     }
 
@@ -264,7 +262,7 @@ where
     T: Clone,
 {
     /// Return the diagonal of the matrix. Only available for square matrices.
-    pub fn diagonal(&self) -> Vector<T, N> {
+    pub fn diagonal(&self) -> ColumnVector<T, N> {
         let mut diag = MaybeUninit::<[T; N]>::uninit();
         let diagp = &mut diag as *mut MaybeUninit<[T; N]> as *mut T;
         for i in 0..N {
@@ -285,7 +283,7 @@ where
     Self: Add<Self>,
     Self: Sub<Self>,
     Self: Mul<Self>,
-    Self: Mul<Vector<T, N>, Output = Vector<T, N>>,
+    Self: Mul<ColumnVector<T, N>, Output = ColumnVector<T, N>>,
 {
     /// Returns the [LU decomposition](https://en.wikipedia.org/wiki/LU_decomposition) of
     /// the matrix, if one exists.
@@ -338,6 +336,7 @@ where
     }
 }
 
+/*
 impl<T> Matrix4<T>
 where
     T: Copy + Clone + PartialOrd + Product + Real + One + Zero,
@@ -354,9 +353,9 @@ where
         let det = self.determinant();
 
         let scale = vector!(
-            Vector::from(self[0]).magnitude() * det.signum(),
-            Vector::from(self[1]).magnitude(),
-            Vector::from(self[2]).magnitude()
+            ColumnVector::from(self[0]).magnitude() * det.signum(),
+            ColumnVector::from(self[1]).magnitude(),
+            ColumnVector::from(self[2]).magnitude()
         );
 
         let inv_scale = vector!(
@@ -365,9 +364,9 @@ where
             T::one() / *scale.z()
         );
 
-        let Matrix([[xx, xy, xz, _]]) = Vector::from(self.0[0]) * *inv_scale.x();
-        let Matrix([[yx, yy, yz, _]]) = Vector::from(self.0[1]) * *inv_scale.y();
-        let Matrix([[zx, zy, zz, _]]) = Vector::from(self.0[2]) * *inv_scale.z();
+        let Matrix([[xx, xy, xz, _]]) = ColumnVector::from(self.0[0]) * *inv_scale.x();
+        let Matrix([[yx, yy, yz, _]]) = ColumnVector::from(self.0[1]) * *inv_scale.y();
+        let Matrix([[zx, zy, zz, _]]) = ColumnVector::from(self.0[2]) * *inv_scale.z();
 
         let rotation = Quaternion::from(Orthonormal::new(Matrix::from([
             vector!(xx, xy, xz),
@@ -381,6 +380,7 @@ where
         (scale, rotation, translation)
     }
 }
+*/
 
 impl<T, const N: usize, const M: usize> From<[[T; N]; M]> for Matrix<T, N, M> {
     fn from(array: [[T; N]; M]) -> Self {
@@ -388,14 +388,14 @@ impl<T, const N: usize, const M: usize> From<[[T; N]; M]> for Matrix<T, N, M> {
     }
 }
 
-impl<T, const N: usize, const M: usize> From<[Vector<T, N>; M]> for Matrix<T, N, M> {
-    fn from(array: [Vector<T, N>; M]) -> Self {
+impl<T, const N: usize, const M: usize> From<[ColumnVector<T, N>; M]> for Matrix<T, N, M> {
+    fn from(array: [ColumnVector<T, N>; M]) -> Self {
         // I really hope that this copy gets optimized away because there's no avoiding
         // it.
         let mut from = MaybeUninit::new(array);
         let mut to = MaybeUninit::<Matrix<T, N, M>>::uninit();
         let fromp =
-            &mut from as *mut MaybeUninit<[Matrix<T, N, 1>; M]> as *mut MaybeUninit<Vector<T, N>>;
+            &mut from as *mut MaybeUninit<[Matrix<T, N, 1>; M]> as *mut MaybeUninit<ColumnVector<T, N>>;
         let top = &mut to as *mut MaybeUninit<Matrix<T, N, M>> as *mut [T; N];
         for i in 0..M {
             unsafe {
@@ -418,17 +418,17 @@ where
 {
     fn from(quat: Quaternion<T>) -> Self {
         // Taken from cgmath
-        let x2 = *quat.v.x() + *quat.v.x();
-        let y2 = *quat.v.y() + *quat.v.y();
-        let z2 = *quat.v.z() + *quat.v.z();
+        let x2 = quat.v.x + quat.v.x;
+        let y2 = quat.v.y + quat.v.y;
+        let z2 = quat.v.z + quat.v.z;
 
-        let xx2 = x2 * *quat.v.x();
-        let xy2 = x2 * *quat.v.y();
-        let xz2 = x2 * *quat.v.z();
+        let xx2 = x2 * quat.v.x;
+        let xy2 = x2 * quat.v.y;
+        let xz2 = x2 * quat.v.z;
 
-        let yy2 = y2 * *quat.v.y();
-        let yz2 = y2 * *quat.v.z();
-        let zz2 = z2 * *quat.v.z();
+        let yy2 = y2 * quat.v.y;
+        let yz2 = y2 * quat.v.z;
+        let zz2 = z2 * quat.v.z;
 
         let sy2 = y2 * quat.s;
         let sz2 = z2 * quat.s;
@@ -449,17 +449,17 @@ where
 {
     fn from(quat: Quaternion<T>) -> Self {
         // Taken from cgmath
-        let x2 = *quat.v.x() + *quat.v.x();
-        let y2 = *quat.v.y() + *quat.v.y();
-        let z2 = *quat.v.z() + *quat.v.z();
+        let x2 = quat.v.x + quat.v.x;
+        let y2 = quat.v.y + quat.v.y;
+        let z2 = quat.v.z + quat.v.z;
 
-        let xx2 = x2 * *quat.v.x();
-        let xy2 = x2 * *quat.v.y();
-        let xz2 = x2 * *quat.v.z();
+        let xx2 = x2 * quat.v.x;
+        let xy2 = x2 * quat.v.y;
+        let xz2 = x2 * quat.v.z;
 
-        let yy2 = y2 * *quat.v.y();
-        let yz2 = y2 * *quat.v.z();
-        let zz2 = z2 * *quat.v.z();
+        let yy2 = y2 * quat.v.y;
+        let yz2 = y2 * quat.v.z;
+        let zz2 = z2 * quat.v.z;
 
         let sy2 = y2 * quat.s;
         let sz2 = z2 * quat.s;
@@ -896,23 +896,23 @@ where
 impl<T, const N: usize, const M: usize, const P: usize> Mul<Matrix<T, M, { P }>> for Matrix<T, N, M>
 where
     T: Add<T, Output = T> + Mul<T, Output = T> + Clone + std::fmt::Debug,
-    Vector<T, M>: InnerSpace,
-    <Vector<T, M> as VectorSpace>::Scalar: std::fmt::Debug,
+    ColumnVector<T, M>: InnerSpace,
+    <ColumnVector<T, M> as VectorSpace>::Scalar: std::fmt::Debug,
 {
-    type Output = Matrix<<Vector<T, M> as VectorSpace>::Scalar, N, { P }>;
+    type Output = Matrix<<ColumnVector<T, M> as VectorSpace>::Scalar, N, { P }>;
 
     fn mul(self, rhs: Matrix<T, M, { P }>) -> Self::Output {
         // It might not seem that Rust's type system is helping me at all here,
         // but that's absolutely not true. I got the arrays iterations wrong on
         // the first try and Rust was nice enough to inform me of that fact.
-        let mut mat = MaybeUninit::<[[<Vector<T, M> as VectorSpace>::Scalar; N]; P]>::uninit();
+        let mut mat = MaybeUninit::<[[<ColumnVector<T, M> as VectorSpace>::Scalar; N]; P]>::uninit();
         let matp = &mut mat as *mut MaybeUninit<[[<Matrix<T, M, 1> as VectorSpace>::Scalar; N]; P]>
-            as *mut [<Vector<T, M> as VectorSpace>::Scalar; N];
+            as *mut [<ColumnVector<T, M> as VectorSpace>::Scalar; N];
         for i in 0..P {
-            let mut column = MaybeUninit::<[<Vector<T, M> as VectorSpace>::Scalar; N]>::uninit();
+            let mut column = MaybeUninit::<[<ColumnVector<T, M> as VectorSpace>::Scalar; N]>::uninit();
             let columnp = &mut column
                 as *mut MaybeUninit<[<Matrix<T, M, 1> as VectorSpace>::Scalar; N]>
-                as *mut <Vector<T, M> as VectorSpace>::Scalar;
+                as *mut <ColumnVector<T, M> as VectorSpace>::Scalar;
             for j in 0..N {
                 // Fetch the current row:
                 let mut row = MaybeUninit::<[T; M]>::uninit();
@@ -939,7 +939,7 @@ where
                 matp.add(i).write(column);
             }
         }
-        Matrix::<<Vector<T, M> as VectorSpace>::Scalar, N, { P }>(unsafe { mat.assume_init() })
+        Matrix::<<ColumnVector<T, M> as VectorSpace>::Scalar, N, { P }>(unsafe { mat.assume_init() })
     }
 }
 
@@ -1134,16 +1134,16 @@ impl<const N: usize> Permutation<N> {
     }
 }
 
-impl<T, const N: usize> Mul<Vector<T, N>> for Permutation<N>
+impl<T, const N: usize> Mul<ColumnVector<T, N>> for Permutation<N>
 where
     // The clone bound can be removed from
     // here at some point with better
     // written code.
     T: Clone,
 {
-    type Output = Vector<T, N>;
+    type Output = ColumnVector<T, N>;
 
-    fn mul(self, rhs: Vector<T, N>) -> Self::Output {
+    fn mul(self, rhs: ColumnVector<T, N>) -> Self::Output {
         (0..N).map(|i| rhs[0][self[i]].clone()).collect()
     }
 }
@@ -1178,7 +1178,7 @@ where
     }
 
     /// Solves the linear equation `self * x = b` and returns `x`.
-    pub fn solve(&self, b: Vector<T, N>) -> Vector<T, N> {
+    pub fn solve(&self, b: ColumnVector<T, N>) -> ColumnVector<T, N> {
         let Matrix([mut x]) = self.0 * b;
         for i in 0..N {
             for k in 0..i {

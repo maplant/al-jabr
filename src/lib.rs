@@ -196,11 +196,18 @@ use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
 };
 
+#[cfg(any(feature = "approx", test))]
+use approx::
+    AbsDiffEq;
+#[cfg(feature = "approx")]
+use approx::{RelativeEq, UlpsEq};
+
 mod array;
 mod matrix;
 mod point;
 mod rotation;
 pub mod row_view;
+mod column_vector;
 mod vector;
 
 pub use array::*;
@@ -208,6 +215,7 @@ pub use matrix::*;
 pub use point::*;
 pub use rotation::*;
 use row_view::*;
+pub use column_vector::*;
 pub use vector::*;
 
 /// Defines the additive identity for `Self`.
@@ -662,7 +670,7 @@ mod tests {
     use super::*;
     use approx::abs_diff_eq;
 
-    type Vector1<T> = Vector<T, 1>;
+    type Vector1<T> = ColumnVector<T, 1>;
 
     /*
     #[test]
@@ -799,8 +807,8 @@ mod tests {
 
     #[test]
     fn from_fn() {
-        let indices: Vector<usize, 10> = vector!(0usize, 1, 2, 3, 4, 5, 6, 7, 8, 9);
-        assert_eq!(Vector::<usize, 10>::from_fn(|i| i), indices);
+        let indices: ColumnVector<usize, 10> = vector!(0usize, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        assert_eq!(ColumnVector::<usize, 10>::from_fn(|i| i), indices);
     }
 
     #[test]
@@ -822,7 +830,7 @@ mod tests {
     #[test]
     fn vec_from_iter() {
         let v = vec![1i32, 2, 3, 4];
-        let vec = Vector::<i32, 4>::from_iter(v);
+        let vec = ColumnVector::<i32, 4>::from_iter(v);
         assert_eq!(vec, vector![1i32, 2, 3, 4])
     }
 
@@ -947,20 +955,20 @@ mod tests {
     #[test]
     fn square_matrix() {
         let a: Matrix<i32, 3, 3> = matrix![[5, 0, 0], [0, 8, 12], [0, 0, 16],];
-        let diag: Vector<i32, 3> = vector!(5, 8, 16);
+        let diag: ColumnVector<i32, 3> = vector!(5, 8, 16);
         assert_eq!(a.diagonal(), diag);
     }
 
     #[test]
     fn readme_code() {
         let a = vector!(0u32, 1, 2, 3);
-        assert_eq!(a, Vector::<u32, 4>::from([0u32, 1, 2, 3]));
+        assert_eq!(a, ColumnVector::<u32, 4>::from([0u32, 1, 2, 3]));
 
-        let b = Vector::<f32, 7>::from([0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
-        let c = Vector::<f32, 7>::from([1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]) * 0.5;
+        let b = ColumnVector::<f32, 7>::from([0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+        let c = ColumnVector::<f32, 7>::from([1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]) * 0.5;
         assert_eq!(
             b + c,
-            Vector::<f32, 7>::from([0.5f32, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5])
+            ColumnVector::<f32, 7>::from([0.5f32, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5])
         );
 
         let a = vector!(1i32, 1);
@@ -1078,7 +1086,7 @@ mod tests {
 
     #[test]
     fn vec_macro_constructor() {
-        let v: Vector<f32, 0> = vector![];
+        let v: ColumnVector<f32, 0> = vector![];
         assert!(v[0].is_empty());
 
         let v = vector![1];
@@ -1104,25 +1112,25 @@ mod tests {
 
     #[test]
     fn vec_swizzle() {
-        let v: Vector<f32, 1> = Vector::<f32, 1>::from([1.0]);
+        let v: ColumnVector<f32, 1> = ColumnVector::<f32, 1>::from([1.0]);
         assert_eq!(1.0, *v.x());
 
-        let v: Vector<f32, 2> = Vector::<f32, 2>::from([1.0, 2.0]);
+        let v: ColumnVector<f32, 2> = ColumnVector::<f32, 2>::from([1.0, 2.0]);
         assert_eq!(1.0, *v.x());
         assert_eq!(2.0, *v.y());
 
-        let v: Vector<f32, 3> = Vector::<f32, 3>::from([1.0, 2.0, 3.0]);
+        let v: ColumnVector<f32, 3> = ColumnVector::<f32, 3>::from([1.0, 2.0, 3.0]);
         assert_eq!(1.0, *v.x());
         assert_eq!(2.0, *v.y());
         assert_eq!(3.0, *v.z());
 
-        let v: Vector<f32, 4> = Vector::<f32, 4>::from([1.0, 2.0, 3.0, 4.0]);
+        let v: ColumnVector<f32, 4> = ColumnVector::<f32, 4>::from([1.0, 2.0, 3.0, 4.0]);
         assert_eq!(1.0, *v.x());
         assert_eq!(2.0, *v.y());
         assert_eq!(3.0, *v.z());
         assert_eq!(4.0, *v.w());
 
-        let v: Vector<f32, 5> = Vector::<f32, 5>::from([1.0, 2.0, 3.0, 4.0, 5.0]);
+        let v: ColumnVector<f32, 5> = ColumnVector::<f32, 5>::from([1.0, 2.0, 3.0, 4.0, 5.0]);
         assert_eq!(1.0, *v.x());
         assert_eq!(2.0, *v.y());
         assert_eq!(3.0, *v.z());
@@ -1186,7 +1194,7 @@ mod mint_tests {
     fn vector2_roundtrip() {
         let alj1 = vector![1, 2];
         let mint: mint::Vector2<u32> = alj1.into();
-        let alj2: Vector<u32, 2> = mint.into();
+        let alj2: ColumnVector<u32, 2> = mint.into();
         assert_eq!(alj1, alj2);
     }
 
@@ -1194,7 +1202,7 @@ mod mint_tests {
     fn vector3_roundtrip() {
         let alj1 = vector![1, 2, 3];
         let mint: mint::Vector3<u32> = alj1.into();
-        let alj2: Vector<u32, 3> = mint.into();
+        let alj2: ColumnVector<u32, 3> = mint.into();
         assert_eq!(alj1, alj2);
     }
 
@@ -1202,7 +1210,7 @@ mod mint_tests {
     fn vector4_roundtrip() {
         let alj1 = vector![1, 2, 3, 4];
         let mint: mint::Vector4<u32> = alj1.into();
-        let alj2: Vector<u32, 4> = mint.into();
+        let alj2: ColumnVector<u32, 4> = mint.into();
         assert_eq!(alj1, alj2);
     }
 
