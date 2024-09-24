@@ -601,10 +601,7 @@ where
         write!(
             f,
             "Quaternion {{ s: {:?}, x: {:?}, y: {:?}, z: {:?} }}",
-            self.s,
-            self.v.x,
-            self.v.y,
-            self.v.z
+            self.s, self.v.x, self.v.y, self.v.z
         )
     }
 }
@@ -612,7 +609,7 @@ where
 impl<A, B> PartialEq<Quaternion<B>> for Quaternion<A>
 where
     A: PartialEq<B>,
-Vector3<A>: PartialEq<Vector3<B>>
+    Vector3<A>: PartialEq<Vector3<B>>,
 {
     fn eq(&self, other: &Quaternion<B>) -> bool {
         self.s.eq(&other.s) && self.v.eq(&other.v)
@@ -626,7 +623,7 @@ impl<T: Copy> From<Quaternion<T>> for mint::Quaternion<T> {
     fn from(q: Quaternion<T>) -> mint::Quaternion<T> {
         mint::Quaternion {
             s: q.s,
-            v: q.v.into(),
+            v: q.v.transpose().into(),
         }
     }
 }
@@ -636,7 +633,7 @@ impl<T> From<mint::Quaternion<T>> for Quaternion<T> {
     fn from(mint_quat: mint::Quaternion<T>) -> Self {
         Quaternion {
             s: mint_quat.s,
-            v: Matrix([[mint_quat.v.x, mint_quat.v.y, mint_quat.v.z]]),
+            v: Vector3::new(mint_quat.v.x, mint_quat.v.y, mint_quat.v.z),
         }
     }
 }

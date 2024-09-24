@@ -1,6 +1,6 @@
 extern crate al_jabr;
 
-use al_jabr::{matrix, column_vector};
+use al_jabr::{column_vector, matrix};
 
 #[test]
 fn can_use_vector_macro_outside_al_jabr() {

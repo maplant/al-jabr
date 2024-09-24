@@ -523,8 +523,8 @@ macro_rules! swizzle {
     ($a:ident, $b:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
         paste::item! {
             #[doc(hidden)]
-            pub fn [< $a $b >](&self) -> Vector<T, 2> {
-                Vector::<T, 2>::from([
+            pub fn [< $a $b >](&self) -> ColumnVector<T, 2> {
+                ColumnVector::<T, 2>::from([
                     self.$a().clone(),
                     self.$b().clone(),
                 ])
@@ -542,8 +542,8 @@ macro_rules! swizzle {
     ($a:ident, $b:ident, $c:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
         paste::item! {
             #[doc(hidden)]
-            pub fn [< $a $b $c >](&self) -> Vector<T, 3> {
-                Vector::<T, 3>::from([
+            pub fn [< $a $b $c >](&self) -> ColumnVector<T, 3> {
+                ColumnVector::<T, 3>::from([
                     self.$a().clone(),
                     self.$b().clone(),
                     self.$c().clone(),
@@ -564,8 +564,8 @@ macro_rules! swizzle {
     ($a:ident, $b:ident, $c:ident, $d:ident) => {
         paste::item! {
             #[doc(hidden)]
-            pub fn [< $a $b $c $d >](&self) -> Vector<T, 4> {
-                Vector::<T, 4>::from([
+            pub fn [< $a $b $c $d >](&self) -> ColumnVector<T, 4> {
+                ColumnVector::<T, 4>::from([
                     self.$a().clone(),
                     self.$b().clone(),
                     self.$c().clone(),
@@ -690,5 +690,177 @@ impl<T: Copy> From<ColumnVector<T, 4>> for mint::Vector4<T> {
 impl<T> From<mint::Vector4<T>> for ColumnVector<T, 4> {
     fn from(mint_vec: mint::Vector4<T>) -> Self {
         Matrix([[mint_vec.x, mint_vec.y, mint_vec.z, mint_vec.w]])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    type Vector1<T> = ColumnVector<T, 1>;
+    type Vector2<T> = ColumnVector<T, 2>;
+    type Vector3<T> = ColumnVector<T, 3>;
+    type Vector4<T> = ColumnVector<T, 4>;
+
+    #[test]
+    fn test_zero() {
+        let a = Vector3::<u32>::zero();
+        assert_eq!(a, column_vector![0, 0, 0]);
+    }
+
+    #[test]
+    fn test_index() {
+        let a = Vector1::<u32>::from([0]);
+        assert_eq!(*a.x(), 0_u32);
+        let mut b = Vector2::<u32>::from([1, 2]);
+        *b.y_mut() += 3;
+        assert_eq!(*b.y(), 5);
+    }
+
+    #[test]
+    fn test_eq() {
+        let a = Vector1::<u32>::from([0]);
+        let b = Vector1::<u32>::from([1]);
+        let c = Vector1::<u32>::from([0]);
+        let d = [[0u32]];
+        assert_ne!(a, b);
+        assert_eq!(a, c);
+        assert_eq!(a, &d);
+    }
+
+    #[test]
+    fn test_addition() {
+        let a = Vector1::<u32>::from([0]);
+        let b = Vector1::<u32>::from([1]);
+        let c = Vector1::<u32>::from([2]);
+        assert_eq!(a + b, b);
+        assert_eq!(b + b, c);
+        // We shouldn't need to have to test more dimensions, but we shall test
+        // one more.
+        let a = Vector2::<u32>::from([0, 1]);
+        let b = Vector2::<u32>::from([1, 2]);
+        let c = Vector2::<u32>::from([1, 3]);
+        let d = Vector2::<u32>::from([2, 5]);
+        assert_eq!(a + b, c);
+        assert_eq!(b + c, d);
+        let mut c = Vector2::<u32>::from([1, 3]);
+        let d = Vector2::<u32>::from([2, 5]);
+        c += d;
+        let e = Vector2::<u32>::from([3, 8]);
+        assert_eq!(c, e);
+    }
+
+    #[test]
+    fn test_subtraction() {
+        let mut a = Vector1::<u32>::from([3]);
+        let b = Vector1::<u32>::from([1]);
+        let c = Vector1::<u32>::from([2]);
+        assert_eq!(a - c, b);
+        a -= b;
+        assert_eq!(a, c);
+    }
+
+    #[test]
+    fn test_negation() {
+        let a = Vector4::<i32>::from([1, 2, 3, 4]);
+        let b = Vector4::<i32>::from([-1, -2, -3, -4]);
+        assert_eq!(-a, b);
+    }
+
+    #[test]
+    fn test_scale() {
+        let a = Vector4::<f32>::from([2.0, 4.0, 2.0, 4.0]);
+        let b = Vector4::<f32>::from([4.0, 8.0, 4.0, 8.0]);
+        let c = Vector4::<f32>::from([1.0, 2.0, 1.0, 2.0]);
+        assert_eq!(a * 2.0, b);
+        assert_eq!(a / 2.0, c);
+    }
+
+    #[test]
+    fn test_cross() {
+        let a = column_vector!(1isize, 2isize, 3isize);
+        let b = column_vector!(4isize, 5isize, 6isize);
+        let r = column_vector!(-3isize, 6isize, -3isize);
+        assert_eq!(a.cross(b), r);
+    }
+
+    #[test]
+    fn test_distance() {
+        let a = Vector1::<f32>::from([0.0]);
+        let b = Vector1::<f32>::from([1.0]);
+        assert_eq!(a.distance2(b), 1.0);
+        let a = Vector1::<f32>::from([0.0]);
+        let b = Vector1::<f32>::from([2.0]);
+        assert_eq!(a.distance2(b), 4.0);
+        assert_eq!(a.distance(b), 2.0);
+        let a = Vector2::<f32>::from([0.0, 0.0]);
+        let b = Vector2::<f32>::from([1.0, 1.0]);
+        assert_eq!(a.distance2(b), 2.0);
+    }
+
+    #[test]
+    fn test_normalize() {
+        let a = column_vector!(5.0);
+        assert_eq!(a.magnitude(), 5.0);
+        let a_norm = a.normalize();
+        assert_eq!(a_norm, column_vector!(1.0));
+    }
+
+    #[test]
+    fn test_transpose() {
+        let v = column_vector!(1i32, 2, 3, 4);
+        let m = Matrix::<i32, 1, 4>::from([[1i32], [2], [3], [4]]);
+        assert_eq!(v.transpose(), m);
+    }
+
+    #[test]
+    fn test_from_fn() {
+        let indices: ColumnVector<usize, 10> = column_vector!(0usize, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        assert_eq!(ColumnVector::<usize, 10>::from_fn(|i| i), indices);
+    }
+
+    #[test]
+    fn test_map() {
+        let int = column_vector!(1i32, 0, 1, 1, 0, 1, 1, 0, 0, 0);
+        let boolean =
+            column_vector!(true, false, true, true, false, true, true, false, false, false);
+        assert_eq!(int.map(|i| i != 0), boolean);
+    }
+
+    #[test]
+    fn test_indexed_map() {
+        let boolean =
+            column_vector!(true, false, true, true, false, true, true, false, false, false);
+        let indices = column_vector!(0usize, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        assert_eq!(boolean.indexed_map(|i, _| i), indices);
+    }
+
+    #[test]
+    fn test_from_iter() {
+        let v = vec![1i32, 2, 3, 4];
+        let vec = ColumnVector::<i32, 4>::from_iter(v);
+        assert_eq!(vec, column_vector![1i32, 2, 3, 4])
+    }
+
+    #[test]
+    fn test_linear_interpolate() {
+        let v1 = column_vector!(0.0, 0.0, 0.0);
+        let v2 = column_vector!(1.0, 2.0, 3.0);
+        assert_eq!(v1.lerp(v2, 0.5), column_vector!(0.5, 1.0, 1.5));
+    }
+
+    #[test]
+    fn test_reflect() {
+        // Incident straight on to the surface.
+        let v = column_vector!(1, 0);
+        let n = column_vector!(-1, 0);
+        let r = v.reflect(n);
+        assert_eq!(r, column_vector!(-1, 0));
+
+        // Incident at 45 degree angle to the surface.
+        let v = column_vector!(1, 1);
+        let n = column_vector!(-1, 0);
+        let r = v.reflect(n);
+        assert_eq!(r, column_vector!(-1, 1));
     }
 }

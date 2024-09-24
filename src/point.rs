@@ -22,21 +22,22 @@ pub struct Point2<T> {
     pub y: T,
 }
 
+impl<T> From<[T; 2]> for Point2<T> {
+    fn from(arr: [T; 2]) -> Self {
+        let [x, y] = arr;
+        Self { x, y }
+    }
+}
+
 impl<T> Point2<T> {
-    /// Construct a new point 
+    /// Construct a new point
     pub fn new(x: T, y: T) -> Self {
-        Self {
-            x,
-            y
-        }
+        Self { x, y }
     }
 
     /// Convert a point from a [Vector2]
     pub fn from_vec(vec: Vector2<T>) -> Self {
-        Self {
-            x: vec.x,
-            y: vec.y,
-        }
+        Self { x: vec.x, y: vec.y }
     }
 
     /// Convert the point into a [Vector2]
@@ -49,10 +50,7 @@ impl<T> Point2<T> {
 
     /// Construct a Point from a [ColumnVector]
     pub fn from_col(Matrix([[x, y]]): ColumnVector<T, 2>) -> Self {
-        Self {
-            x,
-            y
-        }
+        Self { x, y }
     }
 
     /// Convert the point into a [ColumnVector]
@@ -86,9 +84,13 @@ impl<T> Point2<T> {
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
         [&mut self.x, &mut self.y].into_iter()
     }
+}
 
-    /// Convert the point into an iterator, in x, y, z order.
-    pub fn into_iter(self) -> impl IntoIterator<Item = T> {
+impl<T> IntoIterator for Point2<T> {
+    type Item = T;
+    type IntoIter = std::array::IntoIter<T, 2>;
+
+    fn into_iter(self) -> Self::IntoIter {
         [self.x, self.y].into_iter()
     }
 }
@@ -98,6 +100,28 @@ impl<T: Zero> Point2<T> {
         Self {
             x: T::zero(),
             y: T::zero(),
+        }
+    }
+}
+
+impl<T> Index<usize> for Point2<T> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &T {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            _ => panic!("Out of range"),
+        }
+    }
+}
+
+impl<T> IndexMut<usize> for Point2<T> {
+    fn index_mut(&mut self, index: usize) -> &mut T {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            _ => panic!("Out of range"),
         }
     }
 }
@@ -156,8 +180,7 @@ where
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: T::Epsilon) -> bool {
-        T::abs_diff_eq(&self.x, &other.x, epsilon) &&
-            T::abs_diff_eq(&self.y, &other.y, epsilon)
+        T::abs_diff_eq(&self.x, &other.x, epsilon) && T::abs_diff_eq(&self.y, &other.y, epsilon)
     }
 }
 
@@ -172,8 +195,8 @@ where
     }
 
     fn relative_eq(&self, other: &Self, epsilon: T::Epsilon, max_relative: T::Epsilon) -> bool {
-        T::relative_eq(&self.x, &other.x, epsilon, max_relative) &&
-            T::relative_eq(&self.y, &other.y, epsilon, max_relative)
+        T::relative_eq(&self.x, &other.x, epsilon, max_relative)
+            && T::relative_eq(&self.y, &other.y, epsilon, max_relative)
     }
 }
 
@@ -188,8 +211,8 @@ where
     }
 
     fn ulps_eq(&self, other: &Self, epsilon: T::Epsilon, max_ulps: u32) -> bool {
-        T::ulps_eq(&self.x, &other.x, epsilon, max_ulps) &&
-            T::ulps_eq(&self.y, &other.y, epsilon, max_ulps)
+        T::ulps_eq(&self.x, &other.x, epsilon, max_ulps)
+            && T::ulps_eq(&self.y, &other.y, epsilon, max_ulps)
     }
 }
 
@@ -199,7 +222,7 @@ where
     Standard: Distribution<T>,
 {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Point2<T> {
-        Self {
+        Point2 {
             x: self.sample(rng),
             y: self.sample(rng),
         }
@@ -217,6 +240,10 @@ pub struct Point3<T> {
 }
 
 impl<T> Point3<T> {
+    pub fn new(x: T, y: T, z: T) -> Self {
+        Self { x, y, z }
+    }
+
     pub fn from_vec(vec: Vector3<T>) -> Self {
         Self {
             x: vec.x,
@@ -232,17 +259,56 @@ impl<T> Point3<T> {
             z: self.z,
         }
     }
-    
+
     pub fn from_col(Matrix([[x, y, z]]): ColumnVector<T, 3>) -> Self {
-        Self {
-            x,
-            y,
-            z
-        }
+        Self { x, y, z }
     }
 
     pub fn to_col(self) -> ColumnVector<T, 3> {
         Matrix([[self.x, self.y, self.z]])
+    }
+
+    /// Construct a new point by mapping the components of the old point.
+    pub fn map<B>(self, mut mapper: impl FnMut(T) -> B) -> Point2<B> {
+        Point2 {
+            x: mapper(self.x),
+            y: mapper(self.y),
+        }
+    }
+
+    /// Construct a point where each element is the pair of the components
+    /// of the two points.
+    pub fn zip<B>(self, p2: Point2<B>) -> Point2<(T, B)> {
+        Point2 {
+            x: (self.x, p2.x),
+            y: (self.y, p2.y),
+        }
+    }
+
+    /// Iterate over the point, in x, y, z order.
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        [&self.x, &self.y].into_iter()
+    }
+
+    /// Mutably iterate over the point, in x, y, z order.
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+        [&mut self.x, &mut self.y].into_iter()
+    }
+}
+
+impl<T> IntoIterator for Point3<T> {
+    type Item = T;
+    type IntoIter = std::array::IntoIter<T, 3>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        [self.x, self.y, self.z].into_iter()
+    }
+}
+
+impl<T> From<[T; 3]> for Point3<T> {
+    fn from(arr: [T; 3]) -> Self {
+        let [x, y, z] = arr;
+        Self { x, y, z }
     }
 }
 
@@ -252,6 +318,30 @@ impl<T: Zero> Point3<T> {
             x: T::zero(),
             y: T::zero(),
             z: T::zero(),
+        }
+    }
+}
+
+impl<T> Index<usize> for Point3<T> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &T {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => panic!("Out of range"),
+        }
+    }
+}
+
+impl<T> IndexMut<usize> for Point3<T> {
+    fn index_mut(&mut self, index: usize) -> &mut T {
+        match index {
+            0 => &mut self.x,
+            1 => &mut self.y,
+            2 => &mut self.z,
+            _ => panic!("Out of range"),
         }
     }
 }
@@ -313,12 +403,11 @@ where
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: T::Epsilon) -> bool {
-        T::abs_diff_eq(&self.x, &other.x, epsilon) &&
-            T::abs_diff_eq(&self.y, &other.y, epsilon) &&
-            T::abs_diff_eq(&self.z, &other.z, epsilon)
+        T::abs_diff_eq(&self.x, &other.x, epsilon)
+            && T::abs_diff_eq(&self.y, &other.y, epsilon)
+            && T::abs_diff_eq(&self.z, &other.z, epsilon)
     }
 }
-
 
 #[cfg(feature = "approx")]
 impl<T> RelativeEq for Point3<T>
@@ -331,9 +420,9 @@ where
     }
 
     fn relative_eq(&self, other: &Self, epsilon: T::Epsilon, max_relative: T::Epsilon) -> bool {
-        T::relative_eq(&self.x, &other.x, epsilon, max_relative) &&
-            T::relative_eq(&self.y, &other.y, epsilon, max_relative) &&
-            T::relative_eq(&self.z, &other.z, epsilon, max_relative)
+        T::relative_eq(&self.x, &other.x, epsilon, max_relative)
+            && T::relative_eq(&self.y, &other.y, epsilon, max_relative)
+            && T::relative_eq(&self.z, &other.z, epsilon, max_relative)
     }
 }
 
@@ -348,9 +437,9 @@ where
     }
 
     fn ulps_eq(&self, other: &Self, epsilon: T::Epsilon, max_ulps: u32) -> bool {
-        T::ulps_eq(&self.x, &other.x, epsilon, max_ulps) &&
-            T::ulps_eq(&self.y, &other.y, epsilon, max_ulps)  &&
-            T::ulps_eq(&self.z, &other.z, epsilon, max_ulps) 
+        T::ulps_eq(&self.x, &other.x, epsilon, max_ulps)
+            && T::ulps_eq(&self.y, &other.y, epsilon, max_ulps)
+            && T::ulps_eq(&self.z, &other.z, epsilon, max_ulps)
     }
 }
 
@@ -360,7 +449,7 @@ where
     Standard: Distribution<T>,
 {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Point3<T> {
-        Self {
+        Point3 {
             x: self.sample(rng),
             y: self.sample(rng),
             z: self.sample(rng),

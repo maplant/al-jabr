@@ -336,7 +336,6 @@ where
     }
 }
 
-/*
 impl<T> Matrix4<T>
 where
     T: Copy + Clone + PartialOrd + Product + Real + One + Zero,
@@ -346,41 +345,36 @@ where
     Self: Add<Self>,
     Self: Sub<Self>,
     Self: Mul<Self>,
-    Self: Mul<Vector4<T>, Output = Vector4<T>>,
+    Self: Mul<ColumnVector4<T>, Output = ColumnVector4<T>>,
 {
     /// Takes an affine matrix and returns the decomposition of it.
     pub fn to_scale_rotation_translation(&self) -> (Vector3<T>, Quaternion<T>, Vector3<T>) {
         let det = self.determinant();
 
-        let scale = vector!(
+        let scale = Vector3::new(
             ColumnVector::from(self[0]).magnitude() * det.signum(),
             ColumnVector::from(self[1]).magnitude(),
-            ColumnVector::from(self[2]).magnitude()
+            ColumnVector::from(self[2]).magnitude(),
         );
 
-        let inv_scale = vector!(
-            T::one() / *scale.x(),
-            T::one() / *scale.y(),
-            T::one() / *scale.z()
-        );
+        let inv_scale = column_vector!(T::one() / scale.x, T::one() / scale.y, T::one() / scale.z);
 
         let Matrix([[xx, xy, xz, _]]) = ColumnVector::from(self.0[0]) * *inv_scale.x();
         let Matrix([[yx, yy, yz, _]]) = ColumnVector::from(self.0[1]) * *inv_scale.y();
         let Matrix([[zx, zy, zz, _]]) = ColumnVector::from(self.0[2]) * *inv_scale.z();
 
         let rotation = Quaternion::from(Orthonormal::new(Matrix::from([
-            vector!(xx, xy, xz),
-            vector!(yx, yy, yz),
-            vector!(zx, zy, zz),
+            column_vector!(xx, xy, xz),
+            column_vector!(yx, yy, yz),
+            column_vector!(zx, zy, zz),
         ])));
 
         let [x, y, z, _] = self[3];
-        let translation = vector!(x, y, z);
+        let translation = Vector3::new(x, y, z);
 
         (scale, rotation, translation)
     }
 }
-*/
 
 impl<T, const N: usize, const M: usize> From<[[T; N]; M]> for Matrix<T, N, M> {
     fn from(array: [[T; N]; M]) -> Self {
@@ -394,8 +388,8 @@ impl<T, const N: usize, const M: usize> From<[ColumnVector<T, N>; M]> for Matrix
         // it.
         let mut from = MaybeUninit::new(array);
         let mut to = MaybeUninit::<Matrix<T, N, M>>::uninit();
-        let fromp =
-            &mut from as *mut MaybeUninit<[Matrix<T, N, 1>; M]> as *mut MaybeUninit<ColumnVector<T, N>>;
+        let fromp = &mut from as *mut MaybeUninit<[Matrix<T, N, 1>; M]>
+            as *mut MaybeUninit<ColumnVector<T, N>>;
         let top = &mut to as *mut MaybeUninit<Matrix<T, N, M>> as *mut [T; N];
         for i in 0..M {
             unsafe {
@@ -482,6 +476,8 @@ pub type Matrix3<T> = Matrix<T, 3, 3>;
 
 /// A 4-by-4 square matrix.
 pub type Matrix4<T> = Matrix<T, 4, 4>;
+
+pub type SquareMatrix<T, const N: usize> = Matrix<T, N, N>;
 
 /// Constructs a new matrix from an array, using the more visually natural row
 /// major order. Necessary to help the compiler. Prefer calling the macro
@@ -895,9 +891,8 @@ where
 
 impl<T, const N: usize, const M: usize, const P: usize> Mul<Matrix<T, M, { P }>> for Matrix<T, N, M>
 where
-    T: Add<T, Output = T> + Mul<T, Output = T> + Clone + std::fmt::Debug,
+    T: Add<T, Output = T> + Mul<T, Output = T> + Clone,
     ColumnVector<T, M>: InnerSpace,
-    <ColumnVector<T, M> as VectorSpace>::Scalar: std::fmt::Debug,
 {
     type Output = Matrix<<ColumnVector<T, M> as VectorSpace>::Scalar, N, { P }>;
 
@@ -905,11 +900,13 @@ where
         // It might not seem that Rust's type system is helping me at all here,
         // but that's absolutely not true. I got the arrays iterations wrong on
         // the first try and Rust was nice enough to inform me of that fact.
-        let mut mat = MaybeUninit::<[[<ColumnVector<T, M> as VectorSpace>::Scalar; N]; P]>::uninit();
+        let mut mat =
+            MaybeUninit::<[[<ColumnVector<T, M> as VectorSpace>::Scalar; N]; P]>::uninit();
         let matp = &mut mat as *mut MaybeUninit<[[<Matrix<T, M, 1> as VectorSpace>::Scalar; N]; P]>
             as *mut [<ColumnVector<T, M> as VectorSpace>::Scalar; N];
         for i in 0..P {
-            let mut column = MaybeUninit::<[<ColumnVector<T, M> as VectorSpace>::Scalar; N]>::uninit();
+            let mut column =
+                MaybeUninit::<[<ColumnVector<T, M> as VectorSpace>::Scalar; N]>::uninit();
             let columnp = &mut column
                 as *mut MaybeUninit<[<Matrix<T, M, 1> as VectorSpace>::Scalar; N]>
                 as *mut <ColumnVector<T, M> as VectorSpace>::Scalar;
@@ -939,7 +936,9 @@ where
                 matp.add(i).write(column);
             }
         }
-        Matrix::<<ColumnVector<T, M> as VectorSpace>::Scalar, N, { P }>(unsafe { mat.assume_init() })
+        Matrix::<<ColumnVector<T, M> as VectorSpace>::Scalar, N, { P }>(unsafe {
+            mat.assume_init()
+        })
     }
 }
 
@@ -1511,3 +1510,210 @@ from_mint_row_matrix!(RowMatrix3x2, 3, 2, x, y, z);
 from_mint_row_matrix!(RowMatrix3x4, 3, 4, x, y, z);
 from_mint_row_matrix!(RowMatrix4x2, 4, 2, x, y, z, w);
 from_mint_row_matrix!(RowMatrix4x3, 4, 3, x, y, z, w);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use approx::abs_diff_eq;
+
+    #[test]
+    fn test_decompose() {
+        let a = matrix![[-1.0f64, 1.0], [2.0, 1.0]];
+        let b = column_vector!(5.0f64, 2.0);
+        let lu = a.lu().unwrap();
+
+        assert_eq!(a * lu.solve(b), b);
+    }
+
+    #[test]
+    fn test_identity() {
+        let unit = matrix![[1u32, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1],];
+        assert_eq!(Matrix::<u32, 4, 4>::one(), unit);
+    }
+
+    #[test]
+    fn test_negation() {
+        let neg_unit = matrix![
+            [-1i32, 0, 0, 0],
+            [0, -1, 0, 0],
+            [0, 0, -1, 0],
+            [0, 0, 0, -1],
+        ];
+        assert_eq!(-Matrix::<i32, 4, 4>::one(), neg_unit);
+    }
+
+    #[test]
+    fn test_add() {
+        let a = matrix![[matrix![[1u32]]]];
+        let b = matrix![[matrix![[10u32]]]];
+        let c = matrix![[matrix![[11u32]]]];
+        assert_eq!(a + b, c);
+    }
+
+    #[test]
+    fn test_scalar_mult() {
+        let a = Matrix::<f32, 2, 2>::from([[0.0, 1.0], [0.0, 2.0]]);
+        let b = Matrix::<f32, 2, 2>::from([[0.0, 2.0], [0.0, 4.0]]);
+        assert_eq!(a * 2.0, b);
+    }
+
+    #[test]
+    fn test_mult() {
+        let a = Matrix::<f32, 2, 2>::from([[0.0, 0.0], [1.0, 0.0]]);
+        let b = Matrix::<f32, 2, 2>::from([[0.0, 1.0], [0.0, 0.0]]);
+        assert_eq!(a * b, matrix![[1.0, 0.0], [0.0, 0.0],]);
+        assert_eq!(b * a, matrix![[0.0, 0.0], [0.0, 1.0],]);
+        // Basic example:
+        let a: Matrix<usize, 1, 1> = matrix![[1]];
+        let b: Matrix<usize, 1, 1> = matrix![[2]];
+        let c: Matrix<usize, 1, 1> = matrix![[2]];
+        assert_eq!(a * b, c);
+        // Removing the type signature here caused the compiler to crash.
+        // Since then I've been wary.
+        let a = Matrix::<f32, 3, 3>::from([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]);
+        let b = a;
+        let c = a * b;
+        assert_eq!(
+            c,
+            matrix![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0],]
+        );
+        // Here is another random example I found online.
+        let a: Matrix<i32, 3, 3> = matrix![[0, -3, 5], [6, 1, -4], [2, 3, -2],];
+        let b: Matrix<i32, 3, 3> = matrix![[-1, 0, -3], [4, 5, 1], [2, 6, -2]];
+        let c: Matrix<i32, 3, 3> = matrix![[-2, 15, -13], [-10, -19, -9], [6, 3, 1]];
+        assert_eq!(a * b, c);
+    }
+
+    #[test]
+    fn test_index() {
+        let m: Matrix<i32, 2, 2> = matrix![[0, 2], [1, 3],];
+        assert_eq!(m[(0, 0)], 0);
+        assert_eq!(m[0][0], 0);
+        assert_eq!(m[(1, 0)], 1);
+        assert_eq!(m[0][1], 1);
+        assert_eq!(m[(0, 1)], 2);
+        assert_eq!(m[1][0], 2);
+        assert_eq!(m[(1, 1)], 3);
+        assert_eq!(m[1][1], 3);
+    }
+
+    #[test]
+    fn test_transpose() {
+        assert_eq!(
+            Matrix::<i32, 1, 2>::from([[1], [2]]).transpose(),
+            Matrix::<i32, 2, 1>::from([[1, 2]])
+        );
+        assert_eq!(
+            matrix![[1, 2], [3, 4],].transpose(),
+            matrix![[1, 3], [2, 4],]
+        );
+    }
+
+    #[test]
+    fn test_square_matrix() {
+        let a: Matrix<i32, 3, 3> = matrix![[5, 0, 0], [0, 8, 12], [0, 0, 16],];
+        let diag: ColumnVector<i32, 3> = column_vector!(5, 8, 16);
+        assert_eq!(a.diagonal(), diag);
+    }
+
+    #[test]
+    fn test_map() {
+        let int = matrix![[1i32, 0], [1, 1], [0, 1], [1, 0], [0, 0]];
+        let boolean = matrix![
+            [true, false],
+            [true, true],
+            [false, true],
+            [true, false],
+            [false, false]
+        ];
+        assert_eq!(int.map(|i| i != 0), boolean);
+    }
+
+    #[test]
+    fn test_from_iter() {
+        let v = vec![1i32, 2, 3, 4];
+        let mat = Matrix::<i32, 2, 2>::from_iter(v);
+        assert_eq!(mat, matrix![[1i32, 2], [3, 4]].transpose())
+    }
+
+    #[test]
+    fn test_invert() {
+        assert!(Matrix2::<f64>::one().invert().unwrap() == Matrix2::<f64>::one());
+
+        // Example taken from cgmath:
+
+        let a: Matrix2<f64> = matrix![[1.0f64, 2.0f64], [3.0f64, 4.0f64],];
+        let identity: Matrix2<f64> = Matrix2::<f64>::one();
+        assert!(abs_diff_eq!(
+            a.invert().unwrap(),
+            matrix![[-2.0f64, 1.0f64], [1.5f64, -0.5f64]]
+        ));
+
+        assert!(abs_diff_eq!(
+            a.invert().unwrap() * a,
+            identity,
+            epsilon = 0.1
+        ));
+        assert!(abs_diff_eq!(a * a.invert().unwrap(), identity));
+        assert!(matrix![[0.0f64, 2.0f64], [0.0f64, 5.0f64]]
+            .invert()
+            .is_none());
+    }
+
+    #[test]
+    fn test_determinant() {
+        assert_eq!(Matrix2::<f64>::one().determinant(), f64::one());
+        /*
+        assert_eq!(
+            matrix![[3.0f64, 8.0f64], [4.0f64, 6.0f64]].invert().unwrap(),
+            matrix![[3.0f64, 8.0f64], [4.0f64, 6.0f64]]
+        );
+        */
+        assert_eq!(
+            matrix![[3.0f64, 8.0f64], [4.0f64, 6.0f64]].determinant(),
+            -14.0f64
+        );
+        assert_eq!(
+            matrix![[-2.0f64, 1.0f64], [1.5f64, -0.5f64]].determinant(),
+            -0.5f64
+        );
+        assert_eq!(
+            matrix![[6.0f64, 1.0, 1.0], [4.0, -2.0, 5.0], [2.0, 8.0, 7.0]].determinant(),
+            -306.0f64
+        );
+    }
+
+    #[test]
+    fn test_swap() {
+        let mut m = matrix![[1.0, 2.0], [3.0, 4.0]];
+        m.swap_columns(0, 1);
+        assert_eq!(m, matrix![[2.0, 1.0], [4.0, 3.0]]);
+        let mut m = matrix![[1.0, 2.0], [3.0, 4.0]];
+        m.swap_rows(0, 1);
+        assert_eq!(m, matrix![[3.0, 4.0], [1.0, 2.0]]);
+        let mut m = matrix![[1.0, 2.0], [3.0, 4.0]];
+        m.swap_columns(0, 0);
+        assert_eq!(m, matrix![[1.0, 2.0], [3.0, 4.0]]);
+        m.swap_rows(0, 0);
+        assert_eq!(m, matrix![[1.0, 2.0], [3.0, 4.0]]);
+    }
+
+    /*
+    #[test]
+    fn rotation() {
+        let rot = Orthonormal::<f32, 3>::from(Euler {
+            x: 0.0,
+            y: 0.0,
+            z: core::f32::consts::FRAC_PI_2,
+        });
+        assert_eq!(*rot.rotate_vector(column_vector![1.0f32, 0.0, 0.0]).y(), 1.0);
+        let v = column_vector![1.0f32, 0.0, 0.0];
+        let q1 = Quaternion::from(Euler {
+            x: 0.0,
+            y: 0.0,
+            z: core::f32::consts::FRAC_PI_2,
+        });
+        assert_eq!(*q1.rotate_vector(v).normalize().y(), 1.0);
+    }
+    */
+}
