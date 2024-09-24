@@ -274,6 +274,7 @@ macro_rules! implement_vector {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Vector2<T> {
     pub x: T,
     pub y: T,
@@ -281,54 +282,13 @@ pub struct Vector2<T> {
 
 implement_vector!(Vector2, x, y);
 
-/*
-impl<T> VectorSpace for Vector2<T> {
-    type Scalar = T;
-}
-
-impl<T> MetricSpace for Vector2<T> {
-    type Metric = T;
-
-    fn distance2(self, other: Self) -> T {
-        todo!()
-    }
-}
-
-impl<T> InnerSpace for Vector2<T> {
-    fn dot(self, other: Self) -> T {
-        todo!()
-    }
-}
-*/
-
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Vector3<T> {
     pub x: T,
     pub y: T,
     pub z: T,
 }
-
-/*
-
-impl<T> VectorSpace for Vector3<T> {
-    type Scalar = T;
-}
-
-impl<T> MetricSpace for Vector3<T> {
-    type Metric = T;
-
-    fn distance2(self, other: Self) -> T {
-        todo!()
-    }
-}
-
-impl<T> InnerSpace for Vector3<T> {
-    fn dot(self, other: Self) -> T {
-        todo!()
-    }
-}
-
- */
 
 impl<T> Vector3<T>
 where
@@ -348,6 +308,7 @@ where
 implement_vector!(Vector3, x, y, z);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Vector4<T> {
     pub x: T,
     pub y: T,

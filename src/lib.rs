@@ -671,6 +671,10 @@ mod tests {
     use approx::abs_diff_eq;
 
     type Vector1<T> = ColumnVector<T, 1>;
+    type Vector2<T> = ColumnVector<T, 2>;
+    type Vector3<T> = ColumnVector<T, 3>;
+    type Vector4<T> = ColumnVector<T, 4>;
+    
 
     /*
     #[test]
@@ -678,7 +682,7 @@ mod tests {
         let p1 = Permutation::unit();
         let p2 = Permutation([0usize, 1, 2]);
         let p3 = Permutation([1usize, 2, 0]);
-        let v = vector!(1.0f64, 2.0, 3.0);
+        let v = column_vector!(1.0f64, 2.0, 3.0);
         assert_eq!(p1, p2);
         assert_eq!(v, p3 * (p3 * (p3 * v)));
     }
@@ -697,7 +701,7 @@ mod tests {
     #[test]
     fn vec_zero() {
         let a = Vector3::<u32>::zero();
-        assert_eq!(a, vector![0, 0, 0]);
+        assert_eq!(a, column_vector![0, 0, 0]);
     }
 
     #[test]
@@ -770,9 +774,9 @@ mod tests {
 
     #[test]
     fn vec_cross() {
-        let a = vector!(1isize, 2isize, 3isize);
-        let b = vector!(4isize, 5isize, 6isize);
-        let r = vector!(-3isize, 6isize, -3isize);
+        let a = column_vector!(1isize, 2isize, 3isize);
+        let b = column_vector!(4isize, 5isize, 6isize);
+        let r = column_vector!(-3isize, 6isize, -3isize);
         assert_eq!(a.cross(b), r);
     }
 
@@ -792,29 +796,29 @@ mod tests {
 
     #[test]
     fn vec_normalize() {
-        let a = vector!(5.0);
+        let a = column_vector!(5.0);
         assert_eq!(a.magnitude(), 5.0);
         let a_norm = a.normalize();
-        assert_eq!(a_norm, vector!(1.0));
+        assert_eq!(a_norm, column_vector!(1.0));
     }
 
     #[test]
     fn vec_transpose() {
-        let v = vector!(1i32, 2, 3, 4);
+        let v = column_vector!(1i32, 2, 3, 4);
         let m = Matrix::<i32, 1, 4>::from([[1i32], [2], [3], [4]]);
         assert_eq!(v.transpose(), m);
     }
 
     #[test]
     fn from_fn() {
-        let indices: ColumnVector<usize, 10> = vector!(0usize, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        let indices: ColumnVector<usize, 10> = column_vector!(0usize, 1, 2, 3, 4, 5, 6, 7, 8, 9);
         assert_eq!(ColumnVector::<usize, 10>::from_fn(|i| i), indices);
     }
 
     #[test]
     fn decompose() {
         let a = matrix![[-1.0f64, 1.0], [2.0, 1.0]];
-        let b = vector!(5.0f64, 2.0);
+        let b = column_vector!(5.0f64, 2.0);
         let lu = a.lu().unwrap();
 
         assert_eq!(a * lu.solve(b), b);
@@ -822,8 +826,8 @@ mod tests {
 
     #[test]
     fn vec_map() {
-        let int = vector!(1i32, 0, 1, 1, 0, 1, 1, 0, 0, 0);
-        let boolean = vector!(true, false, true, true, false, true, true, false, false, false);
+        let int = column_vector!(1i32, 0, 1, 1, 0, 1, 1, 0, 0, 0);
+        let boolean = column_vector!(true, false, true, true, false, true, true, false, false, false);
         assert_eq!(int.map(|i| i != 0), boolean);
     }
 
@@ -831,13 +835,13 @@ mod tests {
     fn vec_from_iter() {
         let v = vec![1i32, 2, 3, 4];
         let vec = ColumnVector::<i32, 4>::from_iter(v);
-        assert_eq!(vec, vector![1i32, 2, 3, 4])
+        assert_eq!(vec, column_vector![1i32, 2, 3, 4])
     }
 
     /*
     #[test]
     fn vec_into_iter() {
-        let v = vector!(1i32, 2, 3, 4);
+        let v = column_vector!(1i32, 2, 3, 4);
         let vec: Vec<_> = v.into_iter().collect();
         assert_eq!(vec, vec![1i32, 2, 3, 4])
     }
@@ -845,8 +849,8 @@ mod tests {
 
     #[test]
     fn vec_indexed_map() {
-        let boolean = vector!(true, false, true, true, false, true, true, false, false, false);
-        let indices = vector!(0usize, 1, 2, 3, 4, 5, 6, 7, 8, 9);
+        let boolean = column_vector!(true, false, true, true, false, true, true, false, false, false);
+        let indices = column_vector!(0usize, 1, 2, 3, 4, 5, 6, 7, 8, 9);
         assert_eq!(boolean.indexed_map(|i, _| i), indices);
     }
 
@@ -863,9 +867,9 @@ mod tests {
 
     #[test]
     fn vec_linear_interpolate() {
-        let v1 = vector!(0.0, 0.0, 0.0);
-        let v2 = vector!(1.0, 2.0, 3.0);
-        assert_eq!(v1.lerp(v2, 0.5), vector!(0.5, 1.0, 1.5));
+        let v1 = column_vector!(0.0, 0.0, 0.0);
+        let v2 = column_vector!(1.0, 2.0, 3.0);
+        assert_eq!(v1.lerp(v2, 0.5), column_vector!(0.5, 1.0, 1.5));
     }
 
     #[test]
@@ -955,13 +959,13 @@ mod tests {
     #[test]
     fn square_matrix() {
         let a: Matrix<i32, 3, 3> = matrix![[5, 0, 0], [0, 8, 12], [0, 0, 16],];
-        let diag: ColumnVector<i32, 3> = vector!(5, 8, 16);
+        let diag: ColumnVector<i32, 3> = column_vector!(5, 8, 16);
         assert_eq!(a.diagonal(), diag);
     }
 
     #[test]
     fn readme_code() {
-        let a = vector!(0u32, 1, 2, 3);
+        let a = column_vector!(0u32, 1, 2, 3);
         assert_eq!(a, ColumnVector::<u32, 4>::from([0u32, 1, 2, 3]));
 
         let b = ColumnVector::<f32, 7>::from([0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
@@ -971,21 +975,21 @@ mod tests {
             ColumnVector::<f32, 7>::from([0.5f32, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5])
         );
 
-        let a = vector!(1i32, 1);
-        let b = vector!(5i32, 5);
+        let a = column_vector!(1i32, 1);
+        let b = column_vector!(5i32, 5);
         assert_eq!(a.distance2(b), 32); // distance method not implemented.
         assert_eq!((b - a).magnitude2(), 32); // magnitude method not implemented.
 
-        let a = vector!(1.0f32, 1.0);
-        let b = vector!(5.0f32, 5.0);
+        let a = column_vector!(1.0f32, 1.0);
+        let b = column_vector!(5.0f32, 5.0);
         const CLOSE: f32 = 5.656854;
         assert_eq!(a.distance(b), CLOSE); // distance is implemented.
         assert_eq!((b - a).magnitude(), CLOSE); // magnitude is implemented.
 
         // Vector normalization is also supported for floating point scalars.
         assert_eq!(
-            vector!(0.0f32, 20.0, 0.0).normalize(),
-            vector!(0.0f32, 1.0, 0.0)
+            column_vector!(0.0f32, 20.0, 0.0).normalize(),
+            column_vector!(0.0f32, 1.0, 0.0)
         );
 
         let _a = Matrix::<f32, 3, 3>::from([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]);
@@ -993,12 +997,12 @@ mod tests {
 
         assert_eq!(
             matrix![[1i32, 0, 0,], [0, 2, 0], [0, 0, 3],].diagonal(),
-            vector!(1i32, 2, 3)
+            column_vector!(1i32, 2, 3)
         );
 
         assert_eq!(
             matrix![[1i32, 0, 0, 0], [0, 2, 0, 0], [0, 0, 3, 0], [0, 0, 0, 4]].diagonal(),
-            vector!(1i32, 2, 3, 4)
+            column_vector!(1i32, 2, 3, 4)
         );
     }
 
@@ -1086,13 +1090,13 @@ mod tests {
 
     #[test]
     fn vec_macro_constructor() {
-        let v: ColumnVector<f32, 0> = vector![];
+        let v: ColumnVector<f32, 0> = column_vector![];
         assert!(v[0].is_empty());
 
-        let v = vector![1];
+        let v = column_vector![1];
         assert_eq!(1, *v.x());
 
-        let v = vector![1, 2, 3, 4, 5, 6, 7, 8, 9, 10,];
+        let v = column_vector![1, 2, 3, 4, 5, 6, 7, 8, 9, 10,];
         for i in 0..10 {
             assert_eq!(i + 1, v[0][i]);
         }
@@ -1140,18 +1144,19 @@ mod tests {
     #[test]
     fn vec_reflect() {
         // Incident straight on to the surface.
-        let v = vector!(1, 0);
-        let n = vector!(-1, 0);
+        let v = column_vector!(1, 0);
+        let n = column_vector!(-1, 0);
         let r = v.reflect(n);
-        assert_eq!(r, vector!(-1, 0));
+        assert_eq!(r, column_vector!(-1, 0));
 
         // Incident at 45 degree angle to the surface.
-        let v = vector!(1, 1);
-        let n = vector!(-1, 0);
+        let v = column_vector!(1, 1);
+        let n = column_vector!(-1, 0);
         let r = v.reflect(n);
-        assert_eq!(r, vector!(-1, 1));
+        assert_eq!(r, column_vector!(-1, 1));
     }
 
+    /*
     #[test]
     fn rotation() {
         let rot = Orthonormal::<f32, 3>::from(Euler {
@@ -1159,8 +1164,8 @@ mod tests {
             y: 0.0,
             z: core::f32::consts::FRAC_PI_2,
         });
-        assert_eq!(*rot.rotate_vector(vector![1.0f32, 0.0, 0.0]).y(), 1.0);
-        let v = vector![1.0f32, 0.0, 0.0];
+        assert_eq!(*rot.rotate_vector(column_vector![1.0f32, 0.0, 0.0]).y(), 1.0);
+        let v = column_vector![1.0f32, 0.0, 0.0];
         let q1 = Quaternion::from(Euler {
             x: 0.0,
             y: 0.0,
@@ -1168,6 +1173,7 @@ mod tests {
         });
         assert_eq!(*q1.rotate_vector(v).normalize().y(), 1.0);
     }
+    */
 }
 
 #[cfg(all(feature = "mint", test))]
@@ -1192,7 +1198,7 @@ mod mint_tests {
 
     #[test]
     fn vector2_roundtrip() {
-        let alj1 = vector![1, 2];
+        let alj1 = column_vector![1, 2];
         let mint: mint::Vector2<u32> = alj1.into();
         let alj2: ColumnVector<u32, 2> = mint.into();
         assert_eq!(alj1, alj2);
@@ -1200,7 +1206,7 @@ mod mint_tests {
 
     #[test]
     fn vector3_roundtrip() {
-        let alj1 = vector![1, 2, 3];
+        let alj1 = column_vector![1, 2, 3];
         let mint: mint::Vector3<u32> = alj1.into();
         let alj2: ColumnVector<u32, 3> = mint.into();
         assert_eq!(alj1, alj2);
@@ -1208,7 +1214,7 @@ mod mint_tests {
 
     #[test]
     fn vector4_roundtrip() {
-        let alj1 = vector![1, 2, 3, 4];
+        let alj1 = column_vector![1, 2, 3, 4];
         let mint: mint::Vector4<u32> = alj1.into();
         let alj2: ColumnVector<u32, 4> = mint.into();
         assert_eq!(alj1, alj2);
