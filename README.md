@@ -1,6 +1,6 @@
 # al-jabr 
 
-[![Documentation](https://docs.rs/al-jabr/badge.svg?style=for-the-badge)](https://docs.rs/al-jabr)
+[![Documentation](https://img.shields.io/docsrs/al-jabr/latest?style=for-the-badge)](https://docs.rs/al-jabr)
 [![Version](https://img.shields.io/crates/v/al-jabr.svg?style=for-the-badge)](https://crates.io/crates/al-jabr)
 [![Downloads](https://img.shields.io/crates/d/al-jabr.svg?style=for-the-badge)](https://crates.io/crates/al-jabr)
 
