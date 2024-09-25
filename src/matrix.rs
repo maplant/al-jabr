@@ -183,6 +183,34 @@ impl<T> Matrix3<T>
 where
     T: Zero + One + Clone,
 {
+    /// Create a new 3x3 matrix.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        c0r0: T,
+        c0r1: T,
+        c0r2: T,
+        c1r0: T,
+        c1r1: T,
+        c1r2: T,
+        c2r0: T,
+        c2r1: T,
+        c2r2: T,
+    ) -> Self {
+        Self([[c0r0, c0r1, c0r2], [c1r0, c1r1, c1r2], [c2r0, c2r1, c2r2]])
+    }
+
+    /// Construct a new 3x3 matrix by providing the columns.
+    pub fn from_cols(
+        col1: ColumnVector3<T>,
+        col2: ColumnVector3<T>,
+        col3: ColumnVector3<T>,
+    ) -> Self {
+        let Matrix([col1]) = col1;
+        let Matrix([col2]) = col2;
+        let Matrix([col3]) = col3;
+        Self([col1, col2, col3])
+    }
+
     /// Create an affine transformation matrix from a translation vector.
     pub fn from_translation(v: Vector2<T>) -> Self {
         Self([
@@ -221,6 +249,48 @@ impl<T> Matrix4<T>
 where
     T: Zero + One + Clone,
 {
+    /// Create a new matrix.
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        c0r0: T,
+        c0r1: T,
+        c0r2: T,
+        c0r3: T,
+        c1r0: T,
+        c1r1: T,
+        c1r2: T,
+        c1r3: T,
+        c2r0: T,
+        c2r1: T,
+        c2r2: T,
+        c2r3: T,
+        c3r0: T,
+        c3r1: T,
+        c3r2: T,
+        c3r3: T,
+    ) -> Self {
+        Self([
+            [c0r0, c0r1, c0r2, c0r3],
+            [c1r0, c1r1, c1r2, c1r3],
+            [c2r0, c2r1, c2r2, c2r3],
+            [c3r0, c3r1, c3r2, c3r3],
+        ])
+    }
+
+    /// Construct a new 4x4 matrix by providing the columns.
+    pub fn from_cols(
+        col1: ColumnVector4<T>,
+        col2: ColumnVector4<T>,
+        col3: ColumnVector4<T>,
+        col4: ColumnVector4<T>,
+    ) -> Self {
+        let Matrix([col1]) = col1;
+        let Matrix([col2]) = col2;
+        let Matrix([col3]) = col3;
+        let Matrix([col4]) = col4;
+        Self([col1, col2, col3, col4])
+    }
+
     /// Create an affine transformation matrix from a translation vector.
     pub fn from_translation(v: Vector3<T>) -> Self {
         Self([

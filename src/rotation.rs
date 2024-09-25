@@ -3,9 +3,8 @@
 use super::*;
 
 // TODO: Bring this back for column vectors?
-/*
-/// A type that can rotate a [Vector] (or [Point]) of a given dimension.
-pub trait Rotation<const DIMS: usize>
+/// A type that can rotate a ColumnVector of a given dimension.
+pub trait RotationN<const DIMS: usize>
 where
     Self: Sized,
 {
@@ -16,16 +15,13 @@ where
     fn invert(&self) -> Self;
 
     /// Rotates a vector.
-    fn rotate_vector(&self, v: ColumnVector<Self::Scalar, DIMS>) -> ColumnVector<Self::Scalar, DIMS>;
-
-    /// Rotates a point around the origin.
-    fn rotate_point(&self, p: Point<Self::Scalar, DIMS>) -> Point<Self::Scalar, DIMS> {
-        let Matrix([res]) = self.rotate_vector(Matrix([p.0]));
-        Point(res)
-    }
+    fn rotate_vector(
+        &self,
+        v: ColumnVector<Self::Scalar, DIMS>,
+    ) -> ColumnVector<Self::Scalar, DIMS>;
 }
- */
 
+/// A type that can rotate a [Vector2] or [Point2]
 pub trait Rotation2 {
     type Scalar;
 
@@ -42,6 +38,7 @@ pub trait Rotation2 {
     }
 }
 
+/// A type that can rotate a [Vector3] or [Point3]
 pub trait Rotation3 {
     type Scalar;
 
@@ -145,8 +142,7 @@ where
     }
 }
 
-/*
-impl<T, const DIMS: usize> Rotation<DIMS> for Orthonormal<T, DIMS>
+impl<T, const DIMS: usize> RotationN<DIMS> for Orthonormal<T, DIMS>
 where
     T: Clone + PartialOrd + Product + Real + One + Zero,
     T: Neg<Output = T>,
@@ -161,11 +157,51 @@ where
         Orthonormal(self.0.clone().invert().unwrap())
     }
 
-    fn rotate_vector(&self, v: ColumnVector<Self::Scalar, DIMS>) -> ColumnVector<Self::Scalar, DIMS> {
+    fn rotate_vector(
+        &self,
+        v: ColumnVector<Self::Scalar, DIMS>,
+    ) -> ColumnVector<Self::Scalar, DIMS> {
         self.0.clone() * v
     }
 }
-*/
+
+impl<T> Rotation2 for Orthonormal<T, 2>
+where
+    T: Clone + PartialOrd + Product + Real + One + Zero,
+    T: Neg<Output = T>,
+    T: Add<T, Output = T> + Sub<T, Output = T>,
+    T: Mul<T, Output = T> + Div<T, Output = T>,
+    Vector2<T>: Mul<SquareMatrix<T, 2>, Output = Vector2<T>>,
+{
+    type Scalar = T;
+
+    fn invert(&self) -> Self {
+        Orthonormal(self.0.clone().invert().unwrap())
+    }
+
+    fn rotate_vector(&self, v: Vector2<T>) -> Vector2<T> {
+        v * self.0.clone()
+    }
+}
+
+impl<T> Rotation3 for Orthonormal<T, 3>
+where
+    T: Clone + PartialOrd + Product + Real + One + Zero,
+    T: Neg<Output = T>,
+    T: Add<T, Output = T> + Sub<T, Output = T>,
+    T: Mul<T, Output = T> + Div<T, Output = T>,
+    Vector3<T>: Mul<SquareMatrix<T, 3>, Output = Vector3<T>>,
+{
+    type Scalar = T;
+
+    fn invert(&self) -> Self {
+        Orthonormal(self.0.clone().invert().unwrap())
+    }
+
+    fn rotate_vector(&self, v: Vector3<T>) -> Vector3<T> {
+        v * self.0.clone()
+    }
+}
 
 /// A [quaternion](https://en.wikipedia.org/wiki/Quaternion), composed
 /// of a scalar and a `Vector3`.
