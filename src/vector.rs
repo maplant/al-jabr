@@ -108,7 +108,7 @@ macro_rules! implement_vector {
             T: PartialOrd + Clone,
         {
             /// Return the largest value found in the vector, along with the associated index. If there is
-            /// no largest value returns the first value ([Self::x]).
+            /// no largest value returns the x component.
             pub fn argmax(&self) -> (usize, T) {
                 let mut i_max = 0;
                 let mut v_max = self.x.clone();
@@ -121,8 +121,7 @@ macro_rules! implement_vector {
                 (i_max, v_max)
             }
 
-            /// Return the largest value in the vector. If there is no largest value, returns the first value
-            /// ([Self::x]).
+            /// Return the largest value in the vector. If there is no largest value, returns the x component.
             pub fn max(&self) -> T {
                 let mut v_max = self.x.clone();
                 $(
@@ -134,7 +133,7 @@ macro_rules! implement_vector {
             }
 
             /// Return the smallest value found in the vector, along with the associated index. If there is
-            /// no smallest value returns the first value ([Self::x]).
+            /// no smallest value returns the x component..
             pub fn argmin(&self) -> (usize, T) {
                 let mut i_max = 0;
                 let mut v_max = self.x.clone();
@@ -147,8 +146,8 @@ macro_rules! implement_vector {
                 (i_max, v_max)
             }
 
-            /// Return the smallest value in the vector. If there is no smallest value, returns the first value
-            /// ([Self::x]).
+            /// Return the smallest value in the vector. If there is no smallest value, returns the x
+            /// component.
             pub fn min(&self) -> T {
                 let mut v_max = self.x.clone();
                 $(
@@ -405,12 +404,15 @@ macro_rules! implement_vector {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(C)]
-pub struct Vector2<T> {
-    pub x: T,
-    pub y: T,
+/// A vector in 2-dimensional space.
+pub struct Vector2<S> {
+    /// The x component of the vector.
+    pub x: S,
+    /// The y component of the vector.
+    pub y: S,
 }
 
 impl<T> From<[T; 2]> for Vector2<T> {
@@ -424,12 +426,12 @@ impl<T> Vector2<T>
 where
     T: One + Zero,
 {
-    /// Construct a normal 4-dimensional vector in the X direction
+    /// Construct a normal 4-dimensional vector in the X direction.
     pub fn unit_x() -> Self {
         Self::new(T::one(), T::zero())
     }
 
-    /// Construct a normal 4-dimensional vector in the Y direction
+    /// Construct a normal 4-dimensional vector in the Y direction.
     pub fn unit_y() -> Self {
         Self::new(T::zero(), T::one())
     }
@@ -437,13 +439,17 @@ where
 
 implement_vector!(Vector2, x, y);
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(C)]
-pub struct Vector3<T> {
-    pub x: T,
-    pub y: T,
-    pub z: T,
+/// A vector in 3-dimensional space.
+pub struct Vector3<S> {
+    /// The x component of the vector.
+    pub x: S,
+    /// The y component of the vector.
+    pub y: S,
+    /// The z component of the vector.
+    pub z: S,
 }
 
 impl<T> Vector3<T>
@@ -480,17 +486,17 @@ impl<T> Vector3<T>
 where
     T: One + Zero,
 {
-    /// Construct a normal 4-dimensional vector in the X direction
+    /// Construct a normal 4-dimensional vector in the X direction.
     pub fn unit_x() -> Self {
         Self::new(T::one(), T::zero(), T::zero())
     }
 
-    /// Construct a normal 4-dimensional vector in the Y direction
+    /// Construct a normal 4-dimensional vector in the Y direction.
     pub fn unit_y() -> Self {
         Self::new(T::zero(), T::one(), T::zero())
     }
 
-    /// Construct a normal 4-dimensional vector in the Z direction
+    /// Construct a normal 4-dimensional vector in the Z direction.
     pub fn unit_z() -> Self {
         Self::new(T::zero(), T::zero(), T::one())
     }
@@ -498,14 +504,19 @@ where
 
 implement_vector!(Vector3, x, y, z);
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(C)]
-pub struct Vector4<T> {
-    pub x: T,
-    pub y: T,
-    pub z: T,
-    pub w: T,
+/// A vector in 4-dimensional space.
+pub struct Vector4<S> {
+    /// The x component of the vector.
+    pub x: S,
+    /// The y component of the vector.
+    pub y: S,
+    /// The z component of the vector.
+    pub z: S,
+    /// The w component of the vector.
+    pub w: S,
 }
 
 impl<T> From<[T; 4]> for Vector4<T> {
@@ -519,22 +530,22 @@ impl<T> Vector4<T>
 where
     T: One + Zero,
 {
-    /// Construct a normal 4-dimensional vector in the X direction
+    /// Construct a normal 4-dimensional vector in the X direction.
     pub fn unit_x() -> Self {
         Self::new(T::one(), T::zero(), T::zero(), T::zero())
     }
 
-    /// Construct a normal 4-dimensional vector in the Y direction
+    /// Construct a normal 4-dimensional vector in the Y direction.
     pub fn unit_y() -> Self {
         Self::new(T::zero(), T::one(), T::zero(), T::zero())
     }
 
-    /// Construct a normal 4-dimensional vector in the Z direction
+    /// Construct a normal 4-dimensional vector in the Z direction.
     pub fn unit_z() -> Self {
         Self::new(T::zero(), T::zero(), T::one(), T::zero())
     }
 
-    /// Construct a normal 4-dimensional vector in the W direction
+    /// Construct a normal 4-dimensional vector in the W direction.
     pub fn unit_w() -> Self {
         Self::new(T::zero(), T::zero(), T::zero(), T::one())
     }

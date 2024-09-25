@@ -3,7 +3,7 @@
 use super::*;
 
 // TODO: Bring this back for column vectors?
-/// A type that can rotate a ColumnVector of a given dimension.
+/// A type that can rotate a [ColumnVector] of a given dimension.
 pub trait RotationN<const DIMS: usize>
 where
     Self: Sized,

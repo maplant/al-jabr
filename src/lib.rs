@@ -30,7 +30,7 @@
 //!
 //! ### Vector
 //!
-//! Small (N = 2, 3, 4) vectors as well as N-dimensional [Column Vectors](Vector) are
+//! Small (N = 2, 3, 4) vectors as well as an N-dimensional [ColumnVector] are
 //! provided. Unless you have a need for larger vectors, it is recommended to use
 //! [Vector2], [Vector3] or [Vector4].
 //!
@@ -455,7 +455,7 @@ impl Real for f64 {
 /// Vectors that can be added together and multiplied by scalars form a
 /// `VectorSpace`.
 ///
-/// If a [Vector] implements [Add] and [Sub] and its scalar implements [Mul] and
+/// If a type implements [Add] and [Sub] and its scalar implements [Mul] and
 /// [Div], then that vector is part of a `VectorSpace`.
 pub trait VectorSpace
 where
