@@ -2,8 +2,9 @@
 
 use super::*;
 
-/// A type that can rotate a [Vector] (or [Point]) of a given dimension.
-pub trait Rotation<const DIMS: usize>
+// TODO: Bring this back for column vectors?
+/// A type that can rotate a [ColumnVector] of a given dimension.
+pub trait RotationN<const DIMS: usize>
 where
     Self: Sized,
 {
@@ -14,12 +15,43 @@ where
     fn invert(&self) -> Self;
 
     /// Rotates a vector.
-    fn rotate_vector(&self, v: Vector<Self::Scalar, DIMS>) -> Vector<Self::Scalar, DIMS>;
+    fn rotate_vector(
+        &self,
+        v: ColumnVector<Self::Scalar, DIMS>,
+    ) -> ColumnVector<Self::Scalar, DIMS>;
+}
+
+/// A type that can rotate a [Vector2] or [Point2]
+pub trait Rotation2 {
+    type Scalar;
+
+    /// Returns the multiplicative inverse of the rotation. Effectively
+    /// does the opposite of the given rotation.
+    fn invert(&self) -> Self;
+
+    /// Rotates a vector.
+    fn rotate_vector(&self, v: Vector2<Self::Scalar>) -> Vector2<Self::Scalar>;
 
     /// Rotates a point around the origin.
-    fn rotate_point(&self, p: Point<Self::Scalar, DIMS>) -> Point<Self::Scalar, DIMS> {
-        let Matrix([res]) = self.rotate_vector(Matrix([p.0]));
-        Point(res)
+    fn rotate_point(&self, p: Point2<Self::Scalar>) -> Point2<Self::Scalar> {
+        Point2::from_vec(self.rotate_vector(p.to_vec()))
+    }
+}
+
+/// A type that can rotate a [Vector3] or [Point3]
+pub trait Rotation3 {
+    type Scalar;
+
+    /// Returns the multiplicative inverse of the rotation. Effectively
+    /// does the opposite of the given rotation.
+    fn invert(&self) -> Self;
+
+    /// Rotates a vector.
+    fn rotate_vector(&self, v: Vector3<Self::Scalar>) -> Vector3<Self::Scalar>;
+
+    /// Rotates a point around the origin.
+    fn rotate_point(&self, p: Point3<Self::Scalar>) -> Point3<Self::Scalar> {
+        Point3::from_vec(self.rotate_vector(p.to_vec()))
     }
 }
 
@@ -110,14 +142,14 @@ where
     }
 }
 
-impl<T, const DIMS: usize> Rotation<DIMS> for Orthonormal<T, DIMS>
+impl<T, const DIMS: usize> RotationN<DIMS> for Orthonormal<T, DIMS>
 where
     T: Clone + PartialOrd + Product + Real + One + Zero,
     T: Neg<Output = T>,
     T: Add<T, Output = T> + Sub<T, Output = T>,
     T: Mul<T, Output = T> + Div<T, Output = T>,
     Matrix<T, DIMS, DIMS>: Mul,
-    Matrix<T, DIMS, DIMS>: Mul<Vector<T, DIMS>, Output = Vector<T, DIMS>>,
+    Matrix<T, DIMS, DIMS>: Mul<ColumnVector<T, DIMS>, Output = ColumnVector<T, DIMS>>,
 {
     type Scalar = T;
 
@@ -125,8 +157,49 @@ where
         Orthonormal(self.0.clone().invert().unwrap())
     }
 
-    fn rotate_vector(&self, v: Vector<Self::Scalar, DIMS>) -> Vector<Self::Scalar, DIMS> {
+    fn rotate_vector(
+        &self,
+        v: ColumnVector<Self::Scalar, DIMS>,
+    ) -> ColumnVector<Self::Scalar, DIMS> {
         self.0.clone() * v
+    }
+}
+
+impl<T> Rotation2 for Orthonormal<T, 2>
+where
+    T: Clone + PartialOrd + Product + Real + One + Zero,
+    T: Neg<Output = T>,
+    T: Add<T, Output = T> + Sub<T, Output = T>,
+    T: Mul<T, Output = T> + Div<T, Output = T>,
+    Vector2<T>: Mul<SquareMatrix<T, 2>, Output = Vector2<T>>,
+{
+    type Scalar = T;
+
+    fn invert(&self) -> Self {
+        Orthonormal(self.0.clone().invert().unwrap())
+    }
+
+    fn rotate_vector(&self, v: Vector2<T>) -> Vector2<T> {
+        v * self.0.clone()
+    }
+}
+
+impl<T> Rotation3 for Orthonormal<T, 3>
+where
+    T: Clone + PartialOrd + Product + Real + One + Zero,
+    T: Neg<Output = T>,
+    T: Add<T, Output = T> + Sub<T, Output = T>,
+    T: Mul<T, Output = T> + Div<T, Output = T>,
+    Vector3<T>: Mul<SquareMatrix<T, 3>, Output = Vector3<T>>,
+{
+    type Scalar = T;
+
+    fn invert(&self) -> Self {
+        Orthonormal(self.0.clone().invert().unwrap())
+    }
+
+    fn rotate_vector(&self, v: Vector3<T>) -> Vector3<T> {
+        v * self.0.clone()
     }
 }
 
@@ -145,7 +218,7 @@ impl<T> Quaternion<T> {
     pub const fn new(w: T, xi: T, yj: T, zk: T) -> Quaternion<T> {
         Quaternion {
             s: w,
-            v: Matrix([[xi, yj, zk]]),
+            v: Vector3::new(xi, yj, zk),
         }
     }
 
@@ -275,7 +348,7 @@ where
     }
 
     fn is_zero(&self) -> bool {
-        self.s.is_zero() && self.v.x().is_zero() && self.v.y().is_zero() && self.v.z().is_zero()
+        self.s.is_zero() && self.v.is_zero()
     }
 }
 
@@ -288,7 +361,7 @@ where
     }
 
     fn is_one(&self) -> bool {
-        self.s.is_one() && self.v.x().is_one() && self.v.y().is_one() && self.v.z().is_one()
+        self.s.is_one() && self.v.x.is_one() && self.v.y.is_one() && self.v.z.is_one()
     }
 }
 
@@ -296,18 +369,18 @@ where
 impl From<Quaternion<f32>> for Euler<f32> {
     fn from(q: Quaternion<f32>) -> Euler<f32> {
         Euler {
-            x: (2.0 * (q.s * q.v.x() + q.v.y() * q.v.z()))
-                .atan2(1.0 - 2.0 * (q.v.x() * q.v.x() + q.v.y() * q.v.y())),
+            x: (2.0 * (q.s * q.v.x + q.v.y * q.v.z))
+                .atan2(1.0 - 2.0 * (q.v.x * q.v.x + q.v.y * q.v.y)),
             y: {
-                let sinp = 2.0 * (q.s * q.v.y() - q.v.z() * q.v.x());
+                let sinp = 2.0 * (q.s * q.v.y - q.v.z * q.v.x);
                 if sinp.abs() >= 1.0 {
                     std::f32::consts::FRAC_PI_2.copysign(sinp)
                 } else {
                     sinp.asin()
                 }
             },
-            z: (2.0 * (q.s * q.v.z() + q.v.x() * q.v.y()))
-                .atan2(1.0 - 2.0 * (q.v.y() * q.v.y() + q.v.z() * q.v.z())),
+            z: (2.0 * (q.s * q.v.z + q.v.x * q.v.y))
+                .atan2(1.0 - 2.0 * (q.v.y * q.v.y + q.v.z * q.v.z)),
         }
     }
 }
@@ -315,18 +388,18 @@ impl From<Quaternion<f32>> for Euler<f32> {
 impl From<Quaternion<f64>> for Euler<f64> {
     fn from(q: Quaternion<f64>) -> Euler<f64> {
         Euler {
-            x: (2.0 * (q.s * q.v.x() + q.v.y() * q.v.z()))
-                .atan2(1.0 - 2.0 * (q.v.x() * q.v.x() + q.v.y() * q.v.y())),
+            x: (2.0 * (q.s * q.v.x + q.v.y * q.v.z))
+                .atan2(1.0 - 2.0 * (q.v.x * q.v.x + q.v.y * q.v.y)),
             y: {
-                let sinp = 2.0 * (q.s * q.v.y() - q.v.z() * q.v.x());
+                let sinp = 2.0 * (q.s * q.v.y - q.v.z * q.v.x);
                 if sinp.abs() >= 1.0 {
                     std::f64::consts::FRAC_PI_2.copysign(sinp)
                 } else {
                     sinp.asin()
                 }
             },
-            z: (2.0 * (q.s * q.v.z() + q.v.x() * q.v.y()))
-                .atan2(1.0 - 2.0 * (q.v.y() * q.v.y() + q.v.z() * q.v.z())),
+            z: (2.0 * (q.s * q.v.z + q.v.x * q.v.y))
+                .atan2(1.0 - 2.0 * (q.v.y * q.v.y + q.v.z * q.v.z)),
         }
     }
 }
@@ -373,7 +446,7 @@ where
     fn mul(self, scalar: T) -> Self {
         let Quaternion {
             s,
-            v: Matrix([[x, y, z]]),
+            v: Vector3 { x, y, z },
         } = self;
         Quaternion::new(
             s * scalar.clone(),
@@ -393,7 +466,7 @@ where
     fn div(self, scalar: T) -> Self {
         let Quaternion {
             s,
-            v: Matrix([[x, y, z]]),
+            v: Vector3 { x, y, z },
         } = self;
         Quaternion::new(
             s / scalar.clone(),
@@ -410,9 +483,9 @@ where
 {
     fn mul_assign(&mut self, scalar: T) {
         self.s = self.s().clone() * scalar.clone();
-        *self.v.x_mut() = self.v.x().clone() * scalar.clone();
-        *self.v.y_mut() = self.v.y().clone() * scalar.clone();
-        *self.v.z_mut() = self.v.z().clone() * scalar.clone();
+        self.v.x = self.v.x.clone() * scalar.clone();
+        self.v.y = self.v.y.clone() * scalar.clone();
+        self.v.z = self.v.z.clone() * scalar.clone();
     }
 }
 
@@ -422,9 +495,9 @@ where
 {
     fn div_assign(&mut self, scalar: T) {
         self.s = self.s().clone() / scalar.clone();
-        *self.v.x_mut() = self.v.x().clone() / scalar.clone();
-        *self.v.y_mut() = self.v.z().clone() / scalar.clone();
-        *self.v.z_mut() = self.v.y().clone() / scalar.clone();
+        self.v.x = self.v.x.clone() / scalar.clone();
+        self.v.y = self.v.z.clone() / scalar.clone();
+        self.v.z = self.v.y.clone() / scalar.clone();
     }
 }
 
@@ -456,21 +529,21 @@ where
             // Absolutely awful with all of the clones. I should probably
             // just require copy here.
             self.s().clone() * rhs.s().clone()
-                - self.v.x().clone() * rhs.v.x().clone()
-                - self.v.y().clone() * rhs.v.y().clone()
-                - self.v.z().clone() * rhs.v.z().clone(),
-            self.s().clone() * rhs.v.x().clone()
-                + self.v.x().clone() * rhs.s().clone()
-                + self.v.y().clone() * rhs.v.z().clone()
-                - self.v.z().clone() * rhs.v.y().clone(),
-            self.s().clone() * rhs.v.y().clone()
-                + self.v.y().clone() * rhs.s().clone()
-                + self.v.z().clone() * rhs.v.x().clone()
-                - self.v.x().clone() * rhs.v.z().clone(),
-            self.s().clone() * rhs.v.z().clone()
-                + self.v.z().clone() * rhs.s().clone()
-                + self.v.x().clone() * rhs.v.y().clone()
-                - self.v.y().clone() * rhs.v.x().clone(),
+                - self.v.x.clone() * rhs.v.x.clone()
+                - self.v.y.clone() * rhs.v.y.clone()
+                - self.v.z.clone() * rhs.v.z.clone(),
+            self.s().clone() * rhs.v.x.clone()
+                + self.v.x.clone() * rhs.s.clone()
+                + self.v.y.clone() * rhs.v.z.clone()
+                - self.v.z.clone() * rhs.v.y.clone(),
+            self.s().clone() * rhs.v.y.clone()
+                + self.v.y.clone() * rhs.s.clone()
+                + self.v.z.clone() * rhs.v.x.clone()
+                - self.v.x.clone() * rhs.v.z.clone(),
+            self.s().clone() * rhs.v.z.clone()
+                + self.v.z.clone() * rhs.s.clone()
+                + self.v.x.clone() * rhs.v.y.clone()
+                - self.v.y.clone() * rhs.v.x.clone(),
         )
     }
 }
@@ -541,7 +614,7 @@ where
     }
 }
 
-impl<T> Rotation<3> for Quaternion<T>
+impl<T> Rotation3 for Quaternion<T>
 where
     T: Real + Clone + Zero + AddAssign,
 {
@@ -551,7 +624,7 @@ where
         self.clone().conjugate() / self.clone().magnitude2()
     }
 
-    fn rotate_vector(&self, v: Vector<Self::Scalar, 3>) -> Vector<Self::Scalar, 3> {
+    fn rotate_vector(&self, v: Vector3<T>) -> Vector3<T> {
         self.clone() * v
     }
 }
@@ -564,10 +637,7 @@ where
         write!(
             f,
             "Quaternion {{ s: {:?}, x: {:?}, y: {:?}, z: {:?} }}",
-            self.s,
-            self.v.x(),
-            self.v.y(),
-            self.v.z()
+            self.s, self.v.x, self.v.y, self.v.z
         )
     }
 }
@@ -575,6 +645,7 @@ where
 impl<A, B> PartialEq<Quaternion<B>> for Quaternion<A>
 where
     A: PartialEq<B>,
+    Vector3<A>: PartialEq<Vector3<B>>,
 {
     fn eq(&self, other: &Quaternion<B>) -> bool {
         self.s.eq(&other.s) && self.v.eq(&other.v)
@@ -588,7 +659,7 @@ impl<T: Copy> From<Quaternion<T>> for mint::Quaternion<T> {
     fn from(q: Quaternion<T>) -> mint::Quaternion<T> {
         mint::Quaternion {
             s: q.s,
-            v: q.v.into(),
+            v: q.v.transpose().into(),
         }
     }
 }
@@ -598,7 +669,7 @@ impl<T> From<mint::Quaternion<T>> for Quaternion<T> {
     fn from(mint_quat: mint::Quaternion<T>) -> Self {
         Quaternion {
             s: mint_quat.s,
-            v: Matrix([[mint_quat.v.x, mint_quat.v.y, mint_quat.v.z]]),
+            v: Vector3::new(mint_quat.v.x, mint_quat.v.y, mint_quat.v.z),
         }
     }
 }

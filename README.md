@@ -1,8 +1,8 @@
 # al-jabr 
 
-[![Documentation](https://docs.rs/al-jabr/badge.svg)](https://docs.rs/al-jabr)
-[![Version](https://img.shields.io/crates/v/al-jabr.svg)](https://crates.io/crates/al-jabr)
-[![Downloads](https://img.shields.io/crates/d/al-jabr.svg)](https://crates.io/crates/al-jabr)
+[![Documentation](https://docs.rs/al-jabr/badge.svg?style=for-the-badge)](https://docs.rs/al-jabr)
+[![Version](https://img.shields.io/crates/v/al-jabr.svg?style=for-the-badge)](https://crates.io/crates/al-jabr)
+[![Downloads](https://img.shields.io/crates/d/al-jabr.svg?style=for-the-badge)](https://crates.io/crates/al-jabr)
 
 An n-dimensional linear algebra and mathematics library for computer
 graphics and other applications, designed to be roughly compatible with
@@ -10,12 +10,12 @@ graphics and other applications, designed to be roughly compatible with
 
 The library provides:
 
-* vectors: `Vector2`, `Vector3`, `Vector4` and `Vector<T, const N: usize>`
-* points: `Point2`, `Point3`, `Point4` and `Point<T, const N: usize>`
+* small vectors: `Vector2`, `Vector3`, and `Vector4` 
+* points: `Point2`, `Point3`, and `Point4` 
+* large column vectors: `ColumnVector<T, const N: usize>`
 * matrices: `Matrix2`, `Matrix3`, `Matrix4` and `Matrix<T, const N: usize, const M: usize>`
 * a quaternion type: `Quaternion`
 * orthonormal (rotation) matrices: `Orthonormal`
-
 
 `al-jabr` supports Vectors and Matrices of any size and will provide 
 implementations for any mathematic operations that are supported by their
