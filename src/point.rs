@@ -141,6 +141,16 @@ where
     }
 }
 
+impl<A, B> AddAssign<Vector2<B>> for Point2<A>
+where
+    A: AddAssign<B>,
+{
+    fn add_assign(&mut self, rhs: Vector2<B>) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+    }
+}
+
 impl<A, B> Sub<Vector2<B>> for Point2<A>
 where
     A: Sub<B>,
@@ -152,6 +162,16 @@ where
             x: self.x - rhs.x,
             y: self.y - rhs.y,
         }
+    }
+}
+
+impl<A, B> SubAssign<Vector2<B>> for Point2<A>
+where
+    A: SubAssign<B>,
+{
+    fn sub_assign(&mut self, rhs: Vector2<B>) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
     }
 }
 
@@ -364,6 +384,17 @@ where
     }
 }
 
+impl<A, B> AddAssign<Vector3<B>> for Point3<A>
+where
+    A: AddAssign<B>,
+{
+    fn add_assign(&mut self, rhs: Vector3<B>) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
+    }
+}
+
 impl<A, B> Sub<Vector3<B>> for Point3<A>
 where
     A: Sub<B>,
@@ -376,6 +407,17 @@ where
             y: self.y - rhs.y,
             z: self.z - rhs.z,
         }
+    }
+}
+
+impl<A, B> SubAssign<Vector3<B>> for Point3<A>
+where
+    A: SubAssign<B>,
+{
+    fn sub_assign(&mut self, rhs: Vector3<B>) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+        self.z -= rhs.z;
     }
 }
 
@@ -603,6 +645,18 @@ where
     }
 }
 
+impl<A, B> AddAssign<Vector4<B>> for Point4<A>
+where
+    A: AddAssign<B>,
+{
+    fn add_assign(&mut self, rhs: Vector4<B>) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
+        self.w += rhs.w;
+    }
+}
+
 impl<A, B> Sub<Vector4<B>> for Point4<A>
 where
     A: Sub<B>,
@@ -616,6 +670,18 @@ where
             z: self.z - rhs.z,
             w: self.w - rhs.w,
         }
+    }
+}
+
+impl<A, B> SubAssign<Vector4<B>> for Point4<A>
+where
+    A: SubAssign<B>,
+{
+    fn sub_assign(&mut self, rhs: Vector4<B>) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+        self.z -= rhs.z;
+        self.w -= rhs.w;
     }
 }
 
