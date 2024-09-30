@@ -2,28 +2,6 @@
 
 use super::*;
 
-/*
-macro_rules! apply {
-    ( $s:ident, $fun:ident, $x:ident ) => {
-        $s.$x
-    };
-
-    ( $s:ident, $fun:ident, $x:ident, $( $field:ident ),+ ) => {
-        $fun( $s.$x, apply!( $s, $fun, $( $field ),+ ) )
-    }
-}
-*/
-
-macro_rules! count {
-    ( $x:ident ) => {
-        1
-    };
-
-    ( $x1:ident, $( $xn:ident ),* ) => {
-        1 + count!($( $xn ),*)
-    }
-}
-
 macro_rules! field_to_index {
     ( x ) => {
         0
@@ -46,7 +24,7 @@ use approx::AbsDiffEq;
 use approx::{RelativeEq, UlpsEq};
 
 macro_rules! implement_vector {
-    ( $name:ident, x, $( $field:ident ),+ ) => {
+    ( $name:ident, $size:literal, x, $( $field:ident ),+ ) => {
         impl<T> Zero for $name<T>
         where
             T: Zero,
@@ -78,7 +56,7 @@ macro_rules! implement_vector {
 
         impl<T> IntoIterator for $name<T> {
             type Item = T;
-            type IntoIter = std::array::IntoIter<T, { count!(x, $( $field ),+) }>;
+            type IntoIter = std::array::IntoIter<T, $size>;
 
             fn into_iter(self) -> Self::IntoIter {
                  [ self.x, $( self.$field ),+ ].into_iter()
@@ -91,7 +69,7 @@ macro_rules! implement_vector {
             }
 
             /// Transpose the vector into a [ColumnVector]
-            pub fn transpose(self) -> ColumnVector<T, { count!(x, $( $field ),+) }> {
+            pub fn transpose(self) -> ColumnVector<T, $size> {
                 Matrix([[self.x, $(self.$field,)+]])
             }
 
@@ -244,14 +222,14 @@ macro_rules! implement_vector {
         }
 
         #[allow(clippy::suspicious_arithmetic_impl)]
-        impl<A> Mul<SquareMatrix<A, { count!(x, $($field),+) }>> for $name<A>
+        impl<A> Mul<SquareMatrix<A, $size>> for $name<A>
         where
             A: Mul,
-            SquareMatrix<A, { count!(x, $($field),+) }>: Mul<Matrix<A, { count!(x, $($field),+) }, 1>, Output = ColumnVector<A::Output, { count!(x, $($field),+) }>> + Clone,
+            SquareMatrix<A, $size>: Mul<Matrix<A, $size, 1>, Output = ColumnVector<A::Output, $size>>,
         {
             type Output = $name<A::Output>;
 
-            fn mul(self, rhs: SquareMatrix<A, { count!(x, $($field),+) }>) -> Self::Output {
+            fn mul(self, rhs: SquareMatrix<A, $size>) -> Self::Output {
                 let Matrix([[x, $($field),+]]) = rhs * self.transpose();
                 $name { x, $($field),+ }
             }
@@ -437,7 +415,7 @@ where
     }
 }
 
-implement_vector!(Vector2, x, y);
+implement_vector!(Vector2, 2, x, y);
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -502,7 +480,7 @@ where
     }
 }
 
-implement_vector!(Vector3, x, y, z);
+implement_vector!(Vector3, 3, x, y, z);
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -551,4 +529,4 @@ where
     }
 }
 
-implement_vector!(Vector4, x, y, z, w);
+implement_vector!(Vector4, 4, x, y, z, w);
