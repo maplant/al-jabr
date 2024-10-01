@@ -99,9 +99,6 @@
 //! Points can be freely converted to and from vectors via `from_vec`
 //! and `to_vec`.
 //!
-//! Additionally, the vector between two points can be computed by subtracting
-//! two points:
-//!
 //! ```rust
 //! # use al_jabr::*;
 //! let a = Point3::new(5, 4, 3);
