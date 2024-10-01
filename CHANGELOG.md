@@ -8,33 +8,35 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 These changes are included in `master` but have not been released in a new crate version yet.
 
 ## [v0.6.0]
-- Rename `Vector{N}` to `ColumnVector{N}`.
-- Add `Vector2`, `Vector3` and `Vector4` structs to improve ergonomics while dealing with smaller
+- Added `Vector2`, `Vector3` and `Vector4` structs to improve ergonomics while dealing with smaller
   vector types.
-- Make `Point` types be struct based rather than array based to reflect the change in vectors.
+- Added `Rotation2` and `Rotation3` traits for rotating small vectors and points.
+- Changed `Vector{N}` to `ColumnVector{N}`.
+- Changed `Point` types be struct based rather than array based to reflect the change in vectors.
+- Changed `Rotation` to `RotationN`
 
 ## [v0.5.6]
-- Add some missing derives to `Euler` and `Unit`.
+- Added some missing derives to `Euler` and `Unit`.
 
 ## [v0.5.5]
-- Add `to_scale_rotation_translation` function to Matrix4.
-- Add `From<Orthonormal<T, 3>>` for `Quaternion<T>`.
-- Add `new` function to `Orthonormal`.
-- Add `signum` function to `Real`.
+- Added `to_scale_rotation_translation` function to Matrix4.
+- Added `From<Orthonormal<T, 3>>` for `Quaternion<T>`.
+- Added `new` function to `Orthonormal`.
+- Added `signum` function to `Real`.
 
 ## [v0.5.4]
 - Fix affine matrix construction.
 
 ## [v0.5.3]
 
-- Add `from_rotation` constructor for `Matrix3` and `Matrix4`.
+- Added `from_rotation` constructor for `Matrix3` and `Matrix4`.
 - Derive `serde::Serialize` and `serde::Serialize` and for `Unit` when `T` supports it.
 
 ## [v0.5.2]
 
-- Add `Vector1` and `Point1`
-- Add `from_vec1`, `from_vec2`, and `from_vec3` constructors to extend vectors.
-- Add `from_point1`, `from_point1`, and `from_point1`, constructors to extend points.
+- Added `Vector1` and `Point1`
+- Added `from_vec1`, `from_vec2`, and `from_vec3` constructors to extend vectors.
+- Added `from_point1`, `from_point1`, and `from_point1`, constructors to extend points.
 - Make `Unit` `Copy` and `Clone` dependent on `T`.
 
 ## [v0.5.1]
@@ -43,10 +45,10 @@ These changes are included in `master` but have not been released in a new crate
 
 ## [v0.5.0]
 
-- Add `asin` and `acos` methods to `Real`.
-- Add `Unit` struct to enforce normalized objects.
-- Add `nlerp` and `slerp` method to `Unit`.
-- Add `lerp` method to `Matrix`.
+- Added `asin` and `acos` methods to `Real`.
+- Added `Unit` struct to enforce normalized objects.
+- Added `nlerp` and `slerp` method to `Unit`.
+- Added `lerp` method to `Matrix`.
 
 ## [v0.4.1] 
 
@@ -64,7 +66,7 @@ These changes are included in `master` but have not been released in a new crate
 
 ## [v1.0.2] - 2020-10-26
 
-- Add `const_evaluatable_checked` unstable feature to allow for `truncate` and `extend` methods to be used.
+- Added `const_evaluatable_checked` unstable feature to allow for `truncate` and `extend` methods to be used.
 
 ## [v1.0.1] - 2020-07-19
 
@@ -74,23 +76,23 @@ These changes are included in `master` but have not been released in a new crate
 ## [v1.0.0] - 2020-05-29
 
 - Rename `trunc` method `truncate`.
-- Add `extend`, `max`, `argmax`, `min`, and `argmin` to `Vector`.
-- Add `column_iter`, `column_iter_mut`, `row_iter`, `row_iter_mut` to `Matrix`.
-- Add `LU` matrix.
-- Add complete `inverse`, `determinant` and `lu` methods to `Matrix`.
+- Added `extend`, `max`, `argmax`, `min`, and `argmin` to `Vector`.
+- Added `column_iter`, `column_iter_mut`, `row_iter`, `row_iter_mut` to `Matrix`.
+- Added `LU` matrix.
+- Added complete `inverse`, `determinant` and `lu` methods to `Matrix`.
 - Remove `Angle` trait.
 - Remove `SquareMatrix` trait. 
 - Reorganize `Matrix` type aliases. 
 
 ## [v0.5.0] - 2020-04-25
 
-- Add `trunc` method to `Vector`, now that rust supports it. 
+- Added `trunc` method to `Vector`, now that rust supports it. 
 - Remove deprecation from `TruncatedVector`. 
 
 ## [v0.4.2] - 2019-12-07
 
-- Add support for the `mint` crate.
-- Add `IntoIterator` implementations for `Vector`, `Matrix` and `Point`.
+- Added support for the `mint` crate.
+- Added `IntoIterator` implementations for `Vector`, `Matrix` and `Point`.
 
 ## [v0.4.1] - 2019-09-20
 
@@ -98,10 +100,10 @@ These changes are included in `master` but have not been released in a new crate
 
 ## [v0.4.0] - 2019-09-20
 
-- Add `FromIterator` implementation for `Vector` and `Matrix`.
+- Added `FromIterator` implementation for `Vector` and `Matrix`.
 - Remove redundant `SquareMatrix` requirement from  `Matrix` impl of `One`.
 - Implement `invert`  for Matrices up to dimension of 2.
-- Add `One`, `Div<Self, Output = Self>` and `Neg<Output = Self>` constraints 
+- Added `One`, `Div<Self, Output = Self>` and `Neg<Output = Self>` constraints 
   to `SquareMatrix::Scalar`.
 
 ## [v0.3.2] - 2019-08-29
@@ -116,14 +118,14 @@ These changes are included in `master` but have not been released in a new crate
 
 ## [v0.3.0] - 2019-07-28
 
-- Add `vector!` and `matrix!` macros, deprecate other construction methods.
-- Add `Point` type.
-- Add `map` method to `Vector` and `Matrix`.
+- Added `vector!` and `matrix!` macros, deprecate other construction methods.
+- Added `Point` type.
+- Added `map` method to `Vector` and `Matrix`.
 - Implement `Distribution<Vector<_, _>>` and `Distribution<Matrix<_, _, _>>` for
   rand `Standard`.
 - Implement serde `Serialize` and `Deserialize` for all data structures.
-- Add `Rotation<DIMS>` trait to describe values that can rotate vectors of size `DIMS`.
-- Add `Angle` trait to describe values with a `sin` and `cos` defined. 
-- Add `Euler` struct to describe rotations in three dimensions via three components. 
-- Add `Orthonormal` struct for rotation matrices. 
+- Added `Rotation<DIMS>` trait to describe values that can rotate vectors of size `DIMS`.
+- Added `Angle` trait to describe values with a `sin` and `cos` defined. 
+- Added `Euler` struct to describe rotations in three dimensions via three components. 
+- Added `Orthonormal` struct for rotation matrices. 
 
