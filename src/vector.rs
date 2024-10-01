@@ -1,4 +1,4 @@
-//! Convenient structs for common Vector dimensions (2, 3, and 4)
+//! Convenient structs for common Vector dimensions (1, 2, 3, and 4)
 
 use super::*;
 
@@ -24,7 +24,7 @@ use approx::AbsDiffEq;
 use approx::{RelativeEq, UlpsEq};
 
 macro_rules! implement_vector {
-    ( $name:ident, $size:literal, x, $( $field:ident ),+ ) => {
+    ( $name:ident, $size:literal, x $(, $field:ident )* ) => {
         impl<T> Zero for $name<T>
         where
             T: Zero,
@@ -32,25 +32,35 @@ macro_rules! implement_vector {
             fn zero() -> Self {
                 Self {
                     x: T::zero(),
-                    $( $field: T::zero(), )+
+                    $( $field: T::zero(), )*
                 }
             }
 
             /// Returns true if the value is the additive identity.
             fn is_zero(&self) -> bool {
-                self.x.is_zero() $( && self.$field.is_zero() )+
+                self.x.is_zero() $( && self.$field.is_zero() )*
+            }
+        }
+
+        impl<T> From<[T; $size]> for $name<T> {
+            fn from(arr: [T; $size]) -> Self {
+                let [ x, $( $field, )* ] = arr;
+                Self {
+                    x,
+                    $( $field, )*
+                }
             }
         }
 
         impl<T> $name<T> {
             /// Iterate over the components of the vector
             pub fn iter(&self) -> impl Iterator<Item = &T>  {
-                [ &self.x, $( &self.$field ),+ ].into_iter()
+                [ &self.x, $( &self.$field ),* ].into_iter()
             }
 
             /// Mutably iterate over the components of the vector
             pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T>  {
-                [ &mut self.x, $( &mut self.$field ),+ ].into_iter()
+                [ &mut self.x, $( &mut self.$field ),* ].into_iter()
             }
         }
 
@@ -59,24 +69,35 @@ macro_rules! implement_vector {
             type IntoIter = std::array::IntoIter<T, $size>;
 
             fn into_iter(self) -> Self::IntoIter {
-                 [ self.x, $( self.$field ),+ ].into_iter()
+                 [ self.x, $( self.$field ),* ].into_iter()
             }
         }
 
         impl<T> $name<T> {
-            pub const fn new(x: T, $($field: T,)+) -> Self {
-                Self { x, $($field,)+ }
+            /// Construct a new Vector
+            pub const fn new(x: T, $($field: T,)*) -> Self {
+                Self { x, $($field,)* }
             }
 
             /// Transpose the vector into a [ColumnVector]
             pub fn transpose(self) -> ColumnVector<T, $size> {
-                Matrix([[self.x, $(self.$field,)+]])
+                Matrix([[self.x, $(self.$field,)*]])
             }
 
+            /// Construct a new vector by mapping the components of the old vector.
             pub fn map<O>(self, mut f: impl FnMut(T) -> O) -> $name<O> {
                 $name {
                     x: f(self.x),
-                    $( $field: f(self.$field), )+
+                    $( $field: f(self.$field), )*
+                }
+            }
+
+            /// Construct a vector where each element is the pair of the components
+            /// of the two vectors.
+            pub fn zip<B>(self, v2: $name<B>) -> $name<(T, B)> {
+                $name {
+                    x: (self.x, v2.x),
+                    $( $field: (self.$field, v2.$field), )*
                 }
             }
         }
@@ -87,6 +108,7 @@ macro_rules! implement_vector {
         {
             /// Return the largest value found in the vector, along with the associated index. If there is
             /// no largest value returns the x component.
+            #[allow(unused_mut)]
             pub fn argmax(&self) -> (usize, T) {
                 let mut i_max = 0;
                 let mut v_max = self.x.clone();
@@ -95,23 +117,25 @@ macro_rules! implement_vector {
                         i_max = field_to_index!($field);
                         v_max = self.$field.clone();
                     }
-                )+
+                )*
                 (i_max, v_max)
             }
 
             /// Return the largest value in the vector. If there is no largest value, returns the x component.
+            #[allow(unused_mut)]
             pub fn max(&self) -> T {
                 let mut v_max = self.x.clone();
                 $(
                     if self.$field > v_max {
                         v_max = self.$field.clone();
                     }
-                )+
+                )*
                 v_max
             }
 
             /// Return the smallest value found in the vector, along with the associated index. If there is
-            /// no smallest value returns the x component..
+            /// no smallest value returns the x component.
+            #[allow(unused_mut)]
             pub fn argmin(&self) -> (usize, T) {
                 let mut i_max = 0;
                 let mut v_max = self.x.clone();
@@ -120,19 +144,20 @@ macro_rules! implement_vector {
                         i_max = field_to_index!($field);
                         v_max = self.$field.clone();
                     }
-                )+
+                )*
                 (i_max, v_max)
             }
 
             /// Return the smallest value in the vector. If there is no smallest value, returns the x
             /// component.
+            #[allow(unused_mut)]
             pub fn min(&self) -> T {
                 let mut v_max = self.x.clone();
                 $(
                     if self.$field > v_max {
                         v_max = self.$field.clone();
                     }
-                )+
+                )*
                 v_max
             }
         }
@@ -143,7 +168,7 @@ macro_rules! implement_vector {
             fn index(&self, index: usize) -> &T {
                 match index {
                     0 => &self.x,
-                    $( field_to_index!($field) => &self.$field, )+
+                    $( field_to_index!($field) => &self.$field, )*
                         _ => panic!("Out of range"),
                 }
             }
@@ -153,7 +178,7 @@ macro_rules! implement_vector {
             fn index_mut(&mut self, index: usize) -> &mut T {
                 match index {
                     0 => &mut self.x,
-                    $( field_to_index!($field) => &mut self.$field, )+
+                    $( field_to_index!($field) => &mut self.$field, )*
                         _ => panic!("Out of range"),
                 }
             }
@@ -168,7 +193,7 @@ macro_rules! implement_vector {
             fn neg(self) -> Self::Output {
                 $name {
                     x: -self.x,
-                    $( $field: -self.$field, )+
+                    $( $field: -self.$field, )*
                 }
             }
         }
@@ -182,7 +207,7 @@ macro_rules! implement_vector {
             fn add(self, rhs: $name<B>) -> $name<A::Output> {
                 $name {
                     x: self.x + rhs.x,
-                    $( $field: self.$field + rhs.$field, )+
+                    $( $field: self.$field + rhs.$field, )*
                 }
             }
         }
@@ -193,7 +218,7 @@ macro_rules! implement_vector {
         {
             fn add_assign(&mut self, rhs: $name<B>) {
                 self.x += rhs.x;
-                $( self.$field += rhs.$field; )+
+                $( self.$field += rhs.$field; )*
             }
         }
 
@@ -206,7 +231,7 @@ macro_rules! implement_vector {
             fn sub(self, rhs: $name<B>) -> $name<A::Output> {
                 $name {
                     x: self.x - rhs.x,
-                    $( $field: self.$field - rhs.$field, )+
+                    $( $field: self.$field - rhs.$field, )*
                 }
             }
         }
@@ -217,7 +242,7 @@ macro_rules! implement_vector {
         {
             fn sub_assign(&mut self, rhs: $name<B>) {
                 self.x -= rhs.x;
-                $( self.$field -= rhs.$field; )+
+                $( self.$field -= rhs.$field; )*
             }
         }
 
@@ -230,8 +255,8 @@ macro_rules! implement_vector {
             type Output = $name<A::Output>;
 
             fn mul(self, rhs: SquareMatrix<A, $size>) -> Self::Output {
-                let Matrix([[x, $($field),+]]) = rhs * self.transpose();
-                $name { x, $($field),+ }
+                let Matrix([[x, $($field),*]]) = rhs * self.transpose();
+                $name { x, $($field),* }
             }
         }
 
@@ -243,7 +268,7 @@ macro_rules! implement_vector {
 
             fn mul(self, rhs: A) -> $name<A::Output> {
                 $name {
-                    $( $field: self.$field * rhs.clone(), )+
+                    $( $field: self.$field * rhs.clone(), )*
                         x: self.x * rhs
                 }
             }
@@ -255,7 +280,7 @@ macro_rules! implement_vector {
             B: Clone,
         {
             fn mul_assign(&mut self, rhs: B) {
-                $( self.$field *= rhs.clone(); )+
+                $( self.$field *= rhs.clone(); )*
                     self.x *= rhs;
             }
         }
@@ -269,7 +294,7 @@ macro_rules! implement_vector {
 
             fn div(self, rhs: B) -> $name<A::Output> {
                 $name {
-                    $( $field: self.$field / rhs.clone(), )+
+                    $( $field: self.$field / rhs.clone(), )*
                     x: self.x / rhs
                 }
             }
@@ -281,7 +306,7 @@ macro_rules! implement_vector {
             B: Clone,
         {
             fn div_assign(&mut self, rhs: B) {
-                $( self.$field /= rhs.clone(); )+
+                $( self.$field /= rhs.clone(); )*
                     self.x /= rhs;
             }
         }
@@ -312,8 +337,7 @@ macro_rules! implement_vector {
             T: Add<T, Output = T> + Sub<T, Output = T> + Mul<T, Output = T> + Div<T, Output = T>,
         {
             fn dot(self, rhs: Self) -> T {
-                self.x * rhs.x $( + self.$field * rhs.$field )+
-                // self.x * rhs.x + self.y * rhs.y + self.z * rhs.z + self.w * rhs.w
+                self.x * rhs.x $( + self.$field * rhs.$field )*
             }
         }
 
@@ -330,7 +354,7 @@ macro_rules! implement_vector {
 
             fn abs_diff_eq(&self, other: &Self, epsilon: T::Epsilon) -> bool {
                 self.x.abs_diff_eq(&other.x, epsilon)
-                    $( && self.$field.abs_diff_eq(&other.$field, epsilon) )+
+                    $( && self.$field.abs_diff_eq(&other.$field, epsilon) )*
             }
         }
 
@@ -347,7 +371,7 @@ macro_rules! implement_vector {
 
             fn relative_eq(&self, other: &Self, epsilon: T::Epsilon, max_relative: T::Epsilon) -> bool {
                 self.x.relative_eq(&other.x, epsilon, max_relative)
-                    $( && self.$field.relative_eq(&other.$field, epsilon, max_relative) )+
+                    $( && self.$field.relative_eq(&other.$field, epsilon, max_relative) )*
             }
         }
 
@@ -363,7 +387,7 @@ macro_rules! implement_vector {
 
             fn ulps_eq(&self, other: &Self, epsilon: T::Epsilon, max_ulps: u32) -> bool {
                 self.x.ulps_eq(&other.x, epsilon, max_ulps)
-                    $( && self.$field.ulps_eq(&other.$field, epsilon, max_ulps) )+
+                    $( && self.$field.ulps_eq(&other.$field, epsilon, max_ulps) )*
             }
         }
 
@@ -375,12 +399,23 @@ macro_rules! implement_vector {
             fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> $name<T> {
                 $name {
                     x: self.sample(rng),
-                    $( $field: self.sample(rng), )+
+                    $( $field: self.sample(rng), )*
                 }
             }
         }
     }
 }
+
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[repr(C)]
+/// A vector in 1-dimensional space.
+pub struct Vector1<S> {
+    /// The x component of the vector.
+    pub x: S,
+}
+
+implement_vector!(Vector1, 1, x);
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -391,13 +426,6 @@ pub struct Vector2<S> {
     pub x: S,
     /// The y component of the vector.
     pub y: S,
-}
-
-impl<T> From<[T; 2]> for Vector2<T> {
-    fn from(arr: [T; 2]) -> Self {
-        let [x, y] = arr;
-        Self { x, y }
-    }
 }
 
 impl<T> Vector2<T>
@@ -453,13 +481,6 @@ where
     }
 }
 
-impl<T> From<[T; 3]> for Vector3<T> {
-    fn from(arr: [T; 3]) -> Self {
-        let [x, y, z] = arr;
-        Self { x, y, z }
-    }
-}
-
 impl<T> Vector3<T>
 where
     T: One + Zero,
@@ -497,13 +518,6 @@ pub struct Vector4<S> {
     pub w: S,
 }
 
-impl<T> From<[T; 4]> for Vector4<T> {
-    fn from(arr: [T; 4]) -> Self {
-        let [x, y, z, w] = arr;
-        Self { x, y, z, w }
-    }
-}
-
 impl<T> Vector4<T>
 where
     T: One + Zero,
@@ -530,3 +544,115 @@ where
 }
 
 implement_vector!(Vector4, 4, x, y, z, w);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_zero() {
+        assert_eq!(Vector1::<u32>::zero(), Vector1::new(0));
+        assert_eq!(Vector2::<u32>::zero(), Vector2::new(0, 0));
+        assert_eq!(Vector3::<u32>::zero(), Vector3::new(0, 0, 0));
+        assert_eq!(Vector4::<u32>::zero(), Vector4::new(0, 0, 0, 0));
+    }
+
+    #[test]
+    fn test_index() {
+        let a = Vector1::new(0_u32);
+        assert_eq!(a.x, 0_u32);
+        let b = Vector2::new(1_u32, 2);
+        assert_eq!(b.x, 1);
+        assert_eq!(b.y, 2);
+    }
+
+    #[test]
+    fn test_eq() {
+        let a = Vector3::new(0_u32, 1, 2);
+        let b = Vector3::new(1_u32, 2, 3);
+        let c = Vector3::new(0_u32, 1, 2);
+        assert_ne!(a, b);
+        assert_eq!(a, c);
+    }
+
+    #[test]
+    fn test_addition() {
+        let a = Vector1::new(0_u32);
+        let b = Vector1::new(1_u32);
+        let c = Vector1::new(2_u32);
+        assert_eq!(a + b, b);
+        assert_eq!(b + b, c);
+        let a = Vector2::new(0_u32, 1);
+        let b = Vector2::new(1_u32, 2);
+        let c = Vector2::new(1_u32, 3);
+        let d = Vector2::new(2_u32, 5);
+        assert_eq!(a + b, c);
+        assert_eq!(b + c, d);
+        let mut c = Vector2::new(1_u32, 3);
+        let d = Vector2::new(2_u32, 5);
+        c += d;
+        let e = Vector2::new(3_u32, 8);
+        assert_eq!(c, e);
+    }
+
+    #[test]
+    fn test_subtraction() {
+        let mut a = Vector2::new(3_u32, 4);
+        let b = Vector2::new(1, 2);
+        let c = Vector2::new(2, 2);
+        assert_eq!(a - c, b);
+        a -= b;
+        assert_eq!(a, c);
+    }
+
+    #[test]
+    fn test_negation() {
+        let a = Vector4::new(1_i32, 2, 3, 4);
+        let b = Vector4::new(-1_i32, -2, -3, -4);
+        assert_eq!(-a, b);
+    }
+
+    #[test]
+    fn test_scale() {
+        let a = Vector4::new(2.0_f32, 4.0, 2.0, 4.0);
+        let b = Vector4::new(4.0_f32, 8.0, 4.0, 8.0);
+        let c = Vector4::new(1.0_f32, 2.0, 1.0, 2.0);
+        assert_eq!(a * 2.0, b);
+        assert_eq!(a / 2.0, c);
+    }
+
+    #[test]
+    fn test_cross() {
+        let a = Vector3::new(1isize, 2isize, 3isize);
+        let b = Vector3::new(4isize, 5isize, 6isize);
+        let r = Vector3::new(-3isize, 6isize, -3isize);
+        assert_eq!(a.cross(b), r);
+    }
+
+    #[test]
+    fn test_distance() {
+        let a = Vector1::new(0.0_f32);
+        let b = Vector1::new(1.0_f32);
+        assert_eq!(a.distance2(b), 1.0);
+        let a = Vector1::new(0.0_f32);
+        let b = Vector1::new(2.0_f32);
+        assert_eq!(a.distance2(b), 4.0);
+        assert_eq!(a.distance(b), 2.0);
+        let a = Vector2::new(0.0_f32, 0.0);
+        let b = Vector2::new(1.0_f32, 1.0);
+        assert_eq!(a.distance2(b), 2.0);
+
+        let a = Vector2::new(1i32, 1);
+        let b = Vector2::new(5i32, 5);
+        assert_eq!(a.distance2(b), 32); // distance method not implemented.
+        assert_eq!((b - a).magnitude2(), 32);
+    }
+
+    #[test]
+    fn test_normalize() {
+        let a = Vector1::new(5.0);
+        assert_eq!(a.magnitude(), 5.0);
+        let a_norm = a.normalize();
+        assert_eq!(a_norm, Vector1::new(1.0));
+    }
+}

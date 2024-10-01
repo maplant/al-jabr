@@ -28,22 +28,29 @@
 //!
 //! After that, you can begin using `al_jabr`.
 //!
-//! ### Vector
+//! ### Vectors
 //!
-//! Small (N = 2, 3, 4) vectors as well as an N-dimensional [ColumnVector] are
+//! Small (N = 1, 2, 3, 4) vectors as well as an N-dimensional [ColumnVector] are
 //! provided. Unless you have a need for larger vectors, it is recommended to use
-//! [Vector2], [Vector3] or [Vector4].
+//! [Vector1], [Vector2], [Vector3] or [Vector4].
 //!
-//! [Add], [Sub], and [Neg] will be properly implemented for any `ColumnVector<Scalar,
-//! N>` for any respective implementation of such operations for `Scalar`.
-//! Operations are only implemented for vectors of equal sizes.
+//! [Add], [Sub], and [Neg] will be properly implemented for any `Vector` and
+//! `ColumnVector<Scalar, N>` for any respective implementation of such operations
+//! for `Scalar`. Operations are only implemented for vectors of equal sizes.
 //!
 //! ```
 //! # use al_jabr::*;
-//! let b = column_vector![ 0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, ];
-//! let c = column_vector![ 1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, ] * 0.5;
+//! let a = Vector4::new(0.0f32, 1.0, 2.0, 3.0);
+//! let b = Vector4::new(1.0f32, 1.0, 1.0, 1.0);
 //! assert_eq!(
-//!     b + c,
+//!     a + b,
+//!     Vector4::new(1.0, 2.0, 3.0, 4.0),
+//! );
+//!
+//! let d = column_vector![ 0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, ];
+//! let e = column_vector![ 1.0f32, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, ] * 0.5;
+//! assert_eq!(
+//!     d + e,
 //!     column_vector![ 0.5f32, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5 ]
 //! );
 //! ```
@@ -76,7 +83,33 @@
 //! );
 //! ```
 //!
-//! ### Matrix
+//! ### Points
+//!
+//! Small (N = 1, 2, 3, 4) points in space are provided.
+//!
+//! Points are far less flexible and useful than vectors and are used
+//! to express the purpose or meaning of a variable through its type.
+//!
+//! Points can be moved through space by adding or subtracting Vectors from
+//! them.
+//!
+//! The only mathematical operator supported between two points is
+//! subtraction, which results in the vector between the two points.
+//!
+//! Points can be freely converted to and from vectors via `from_vec`
+//! and `to_vec`.
+//!
+//! Additionally, the vector between two points can be computed by subtracting
+//! two points:
+//!
+//! ```rust
+//! # use al_jabr::*;
+//! let a = Point3::new(5, 4, 3);
+//! let b = Point3::new(1, 1, 1);
+//! assert_eq!(a - b, Vector3::new(4, 3, 2));
+//! ```
+//!
+//! ### Matrices
 //!
 //! [Matrices](Matrix) can be created from an array of arrays of any size
 //! and scalar type. Matrices are column-major and constructing a matrix from a
@@ -85,17 +118,21 @@
 //!
 //! ```
 //! # use al_jabr::*;
-//! let a = Matrix::<f32, 3, 3>::from([
-//!     [1.0, 0.0, 0.0],
-//!     [0.0, 1.0, 0.0],
-//!     [0.0, 0.0, 1.0],
+//! // Construct in column-major order:
+//! let a = Matrix::<i32, 3, 3>::from([
+//!     [  0,  6,  2 ],
+//!     [ -3,  1,  3 ],
+//!     [  5, -4, -2 ],
 //! ]);
 //!
+//! // Construct in row-major order:
 //! let b: Matrix::<i32, 3, 3> = matrix![
 //!     [ 0, -3, 5 ],
 //!     [ 6, 1, -4 ],
 //!     [ 2, 3, -2 ]
 //! ];
+//!
+//! assert_eq!(a, b);
 //! ```
 //!
 //! All operations performed on matrices produce fixed-size outputs. For
@@ -186,11 +223,6 @@ use serde::{
     ser::SerializeTuple,
     Deserialize, Deserializer, Serialize, Serializer,
 };
-
-#[cfg(any(feature = "approx", test))]
-use approx::AbsDiffEq;
-#[cfg(feature = "approx")]
-use approx::{RelativeEq, UlpsEq};
 
 mod array;
 mod column_vector;
