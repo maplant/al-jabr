@@ -9,7 +9,7 @@
 //
 //! A generic linear algebra library for computer graphics.
 //!
-//! `al_jabr` is roughly compatibly with [cgmath](https://github.com/rustgd/cgmath)
+//! `al_jabr` is roughly compatible with [cgmath](https://github.com/rustgd/cgmath)
 //! and is intended to provide a small set of lightweight linear algebra
 //! operations typically useful in interactive computer graphics.
 //!
