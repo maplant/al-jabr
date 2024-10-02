@@ -14,79 +14,74 @@ use super::*;
 ///     ColumnVector::<u32, 4>::from([ 0u32, 1, 2, 3 ])
 /// );
 /// ```
-#[cfg_attr(
-    feature = "swizzle",
-    doc = r##"
-# Swizzling
-[Swizzling](https://en.wikipedia.org/wiki/Swizzling_(computer_graphics))
-is supported for up to four elements. Swizzling is a technique for easily
-rearranging and accessing elements of a vector, used commonly in graphics
-shader programming. Swizzling is available on vectors whose element type
-implements `Clone`.
-Single-element accessors return the element itself. Multi-element accessors
-return vectors of the appropriate size.
-## Element names
-Only the first four elements of a vector may be swizzled. If you have vectors
-larger than length four and want to manipulate their elements, you must do so
-manually.
-Because swizzling is often used in compute graphics contexts when dealing with
-colors, both 'xyzw' and 'rgba' element names are available.
-
-| Element Index | xyzw Name | rgba Name |
-|---------------|-----------|-----------|
-| 0             | x         | r         |
-| 1             | y         | g         |
-| 2             | z         | b         |
-| 3             | w         | a         |
-
-## Restrictions
-It is a runtime error to attempt to access an element beyond the bounds of a vector.
-For example, `vec2(1i32, 2).z()` will panic because `z()` is only available on vectors
-of length 3 or greater. Previously, this was a compilation error. However, for newer
-versions of rustc this is no longer always the case.
-```should_panic
-# use al_jabr::*;
-let z = column_vector!(1i32, 2).z(); // Will panic.
-```
-### Mixing
-zle methods are not implemented for mixed xyzw/rgba methods.
-```
-# use al_jabr::*;
-let v = column_vector!(1i32, 2, 3, 4);
-let xy = v.xy(); // OK, only uses xyzw names.
-let ba = v.ba(); // OK, only uses rgba names.
-assert_eq!(xy, column_vector!(1i32, 2));
-assert_eq!(ba, column_vector!(3i32, 4));
-```
-```compile_fail
-# use al_jabr::*;
-let v = column_vector!(1i32, 2, 3, 4);
-let bad = v.xyrg(); // Compile error, mixes xyzw and rgba names.
-```
-## Examples
-To get the first two elements of a 4-vector.
-```
-# use al_jabr::*;
-let v = column_vector!(1i32, 2, 3, 4).xy();
-```
-To get the first and last element of a 4-vector.
-```
-# use al_jabr::*;
-let v = column_vector!(1i32, 2, 3, 4).xw();
-```
-To reverse the order of a 3-vector.
-```
-# use al_jabr::*;
-let v = column_vector!(1i32, 2, 3).zyx();
-```
-To select the first and third elements into the second and fourth elements,
-respectively.
-```
-# use al_jabr::*;
-let v = column_vector!(1i32, 2, 3, 4).xxzz();
-```
-"##
-)]
+/// # Swizzling
+/// [Swizzling](https://en.wikipedia.org/wiki/Swizzling_(computer_graphics))
+/// is supported for up to four elements. Swizzling is a technique for easily
+/// rearranging and accessing elements of a vector, used commonly in graphics
+/// shader programming. Swizzling is available on vectors whose element type
+/// implements `Clone`.
+/// Single-element accessors return the element itself. Multi-element accessors
+/// return vectors of the appropriate size.
+/// ## Element names
+/// Only the first four elements of a vector may be swizzled. If you have vectors
+/// larger than length four and want to manipulate their elements, you must do so
+/// manually.
+/// Because swizzling is often used in compute graphics contexts when dealing with
+/// colors, both 'xyzw' and 'rgba' element names are available.
+///
+/// | Element Index | xyzw Name | rgba Name |
+/// |---------------|-----------|-----------|
+/// | 0             | x         | r         |
+/// | 1             | y         | g         |
+/// | 2             | z         | b         |
+/// | 3             | w         | a         |
+///
+/// ## Restrictions
+/// It is a runtime error to attempt to access an element beyond the bounds of a vector.
+/// For example, `vec2(1i32, 2).z()` will panic because `z()` is only available on vectors
+/// of length 3 or greater. Previously, this was a compilation error. However, for newer
+/// versions of rustc this is no longer always the case.
+/// ```should_panic
+/// # use al_jabr::*;
+/// let z = column_vector!(1i32, 2).z(); // Will panic.
+/// ```
+/// ### Mixing
+/// swizzle methods are not implemented for mixed xyzw/rgba methods.
+/// ```
+/// # use al_jabr::*;
+/// let v = column_vector!(1i32, 2, 3, 4);
+/// let xy = v.xy(); // OK, only uses xyzw names.
+/// let ba = v.ba(); // OK, only uses rgba names.
+/// assert_eq!(xy, column_vector!(1i32, 2));
+/// assert_eq!(ba, column_vector!(3i32, 4));
+/// ```
+/// ```compile_fail
+/// # use al_jabr::*;
+/// let v = column_vector!(1i32, 2, 3, 4);
+/// let bad = v.xyrg(); // Compile error, mixes xyzw and rgba names.
+/// ```
+/// ## Examples
+/// To get the first two elements of a 4-vector.
+/// ```
+/// # use al_jabr::*;
+/// let v = column_vector!(1i32, 2, 3, 4).xy();
+/// ```
+/// To get the first and last element of a 4-vector.
+/// ```
+/// # use al_jabr::*;
+/// let v = column_vector!(1i32, 2, 3, 4).xw();
+/// ```
+/// To reverse the order of a 3-vector.
+/// ```
+/// # use al_jabr::*;
+/// let v = column_vector!(1i32, 2, 3).zyx();
+/// ```
+/// To select the first and third elements into the second and fourth elements,
+/// respectively.
+/// ```
+/// # use al_jabr::*;
+/// let v = column_vector!(1i32, 2, 3, 4).xxzz();
+/// ```
 pub type ColumnVector<T, const N: usize> = Matrix<T, N, 1>;
 
 impl<T> ColumnVector<T, 1>
@@ -507,7 +502,6 @@ impl<T, const N: usize> ColumnVector<T, N> {
 }
 
 // Generates all the 2, 3, and 4-level swizzle functions.
-#[cfg(feature = "swizzle")]
 macro_rules! swizzle {
     // First level. Doesn't generate any functions itself because the one-letter functions
     // are manually provided in the Swizzle trait.
@@ -576,7 +570,6 @@ macro_rules! swizzle {
     };
 }
 
-#[cfg(feature = "swizzle")]
 impl<T, const N: usize> ColumnVector<T, N>
 where
     T: Clone,
@@ -859,13 +852,13 @@ mod tests {
         // Incident straight on to the surface.
         let v = column_vector!(1, 0);
         let n = column_vector!(-1, 0);
-        let r = v.reflect(n);
+        let r = v.reflect(unsafe { Unit::new_unchecked(n) });
         assert_eq!(r, column_vector!(-1, 0));
 
         // Incident at 45 degree angle to the surface.
         let v = column_vector!(1, 1);
         let n = column_vector!(-1, 0);
-        let r = v.reflect(n);
+        let r = v.reflect(unsafe { Unit::new_unchecked(n) });
         assert_eq!(r, column_vector!(-1, 1));
     }
 }

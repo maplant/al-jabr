@@ -415,6 +415,13 @@ pub struct Vector1<S> {
     pub x: S,
 }
 
+impl<T> Vector1<T> {
+    /// Extend the vector into a [Vector2].
+    pub fn extend(self, y: T) -> Vector2<T> {
+        Vector2::new(self.x, y)
+    }
+}
+
 implement_vector!(Vector1, 1, x);
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
@@ -426,6 +433,18 @@ pub struct Vector2<S> {
     pub x: S,
     /// The y component of the vector.
     pub y: S,
+}
+
+impl<T> Vector2<T> {
+    /// Drop the y component of the vector, creating a [Vector1].
+    pub fn truncate(self) -> Vector1<T> {
+        Vector1::new(self.x)
+    }
+
+    /// Extend the vector into a [Vector3].
+    pub fn extend(self, z: T) -> Vector3<T> {
+        Vector3::new(self.x, self.y, z)
+    }
 }
 
 impl<T> Vector2<T>
@@ -456,6 +475,18 @@ pub struct Vector3<S> {
     pub y: S,
     /// The z component of the vector.
     pub z: S,
+}
+
+impl<T> Vector3<T> {
+    /// Drop the z component of the vector, creating a [Vector2].
+    pub fn truncate(self) -> Vector2<T> {
+        Vector2::new(self.x, self.y)
+    }
+
+    /// Extend the vector into a [Vector4].
+    pub fn extend(self, w: T) -> Vector4<T> {
+        Vector4::new(self.x, self.y, self.z, w)
+    }
 }
 
 impl<T> Vector3<T>
@@ -518,6 +549,13 @@ pub struct Vector4<S> {
     pub w: S,
 }
 
+impl<T> Vector4<T> {
+    /// Drop the w component of the vector, creating a [Vector3].
+    pub fn truncate(self) -> Vector3<T> {
+        Vector3::new(self.x, self.y, self.z)
+    }
+}
+
 impl<T> Vector4<T>
 where
     T: One + Zero,
@@ -544,6 +582,85 @@ where
 }
 
 implement_vector!(Vector4, 4, x, y, z, w);
+
+// Generates all the 2, 3, and 4-level swizzle functions.
+// Checkout out column_vector.rs for a better description of how this works.
+macro_rules! swizzle {
+    ($a:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
+        swizzle!{ $a, $x, $x, $y, $z, $w }
+        swizzle!{ $a, $y, $x, $y, $z, $w }
+        swizzle!{ $a, $z, $x, $y, $z, $w }
+        swizzle!{ $a, $w, $x, $y, $z, $w }
+    };
+
+    ($a:ident, $b:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
+        paste::item! {
+            #[doc(hidden)]
+            pub fn [< $a $b >](&self) -> Vector2<T> {
+                Vector2::new(
+                    self.$a.clone(),
+                    self.$b.clone(),
+                )
+            }
+        }
+
+        swizzle!{ $a, $b, $x, $x, $y, $z, $w }
+        swizzle!{ $a, $b, $y, $x, $y, $z, $w }
+        swizzle!{ $a, $b, $z, $x, $y, $z, $w }
+        swizzle!{ $a, $b, $w, $x, $y, $z, $w }
+    };
+
+    ($a:ident, $b:ident, $c:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
+        paste::item! {
+            #[doc(hidden)]
+            pub fn [< $a $b $c >](&self) -> Vector3<T> {
+                Vector3::new(
+                    self.$a.clone(),
+                    self.$b.clone(),
+                    self.$c.clone(),
+                )
+            }
+        }
+
+        swizzle!{ $a, $b, $c, $x }
+        swizzle!{ $a, $b, $c, $y }
+        swizzle!{ $a, $b, $c, $z }
+        swizzle!{ $a, $b, $c, $w }
+    };
+
+    ($a:ident, $b:ident, $c:ident, $d:ident) => {
+        paste::item! {
+            #[doc(hidden)]
+            pub fn [< $a $b $c $d >](&self) -> Vector4<T> {
+                Vector4::new(
+                    self.$a.clone(),
+                    self.$b.clone(),
+                    self.$c.clone(),
+                    self.$d.clone(),
+                )
+            }
+        }
+    };
+}
+
+impl<T> Vector3<T>
+where
+    T: Clone,
+{
+    swizzle! {x, x, y, z}
+    swizzle! {y, x, y, z}
+    swizzle! {z, x, y, z}
+}
+
+impl<T> Vector4<T>
+where
+    T: Clone,
+{
+    swizzle! {x, x, y, z, w}
+    swizzle! {y, x, y, z, w}
+    swizzle! {z, x, y, z, w}
+    swizzle! {w, x, y, z, w}
+}
 
 #[cfg(test)]
 mod tests {

@@ -7,6 +7,17 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 ## Unreleased Changes
 These changes are included in `master` but have not been released in a new crate version yet.
 
+## [v0.6.1]
+- Added `look_to_rh`, `look_to_lh`, `look_at_rh` and `look_at_lh` functions for creating view 
+  matrices.
+- Added `perspective_rh` and `perspective_lh` functions for creating perspective matrices.
+- Added `orthographic_rh` and `orthographic_lh` functions for creating orthographic matrices.
+- Added `extend` function to `Vector1`, `Vector2`, and `Vector3`.
+- Added `truncate` function to `Vector2`, `Vector3`, and `Vector4`.
+- Added swizzle functions to small vectors.
+- Removed `swizzle` feature and include swizzling always. 
+- Changed `reflect` method of `InnerSpace` to take a `Unit<Self>` for the `surface_normal`.
+
 ## [v0.6.0]
 - Added `Vector2`, `Vector3` and `Vector4` structs to improve ergonomics while dealing with smaller
   vector types.

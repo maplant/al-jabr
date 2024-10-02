@@ -249,7 +249,7 @@ impl<T> Matrix4<T>
 where
     T: Zero + One + Clone,
 {
-    /// Create a new matrix.
+    /// Create a new 4x4 matrix.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         c0r0: T,
@@ -290,7 +290,12 @@ where
         let Matrix([col4]) = col4;
         Self([col1, col2, col3, col4])
     }
+}
 
+impl<T> Matrix4<T>
+where
+    T: Zero + One + Clone,
+{
     /// Create an affine transformation matrix from a translation vector.
     pub fn from_translation(v: Vector3<T>) -> Self {
         Self([
@@ -314,6 +319,105 @@ where
             [T::zero(), T::zero(), z, T::zero()],
             [T::zero(), T::zero(), T::zero(), T::one()],
         ])
+    }
+}
+
+impl<T> Matrix4<T>
+where
+    T: Real + Zero + One + Clone,
+{
+    /// Create a righ-handed perspective projection matrix.
+    #[rustfmt::skip]
+    pub fn perspective_rh(fov_rad: T, aspect_ratio: T, near: T, far: T)  -> Self {
+        let f = T::one() / fov_rad.div2().tan();
+        Self([
+            [f.clone() / aspect_ratio, T::zero(), T::zero(), T::zero()],
+            [T::zero(), f, T::zero(), T::zero()],
+            [T::zero(), T::zero(), (far.clone() + near.clone()) / (near.clone() - far.clone()), -T::one()],
+            [T::zero(), T::zero(), (far.clone() * near.clone()).mul2() / (near - far), T::zero()]
+        ])
+    }
+
+    /// Create a left-handed perspective projection matrix.
+    #[rustfmt::skip]
+    pub fn perspective_lh(fov_rad: T, aspect_ratio: T, near: T, far: T)  -> Self {
+        let f = T::one() / fov_rad.div2().tan();
+        Self([
+            [f.clone() / aspect_ratio, T::zero(), T::zero(), T::zero()],
+            [T::zero(), f, T::zero(), T::zero()],
+            [T::zero(), T::zero(), (far.clone() + near.clone()) / (far.clone() - near.clone()), T::one()],
+            [T::zero(), T::zero(), -(far.clone() * near.clone()).mul2() / (far - near), T::zero()]
+        ])
+    }
+
+    /// Create a right-handed orthographic projection matrix.
+    #[rustfmt::skip]
+    pub fn orthographic_rh(left: T, right: T, bottom: T, top: T, near: T, far: T) -> Self {
+        let tx = -(left.clone() + right.clone()) / (right.clone() - left.clone());
+        let ty = -(top.clone() + bottom.clone()) / (top.clone() - bottom.clone());
+        let tz = near.clone() / (near.clone() - far.clone());
+        Self([
+            [T::one().mul2() / (right.clone() - left.clone()), T::zero(), T::zero(), T::zero()],
+            [T::zero(), T::one().mul2() / (top.clone() - bottom.clone()), T::zero(), T::zero()],
+            [T::zero(), T::zero(), T::one() / (near - far), T::zero()],
+            [tx, ty, tz, T::one()],
+        ])
+    }
+
+    /// Create a left-handed orthographic projection matrix.
+    #[rustfmt::skip]
+    pub fn orthographic_lh(left: T, right: T, bottom: T, top: T, near: T, far: T) -> Self {
+        let tx = -(left.clone() + right.clone()) / (right.clone() - left.clone());
+        let ty = -(top.clone() + bottom.clone()) / (top.clone() - bottom.clone());
+        let tz = -near.clone() / (far.clone() - near.clone());
+        Self([
+            [T::one().mul2() / (right.clone() - left.clone()), T::zero(), T::zero(), T::zero()],
+            [T::zero(), T::one().mul2() / (top.clone() - bottom.clone()), T::zero(), T::zero()],
+            [T::zero(), T::zero(), T::one() / (far - near), T::zero()],
+            [tx, ty, tz, T::one()],
+        ])
+    }
+
+    /// Create a right-handed view matrix using a camera position, up direction and
+    /// facing direction.
+    pub fn look_to_rh(eye: Point3<T>, dir: Unit<Vector3<T>>, up: Unit<Vector3<T>>) -> Self {
+        let f = dir.into_inner();
+        let up = up.into_inner();
+        let s = f.clone().cross(up).normalize();
+        let u = s.clone().cross(f.clone());
+        let e = eye.to_vec();
+
+        Self([
+            [s.x.clone(), u.x.clone(), -f.x.clone(), T::zero()],
+            [s.y.clone(), u.y.clone(), -f.y.clone(), T::zero()],
+            [s.z.clone(), u.z.clone(), -f.z.clone(), T::zero()],
+            [
+                -e.clone().dot(s),
+                -e.clone().dot(u),
+                -e.clone().dot(f),
+                T::one(),
+            ],
+        ])
+    }
+
+    /// Create a left-handed view matrix using a camera position, up direction and
+    /// facing direction.
+    pub fn look_to_lh(eye: Point3<T>, dir: Unit<Vector3<T>>, up: Unit<Vector3<T>>) -> Self {
+        Self::look_to_rh(eye, unsafe { Unit::new_unchecked(-dir.into_inner()) }, up)
+    }
+
+    /// Create a right-handed view matrix using a camera position, up direction, and
+    /// a point to look at.
+    pub fn look_at_rh(eye: Point3<T>, at: Point3<T>, up: Unit<Vector3<T>>) -> Self {
+        let dir = Unit::new_normalize(at - eye.clone());
+        Self::look_to_rh(eye, dir, up)
+    }
+
+    /// Create a right-handed view matrix using a camera position, up direction, and
+    /// a point to look at.
+    pub fn look_at_lh(eye: Point3<T>, at: Point3<T>, up: Unit<Vector3<T>>) -> Self {
+        let dir = Unit::new_normalize(at - eye.clone());
+        Self::look_to_lh(eye, dir, up)
     }
 }
 

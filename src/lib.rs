@@ -58,7 +58,7 @@
 //! If the scalar type implements [Mul] as well, then the Vector will be an
 //! [InnerSpace] and have the [dot](InnerSpace::dot) product defined for it,
 //! as well as the ability to find the squared distance between two vectors
-//! (implements [MetricSpace]) and  the squared magnitude of a vector. If the
+//! (implements [MetricSpace]) and the squared magnitude of a vector. If the
 //! scalar type is a real number then the  distance between two vectors and
 //! the magnitude of a vector can be found in addition:
 //!
@@ -81,6 +81,17 @@
 //!         .normalize(),
 //!     Vector3::new(0.0f32, 1.0, 0.0)
 //! );
+//! ```
+//!
+//! #### Swizzling
+//!
+//! ColumnVectors of any size and Vectors of size 2, 3 and 4 support
+//! [swizzling](https://en.wikipedia.org/wiki/Swizzling_(computer_graphics)).
+//! The methods are hidden as to not pollute the docs, but are still available:
+//!
+//! ```rust
+//! # use al_jabr::*;
+//! assert_eq!(Vector3::new(1i23, 2, 3).xy(), Vector2::new(1i32, 2));
 //! ```
 //!
 //! ### Points
@@ -194,6 +205,9 @@
 //!     c
 //! );
 //! ```
+//!
+//! Some matrices have special functions defined for them. Check out [Matrix3]
+//! and [Matrix4] for more information.
 
 use core::{
     cmp::PartialOrd,
@@ -350,8 +364,10 @@ where
 {
     fn sqrt(self) -> Self;
 
+    /// Returns twice the value.
     fn mul2(self) -> Self;
 
+    /// Returns half of the value.
     fn div2(self) -> Self;
 
     fn abs(self) -> Self;
@@ -551,7 +567,8 @@ where
     /// surface normal must be of length 1 for the return value to be
     /// correct. The current vector is interpreted as pointing toward the
     /// surface, and does not need to be normalized.
-    fn reflect(self, surface_normal: Self) -> Self {
+    fn reflect(self, surface_normal: Unit<Self>) -> Self {
+        let surface_normal = surface_normal.into_inner();
         let a = surface_normal.clone() * self.clone().dot(surface_normal);
         self - (a.clone() + a)
     }
@@ -632,6 +649,19 @@ where
     /// Construct a new unit object, normalizing the input in the process
     pub fn new_normalize(obj: T) -> Self {
         Unit(obj.normalize())
+    }
+}
+
+impl<T> Unit<T> {
+    /// Construct a new unit object without normalizing
+    ///
+    /// # Safety
+    ///
+    /// This method assumes that the object being passed to it is normalized,
+    /// i.e. has a magnitude of one. If it does not, other methods can break
+    /// in strange ways.
+    pub unsafe fn new_unchecked(obj: T) -> Self {
+        Unit(obj)
     }
 }
 
