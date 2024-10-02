@@ -111,6 +111,15 @@ macro_rules! implement_point {
             }
         }
 
+        impl<T> From<$name<T>> for [T; $size] {
+            fn from(point: $name<T>) -> Self {
+                [
+                    point.x,
+                    $( point.$field, )*
+                ]
+            }
+        }
+
         impl<T> Index<usize> for $name<T> {
             type Output = T;
 
