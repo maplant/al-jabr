@@ -251,23 +251,12 @@ where
 {
     /// Create a new 4x4 matrix.
     #[allow(clippy::too_many_arguments)]
+    #[rustfmt::skip]
     pub fn new(
-        c0r0: T,
-        c0r1: T,
-        c0r2: T,
-        c0r3: T,
-        c1r0: T,
-        c1r1: T,
-        c1r2: T,
-        c1r3: T,
-        c2r0: T,
-        c2r1: T,
-        c2r2: T,
-        c2r3: T,
-        c3r0: T,
-        c3r1: T,
-        c3r2: T,
-        c3r3: T,
+        c0r0: T, c0r1: T, c0r2: T, c0r3: T,
+        c1r0: T, c1r1: T, c1r2: T, c1r3: T,
+        c2r0: T, c2r1: T, c2r2: T, c2r3: T,
+        c3r0: T, c3r1: T, c3r2: T, c3r3: T,
     ) -> Self {
         Self([
             [c0r0, c0r1, c0r2, c0r3],

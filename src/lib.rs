@@ -91,7 +91,7 @@
 //!
 //! ```rust
 //! # use al_jabr::*;
-//! assert_eq!(Vector3::new(1i23, 2, 3).xy(), Vector2::new(1i32, 2));
+//! assert_eq!(Vector3::new(1i32, 2, 3).xy(), Vector2::new(1i32, 2));
 //! ```
 //!
 //! ### Points
