@@ -52,6 +52,15 @@ macro_rules! implement_vector {
             }
         }
 
+        impl<T> From<$name<T>> for [T; $size] {
+            fn from(vec: $name<T>) -> Self {
+                [
+                    vec.x,
+                    $( vec.$field, )*
+                ]
+            }
+        }
+
         impl<T> $name<T> {
             /// Iterate over the components of the vector
             pub fn iter(&self) -> impl Iterator<Item = &T>  {

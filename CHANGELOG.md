@@ -15,6 +15,7 @@ These changes are included in `master` but have not been released in a new crate
 - Added `extend` function to `Vector1`, `Vector2`, and `Vector3`.
 - Added `truncate` function to `Vector2`, `Vector3`, and `Vector4`.
 - Added swizzle functions to small vectors.
+- Added conversion functions from vectors and points into arrays.
 - Removed `swizzle` feature and include swizzling always. 
 - Changed `reflect` method of `InnerSpace` to take a `Unit<Self>` for the `surface_normal`.
 
