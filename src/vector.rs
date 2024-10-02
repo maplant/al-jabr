@@ -534,6 +534,70 @@ where
 
 implement_vector!(Vector3, 3, x, y, z);
 
+macro_rules! swizzle3 {
+    ($a:ident, $x:ident, $y:ident, $z:ident) => {
+        swizzle3!{ second, $a, $x, $x, $y, $z }
+        swizzle3!{ second, $a, $y, $x, $y, $z }
+        swizzle3!{ second, $a, $z, $x, $y, $z }
+    };
+
+    ( second, $a:ident, $b:ident, $x:ident, $y:ident, $z:ident) => {
+        paste::item! {
+            #[doc(hidden)]
+            pub fn [< $a $b >](&self) -> Vector2<T> {
+                Vector2::new(
+                    self.$a.clone(),
+                    self.$b.clone(),
+                )
+            }
+        }
+
+        swizzle3!{ third, $a, $b, $x, $x, $y, $z }
+        swizzle3!{ third, $a, $b, $y, $x, $y, $z }
+        swizzle3!{ third, $a, $b, $z, $x, $y, $z }
+    };
+
+    ( third, $a:ident, $b:ident, $c:ident, $x:ident, $y:ident, $z:ident) => {
+        paste::item! {
+            #[doc(hidden)]
+            pub fn [< $a $b $c >](&self) -> Vector3<T> {
+                Vector3::new(
+                    self.$a.clone(),
+                    self.$b.clone(),
+                    self.$c.clone(),
+                )
+            }
+        }
+
+        swizzle3!{ fourth, $a, $b, $c, $x }
+        swizzle3!{ fourth, $a, $b, $c, $y }
+        swizzle3!{ fourth, $a, $b, $c, $z }
+    };
+
+    ( fourth, $a:ident, $b:ident, $c:ident, $d:ident) => {
+        paste::item! {
+            #[doc(hidden)]
+            pub fn [< $a $b $c $d >](&self) -> Vector4<T> {
+                Vector4::new(
+                    self.$a.clone(),
+                    self.$b.clone(),
+                    self.$c.clone(),
+                    self.$d.clone(),
+                )
+            }
+        }
+    };
+}
+
+impl<T> Vector3<T>
+where
+    T: Clone,
+{
+    swizzle3! {x, x, y, z}
+    swizzle3! {y, x, y, z}
+    swizzle3! {z, x, y, z}
+}
+
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(C)]
@@ -583,14 +647,12 @@ where
 
 implement_vector!(Vector4, 4, x, y, z, w);
 
-// Generates all the 2, 3, and 4-level swizzle functions.
-// Checkout out column_vector.rs for a better description of how this works.
-macro_rules! swizzle {
+macro_rules! swizzle4 {
     ($a:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
-        swizzle!{ $a, $x, $x, $y, $z, $w }
-        swizzle!{ $a, $y, $x, $y, $z, $w }
-        swizzle!{ $a, $z, $x, $y, $z, $w }
-        swizzle!{ $a, $w, $x, $y, $z, $w }
+        swizzle4!{ $a, $x, $x, $y, $z, $w }
+        swizzle4!{ $a, $y, $x, $y, $z, $w }
+        swizzle4!{ $a, $z, $x, $y, $z, $w }
+        swizzle4!{ $a, $w, $x, $y, $z, $w }
     };
 
     ($a:ident, $b:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
@@ -604,10 +666,10 @@ macro_rules! swizzle {
             }
         }
 
-        swizzle!{ $a, $b, $x, $x, $y, $z, $w }
-        swizzle!{ $a, $b, $y, $x, $y, $z, $w }
-        swizzle!{ $a, $b, $z, $x, $y, $z, $w }
-        swizzle!{ $a, $b, $w, $x, $y, $z, $w }
+        swizzle4!{ $a, $b, $x, $x, $y, $z, $w }
+        swizzle4!{ $a, $b, $y, $x, $y, $z, $w }
+        swizzle4!{ $a, $b, $z, $x, $y, $z, $w }
+        swizzle4!{ $a, $b, $w, $x, $y, $z, $w }
     };
 
     ($a:ident, $b:ident, $c:ident, $x:ident, $y:ident, $z:ident, $w:ident) => {
@@ -622,10 +684,10 @@ macro_rules! swizzle {
             }
         }
 
-        swizzle!{ $a, $b, $c, $x }
-        swizzle!{ $a, $b, $c, $y }
-        swizzle!{ $a, $b, $c, $z }
-        swizzle!{ $a, $b, $c, $w }
+        swizzle4!{ $a, $b, $c, $x }
+        swizzle4!{ $a, $b, $c, $y }
+        swizzle4!{ $a, $b, $c, $z }
+        swizzle4!{ $a, $b, $c, $w }
     };
 
     ($a:ident, $b:ident, $c:ident, $d:ident) => {
@@ -643,23 +705,14 @@ macro_rules! swizzle {
     };
 }
 
-impl<T> Vector3<T>
-where
-    T: Clone,
-{
-    swizzle! {x, x, y, z}
-    swizzle! {y, x, y, z}
-    swizzle! {z, x, y, z}
-}
-
 impl<T> Vector4<T>
 where
     T: Clone,
 {
-    swizzle! {x, x, y, z, w}
-    swizzle! {y, x, y, z, w}
-    swizzle! {z, x, y, z, w}
-    swizzle! {w, x, y, z, w}
+    swizzle4! {x, x, y, z, w}
+    swizzle4! {y, x, y, z, w}
+    swizzle4! {z, x, y, z, w}
+    swizzle4! {w, x, y, z, w}
 }
 
 #[cfg(test)]
