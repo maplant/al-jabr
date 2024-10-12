@@ -318,12 +318,30 @@ where
     /// Create a righ-handed perspective projection matrix.
     #[rustfmt::skip]
     pub fn perspective_rh(fov_rad: T, aspect_ratio: T, near: T, far: T)  -> Self {
-        let f = T::one() / fov_rad.div2().tan();
+        let (sin_fov, cos_fov) = fov_rad.div2().sin_cos();
+        let h = cos_fov / sin_fov;
+        let w = h.clone() / aspect_ratio;
+        let r = far.clone() / (near.clone() - far);
         Self([
-            [f.clone() / aspect_ratio, T::zero(), T::zero(), T::zero()],
+            [w, T::zero(), T::zero(), T::zero()],
+            [T::zero(), h, T::zero(), T::zero()],
+            [T::zero(), T::zero(), r.clone(), -T::one()],
+            [T::zero(), T::zero(), r * near, T::zero()]
+        ])
+    }
+
+    #[rustfmt::skip]
+    pub fn perspective_rh_gl(fov_rad: T, aspect_ratio: T, near: T, far: T)  -> Self {
+        let inv_length = T::one() / (near.clone() - far.clone());
+        let f = T::one() / fov_rad.div2().tan();
+        let a = f.clone() / aspect_ratio;
+        let b = (near.clone() + far.clone()) * inv_length.clone();
+        let c = (near.clone() * far.clone()).mul2() * inv_length;
+        Self([
+            [a, T::zero(), T::zero(), T::zero()],
             [T::zero(), f, T::zero(), T::zero()],
-            [T::zero(), T::zero(), (far.clone() + near.clone()) / (near.clone() - far.clone()), -T::one()],
-            [T::zero(), T::zero(), (far.clone() * near.clone()).mul2() / (near - far), T::zero()]
+            [T::zero(), T::zero(), b, -T::one()],
+            [T::zero(), T::zero(), c, T::zero()]
         ])
     }
 
@@ -383,7 +401,7 @@ where
             [
                 -e.clone().dot(s),
                 -e.clone().dot(u),
-                -e.clone().dot(f),
+                e.clone().dot(f),
                 T::one(),
             ],
         ])

@@ -7,6 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 ## Unreleased Changes
 These changes are included in `master` but have not been released in a new crate version yet.
 
+## [v0.6.2]
+- Fix `look_to_rh` function.
+
 ## [v0.6.1]
 - Added `look_to_rh`, `look_to_lh`, `look_at_rh` and `look_at_lh` functions for creating view 
   matrices.

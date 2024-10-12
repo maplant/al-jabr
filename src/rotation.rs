@@ -230,7 +230,7 @@ impl<T> Quaternion<T> {
 
 impl<T> Quaternion<T>
 where
-    T: Real + Clone,
+    T: Real + Clone + std::fmt::Debug,
 {
     /// Constructs the rotation as a rotation along an axis.
     pub fn from_axis_angle(axis: Vector3<T>, angle: T) -> Self {
