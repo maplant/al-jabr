@@ -527,9 +527,10 @@ where
     Self: Sub<Self>,
     Self: Mul<Self>,
     Self: Mul<ColumnVector4<T>, Output = ColumnVector4<T>>,
+    T: std::fmt::Debug,
 {
     /// Takes an affine matrix and returns the decomposition of it.
-    pub fn to_scale_rotation_translation(&self) -> (Vector3<T>, Quaternion<T>, Vector3<T>) {
+    pub fn to_scale_rotation_translation(&self) -> (Vector3<T>, Unit<Quaternion<T>>, Vector3<T>) {
         let det = self.determinant();
 
         let scale = Vector3::new(
@@ -548,12 +549,42 @@ where
             column_vector!(xx, xy, xz),
             column_vector!(yx, yy, yz),
             column_vector!(zx, zy, zz),
-        ])));
+        ])))
+        .into_unit();
 
         let [x, y, z, _] = self[3];
         let translation = Vector3::new(x, y, z);
 
         (scale, rotation, translation)
+    }
+
+    pub fn from_scale_rotation_translation(
+        scale: Vector3<T>,
+        rot: Unit<Quaternion<T>>,
+        trans: Vector3<T>,
+    ) -> Self {
+        let Quaternion {
+            s,
+            v: Vector3 { x, y, z },
+        } = rot.into_inner();
+        let xx = x * x.mul2();
+        let xy = x * y.mul2();
+        let xz = x * z.mul2();
+        let yy = y * y.mul2();
+        let yz = y * z.mul2();
+        let zz = z * z.mul2();
+        let sx = s * x.mul2();
+        let sy = s * y.mul2();
+        let sz = s * z.mul2();
+        let x_axis = ColumnVector4::from([T::one() - (yy + zz), xy + sz, xz - sy, T::zero()]);
+        let y_axis = ColumnVector4::from([xy - sz, T::one() - (xx + zz), yz + sx, T::zero()]);
+        let z_axis = ColumnVector4::from([xz + sy, yz - sx, T::one() - (xx + yy), T::zero()]);
+        Self::from_cols(
+            x_axis * scale.x,
+            y_axis * scale.y,
+            z_axis * scale.z,
+            ColumnVector::from([trans.x, trans.y, trans.z, T::one()]),
+        )
     }
 }
 
