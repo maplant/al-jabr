@@ -261,20 +261,20 @@ where
                 let four_xsq = omm22 - dif10;
                 let inv4x = four_xsq.sqrt().div2();
                 Self::new(
+                    (m12 - m21) * inv4x,
                     four_xsq * inv4x,
                     (m01 + m10) * inv4x,
                     (m02 + m20) * inv4x,
-                    (m12 - m21) * inv4x,
                 )
             } else {
                 // y^2 >= x^2
                 let four_ysq = omm22 + dif10;
                 let inv4y = four_ysq.sqrt().div2();
                 Self::new(
+                    (m20 - m02) * inv4y,
                     (m01 + m10) * inv4y,
                     four_ysq * inv4y,
                     (m12 + m21) * inv4y,
-                    (m20 - m02) * inv4y,
                 )
             }
         } else {
@@ -286,20 +286,20 @@ where
                 let four_zsq = opm22 - sum10;
                 let inv4z = four_zsq.sqrt().div2();
                 Self::new(
+                    (m01 - m10) * inv4z,
                     (m02 + m20) * inv4z,
                     (m12 + m21) * inv4z,
                     four_zsq * inv4z,
-                    (m01 - m10) * inv4z,
                 )
             } else {
                 // w^2 >= z^2
                 let four_wsq = opm22 + sum10;
                 let inv4w = four_wsq.sqrt().div2();
                 Self::new(
+                    four_wsq * inv4w,
                     (m12 - m21) * inv4w,
                     (m20 - m02) * inv4w,
                     (m01 - m10) * inv4w,
-                    four_wsq * inv4w,
                 )
             }
         }
