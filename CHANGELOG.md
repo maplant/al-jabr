@@ -7,9 +7,13 @@ This project adheres to [Semantic Versioning](http://semver.org/) as of version 
 ## Unreleased Changes
 These changes are included in `master` but have not been released in a new crate version yet.
 
+## [v0.6.4]
+- Add `Default` impl to `Vectors`.
+- Add `Default` impl to `Points`.
+
 ## [v0.6.3]
-- Fix `to_scale_rotation_translation` function 
-- Add `from_scale_rotation_translation` function
+- Fix `to_scale_rotation_translation` function.
+- Add `from_scale_rotation_translation` function.
 
 ## [v0.6.2]
 - Fix `look_to_rh` function.

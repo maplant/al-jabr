@@ -92,6 +92,12 @@ macro_rules! implement_point {
             }
         }
 
+        impl<T: Zero> Default for $name<T> {
+            fn default() -> Self {
+                Self::origin()
+            }
+        }
+
         impl<T> IntoIterator for $name<T> {
             type Item = T;
             type IntoIter = std::array::IntoIter<T, $size>;
