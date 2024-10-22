@@ -42,6 +42,15 @@ macro_rules! implement_vector {
             }
         }
 
+        impl<T> Default for $name<T>
+        where
+            T: Zero,
+        {
+            fn default() -> Self {
+                Self::zero()
+            }
+        }
+
         impl<T> From<[T; $size]> for $name<T> {
             fn from(arr: [T; $size]) -> Self {
                 let [ x, $( $field, )* ] = arr;
